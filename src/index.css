@@ -1,111 +1,86 @@
+@import "tailwindcss";
+
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  --accent: #CCFF00;
+  --on-accent: #111508;
+  --navbar: #111508;   /* sfondo TopBar + Footer, personalizzabile da Colori */
+  --body-bg: #111508;  /* sfondo del body, personalizzabile da Colori */
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  /* ── Token semantici (valori tema SCURO) ──────────────────────────────────
+     Il tema chiaro sovrascrive questi valori più sotto, in [data-theme="light"].
+     data-theme viene impostato in base alla luminosità dello sfondo scelto. */
+  --text: #ffffff;         /* testo principale (ex text-white) */
+  --text-muted: #9ca3af;   /* ex text-gray-400 */
+  --text-dim: #6b7280;     /* ex text-gray-500 */
+  --text-faint: #4b5563;   /* ex text-gray-600 */
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  --surface: #1a1e0f;      /* card (ex bg-[#1a1e0f]) */
+  --surface-2: #111508;    /* input / sfondo profondo (ex bg-[#111508]) */
+  --surface-3: #202512;    /* hover card (ex bg-[#202512]) */
 
-  @media (max-width: 1024px) {
-    font-size: 16px;
+  --fill-1: rgba(255, 255, 255, 0.05);  /* ex bg-white/5 */
+  --fill-2: rgba(255, 255, 255, 0.10);  /* ex bg-white/10 */
+
+  --border-1: rgba(255, 255, 255, 0.05);  /* ex border-white/5 */
+  --border-2: rgba(255, 255, 255, 0.10);  /* ex border-white/10 */
+  --border-3: rgba(255, 255, 255, 0.20);  /* ex border-white/20 */
+  --border-4: rgba(255, 255, 255, 0.30);  /* ex border-white/30 */
+  --border-solid: #ffffff;                /* ex border-white */
+
+  --track: #1f2937;                    /* barra progresso (ex bg-gray-800) */
+  --ring-track: rgba(255, 255, 255, 0.07); /* traccia anelli RingChart */
+}
+
+/* ── Tema CHIARO: attivo quando lo sfondo app è chiaro ──────────────────────── */
+:root[data-theme="light"] {
+  --text: #1a1e0f;
+  --text-muted: #4b5563;
+  --text-dim: #6b7280;
+  --text-faint: #9ca3af;
+
+  --surface: #ffffff;
+  --surface-2: #eef0e8;
+  --surface-3: #e4e6dc;
+
+  --fill-1: rgba(0, 0, 0, 0.04);
+  --fill-2: rgba(0, 0, 0, 0.08);
+
+  --border-1: rgba(0, 0, 0, 0.06);
+  --border-2: rgba(0, 0, 0, 0.10);
+  --border-3: rgba(0, 0, 0, 0.16);
+  --border-4: rgba(0, 0, 0, 0.22);
+  --border-solid: #1a1e0f;
+
+  --track: #d1d5db;
+  --ring-track: rgba(0, 0, 0, 0.08);
+}
+
+/* Rimuove le frecce dagli input numerici su tutti i browser */
+input[type='number'] { -moz-appearance: textfield; }
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+@keyframes drainBar {
+  from { width: 100% }
+  to   { width: 0% }
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
   }
-}
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+  body {
+    background-color: var(--body-bg);
+    font-family: 'Inter', sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;   /* evita scrollbar orizzontale dalla header full-bleed */
   }
 
-  #social .button-icon {
-    filter: invert(1) brightness(2);
+  #root {
+    min-height: 100vh;
   }
-}
-
-body {
-  margin: 0;
-}
-
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-}
-
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
-}
-
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
-  margin: 0;
-}
-
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
-}
-
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
 }
