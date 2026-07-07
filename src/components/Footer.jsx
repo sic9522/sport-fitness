@@ -2,18 +2,18 @@ import { NavLink } from 'react-router-dom'
 import {
   IoHomeOutline, IoHome,
   IoRestaurantOutline, IoRestaurant,
-  IoChatbubbleEllipsesOutline, IoChatbubbleEllipses,
+  IoStopwatchOutline, IoStopwatch,
   IoBarbell,
   IoSettingsOutline, IoSettings,
 } from 'react-icons/io5'
 import { useLang } from '../context/LanguageContext'
 
 const navItems = [
-  { labelKey: 'nav.palestra',      icon: IoBarbell,                   activeIcon: IoBarbell,            path: '/palestra' },
-  { labelKey: 'nav.alimentazione', icon: IoRestaurantOutline,         activeIcon: IoRestaurant,         path: '/alimentazione' },
-  { labelKey: 'nav.home',          icon: IoHomeOutline,               activeIcon: IoHome,               path: '/',             end: true },
-  { labelKey: 'nav.aichat',        icon: IoChatbubbleEllipsesOutline, activeIcon: IoChatbubbleEllipses, path: '/ai-chat' },
-  { labelKey: 'nav.impostazioni',  icon: IoSettingsOutline,           activeIcon: IoSettings,           path: '/impostazioni' },
+  { labelKey: 'nav.palestra',      icon: IoBarbell,           activeIcon: IoBarbell,     path: '/palestra' },
+  { labelKey: 'nav.alimentazione', icon: IoRestaurantOutline, activeIcon: IoRestaurant,  path: '/alimentazione' },
+  { labelKey: 'nav.home',          icon: IoHomeOutline,       activeIcon: IoHome,        path: '/',             end: true },
+  { labelKey: 'nav.timer',         icon: IoStopwatchOutline,  activeIcon: IoStopwatch,   path: '/timer' },
+  { labelKey: 'nav.impostazioni',  icon: IoSettingsOutline,   activeIcon: IoSettings,    path: '/impostazioni' },
 ]
 
 function Footer() {

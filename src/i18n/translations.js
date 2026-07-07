@@ -18,12 +18,13 @@ export const translations = {
     'common.applied': '✓ Applicato!',
     'common.cancel': 'Annulla',
     'common.add': 'Aggiungi',
+    'common.save': 'Salva',
 
     // Navbar
     'nav.palestra': 'Palestra',
     'nav.alimentazione': 'Alimentazione',
     'nav.home': 'Home',
-    'nav.aichat': 'AI Chat',
+    'nav.timer': 'Recupero',
     'nav.impostazioni': 'Impostazioni',
 
     // Titoli TopBar (maiuscolo)
@@ -31,6 +32,16 @@ export const translations = {
     'title.colors': 'COLORI',
     'title.goals': 'OBIETTIVI',
     'title.language': 'LINGUA',
+    'title.timer': 'RECUPERO',
+    'title.myworkout': 'MYWORKOUT',
+    'brand.app': 'FITPULSE',
+
+    // Timer di recupero
+    'timer.rest': 'Tempo di recupero',
+    'timer.start': 'Avvia',
+    'timer.pause': 'Pausa',
+    'timer.resume': 'Riprendi',
+    'timer.from': 'da {time}',
 
     // Periodi (tab)
     'period.daily': 'Giornaliero',
@@ -50,6 +61,21 @@ export const translations = {
     'palestra.exercises': '{count} esercizi',
     'palestra.weeklyProgress': 'Progresso settimanale',
     'palestra.completed': '{done} su {total} allenamenti completati questa settimana',
+    'palestra.newDefault': 'Nuova scheda',
+    'palestra.noExercises': 'Nessun esercizio ancora',
+    'palestra.addExercise': 'Aggiungi esercizio',
+
+    // Menu scheda + conferme
+    'menu.edit': 'Modifica',
+    'menu.delete': 'Elimina',
+    'confirm.deleteScheda': 'Eliminare la scheda «{name}»?',
+    'confirm.irreversible': 'Questa azione non può essere annullata.',
+
+    // Esercizi (dentro la scheda)
+    'esercizio.namePlaceholder': 'es: Panca piana',
+    'esercizio.serie': 'Serie',
+    'esercizio.reps': 'Rip.',
+    'esercizio.reorder': 'Trascina per riordinare',
 
     // Impostazioni
     'settings.h2': 'Impostazioni',
@@ -68,6 +94,7 @@ export const translations = {
     'colors.tab.rings': 'Anelli',
     'colors.preset': 'Preset',
     'colors.custom': 'Personalizzato',
+    'colors.customColor': 'Colore personalizzato',
     'colors.mainColor': 'Colore principale',
     'colors.mainColor.desc': 'Bottoni, anelli attivi, accenti',
     'colors.onAccent': 'Testo sull\'accento',
@@ -117,7 +144,6 @@ export const translations = {
     'goal.weeklyCalories': 'Calorie settimanali',
 
     // Placeholder pagine
-    'page.scheda': 'Scheda',
     'page.profilo': 'Profilo',
     'page.login': 'Accedi',
     'page.registrazione': 'Registrazione',
@@ -128,17 +154,27 @@ export const translations = {
     'common.applied': '✓ Applied!',
     'common.cancel': 'Cancel',
     'common.add': 'Add',
+    'common.save': 'Save',
 
     'nav.palestra': 'Gym',
     'nav.alimentazione': 'Nutrition',
     'nav.home': 'Home',
-    'nav.aichat': 'AI Chat',
+    'nav.timer': 'Rest',
     'nav.impostazioni': 'Settings',
 
     'title.settings': 'SETTINGS',
     'title.colors': 'COLORS',
     'title.goals': 'GOALS',
     'title.language': 'LANGUAGE',
+    'title.timer': 'REST TIMER',
+    'title.myworkout': 'MYWORKOUT',
+    'brand.app': 'FITPULSE',
+
+    'timer.rest': 'Rest time',
+    'timer.start': 'Start',
+    'timer.pause': 'Pause',
+    'timer.resume': 'Resume',
+    'timer.from': 'from {time}',
 
     'period.daily': 'Daily',
     'period.weekly': 'Weekly',
@@ -155,6 +191,19 @@ export const translations = {
     'palestra.exercises': '{count} exercises',
     'palestra.weeklyProgress': 'Weekly progress',
     'palestra.completed': '{done} of {total} workouts completed this week',
+    'palestra.newDefault': 'New plan',
+    'palestra.noExercises': 'No exercises yet',
+    'palestra.addExercise': 'Add exercise',
+
+    'menu.edit': 'Edit',
+    'menu.delete': 'Delete',
+    'confirm.deleteScheda': 'Delete plan “{name}”?',
+    'confirm.irreversible': 'This action cannot be undone.',
+
+    'esercizio.namePlaceholder': 'e.g. Bench press',
+    'esercizio.serie': 'Sets',
+    'esercizio.reps': 'Reps',
+    'esercizio.reorder': 'Drag to reorder',
 
     'settings.h2': 'Settings',
     'settings.subtitle': 'Customize your experience',
@@ -171,6 +220,7 @@ export const translations = {
     'colors.tab.rings': 'Rings',
     'colors.preset': 'Presets',
     'colors.custom': 'Custom',
+    'colors.customColor': 'Custom color',
     'colors.mainColor': 'Main color',
     'colors.mainColor.desc': 'Buttons, active rings, accents',
     'colors.onAccent': 'Text on accent',
@@ -216,7 +266,6 @@ export const translations = {
     'goal.gymHours': 'Hours at gym',
     'goal.weeklyCalories': 'Weekly calories',
 
-    'page.scheda': 'Plan',
     'page.profilo': 'Profile',
     'page.login': 'Log in',
     'page.registrazione': 'Sign up',
@@ -227,17 +276,27 @@ export const translations = {
     'common.applied': '✓ ¡Aplicado!',
     'common.cancel': 'Cancelar',
     'common.add': 'Añadir',
+    'common.save': 'Guardar',
 
     'nav.palestra': 'Gimnasio',
     'nav.alimentazione': 'Nutrición',
     'nav.home': 'Inicio',
-    'nav.aichat': 'AI Chat',
+    'nav.timer': 'Descanso',
     'nav.impostazioni': 'Ajustes',
 
     'title.settings': 'AJUSTES',
     'title.colors': 'COLORES',
     'title.goals': 'OBJETIVOS',
     'title.language': 'IDIOMA',
+    'title.timer': 'DESCANSO',
+    'title.myworkout': 'MYWORKOUT',
+    'brand.app': 'FITPULSE',
+
+    'timer.rest': 'Tiempo de descanso',
+    'timer.start': 'Iniciar',
+    'timer.pause': 'Pausa',
+    'timer.resume': 'Reanudar',
+    'timer.from': 'desde {time}',
 
     'period.daily': 'Diario',
     'period.weekly': 'Semanal',
@@ -254,6 +313,19 @@ export const translations = {
     'palestra.exercises': '{count} ejercicios',
     'palestra.weeklyProgress': 'Progreso semanal',
     'palestra.completed': '{done} de {total} entrenamientos completados esta semana',
+    'palestra.newDefault': 'Nueva rutina',
+    'palestra.noExercises': 'Sin ejercicios aún',
+    'palestra.addExercise': 'Añadir ejercicio',
+
+    'menu.edit': 'Editar',
+    'menu.delete': 'Eliminar',
+    'confirm.deleteScheda': '¿Eliminar la rutina «{name}»?',
+    'confirm.irreversible': 'Esta acción no se puede deshacer.',
+
+    'esercizio.namePlaceholder': 'ej: Press de banca',
+    'esercizio.serie': 'Series',
+    'esercizio.reps': 'Reps',
+    'esercizio.reorder': 'Arrastra para reordenar',
 
     'settings.h2': 'Ajustes',
     'settings.subtitle': 'Personaliza tu experiencia',
@@ -270,6 +342,7 @@ export const translations = {
     'colors.tab.rings': 'Anillos',
     'colors.preset': 'Preajustes',
     'colors.custom': 'Personalizado',
+    'colors.customColor': 'Color personalizado',
     'colors.mainColor': 'Color principal',
     'colors.mainColor.desc': 'Botones, anillos activos, acentos',
     'colors.onAccent': 'Texto sobre el acento',
@@ -315,7 +388,6 @@ export const translations = {
     'goal.gymHours': 'Horas de gimnasio',
     'goal.weeklyCalories': 'Calorías semanales',
 
-    'page.scheda': 'Rutina',
     'page.profilo': 'Perfil',
     'page.login': 'Iniciar sesión',
     'page.registrazione': 'Registro',
@@ -326,17 +398,27 @@ export const translations = {
     'common.applied': '✓ Appliqué !',
     'common.cancel': 'Annuler',
     'common.add': 'Ajouter',
+    'common.save': 'Enregistrer',
 
     'nav.palestra': 'Salle',
     'nav.alimentazione': 'Nutrition',
     'nav.home': 'Accueil',
-    'nav.aichat': 'AI Chat',
+    'nav.timer': 'Récup',
     'nav.impostazioni': 'Réglages',
 
     'title.settings': 'RÉGLAGES',
     'title.colors': 'COULEURS',
     'title.goals': 'OBJECTIFS',
     'title.language': 'LANGUE',
+    'title.timer': 'RÉCUP',
+    'title.myworkout': 'MYWORKOUT',
+    'brand.app': 'FITPULSE',
+
+    'timer.rest': 'Temps de récup',
+    'timer.start': 'Démarrer',
+    'timer.pause': 'Pause',
+    'timer.resume': 'Reprendre',
+    'timer.from': 'depuis {time}',
 
     'period.daily': 'Quotidien',
     'period.weekly': 'Hebdomadaire',
@@ -353,6 +435,19 @@ export const translations = {
     'palestra.exercises': '{count} exercices',
     'palestra.weeklyProgress': 'Progrès hebdomadaire',
     'palestra.completed': '{done} sur {total} séances terminées cette semaine',
+    'palestra.newDefault': 'Nouveau programme',
+    'palestra.noExercises': 'Aucun exercice pour l\'instant',
+    'palestra.addExercise': 'Ajouter un exercice',
+
+    'menu.edit': 'Modifier',
+    'menu.delete': 'Supprimer',
+    'confirm.deleteScheda': 'Supprimer le programme « {name} » ?',
+    'confirm.irreversible': 'Cette action est irréversible.',
+
+    'esercizio.namePlaceholder': 'ex : Développé couché',
+    'esercizio.serie': 'Séries',
+    'esercizio.reps': 'Rép.',
+    'esercizio.reorder': 'Glisser pour réordonner',
 
     'settings.h2': 'Réglages',
     'settings.subtitle': 'Personnalise ton expérience',
@@ -369,6 +464,7 @@ export const translations = {
     'colors.tab.rings': 'Anneaux',
     'colors.preset': 'Préréglages',
     'colors.custom': 'Personnalisé',
+    'colors.customColor': 'Couleur personnalisée',
     'colors.mainColor': 'Couleur principale',
     'colors.mainColor.desc': 'Boutons, anneaux actifs, accents',
     'colors.onAccent': 'Texte sur l\'accent',
@@ -414,7 +510,6 @@ export const translations = {
     'goal.gymHours': 'Heures de gym',
     'goal.weeklyCalories': 'Calories hebdomadaires',
 
-    'page.scheda': 'Programme',
     'page.profilo': 'Profil',
     'page.login': 'Connexion',
     'page.registrazione': 'Inscription',
@@ -425,17 +520,27 @@ export const translations = {
     'common.applied': '✓ 已应用！',
     'common.cancel': '取消',
     'common.add': '添加',
+    'common.save': '保存',
 
     'nav.palestra': '健身房',
     'nav.alimentazione': '营养',
     'nav.home': '主页',
-    'nav.aichat': 'AI 聊天',
+    'nav.timer': '休息',
     'nav.impostazioni': '设置',
 
     'title.settings': '设置',
     'title.colors': '颜色',
     'title.goals': '目标',
     'title.language': '语言',
+    'title.timer': '休息计时',
+    'title.myworkout': 'MYWORKOUT',
+    'brand.app': 'FITPULSE',
+
+    'timer.rest': '休息时间',
+    'timer.start': '开始',
+    'timer.pause': '暂停',
+    'timer.resume': '继续',
+    'timer.from': '从 {time}',
 
     'period.daily': '每日',
     'period.weekly': '每周',
@@ -452,6 +557,19 @@ export const translations = {
     'palestra.exercises': '{count} 个动作',
     'palestra.weeklyProgress': '每周进度',
     'palestra.completed': '本周已完成 {done}/{total} 次训练',
+    'palestra.newDefault': '新计划',
+    'palestra.noExercises': '还没有动作',
+    'palestra.addExercise': '添加动作',
+
+    'menu.edit': '编辑',
+    'menu.delete': '删除',
+    'confirm.deleteScheda': '删除计划“{name}”？',
+    'confirm.irreversible': '此操作无法撤销。',
+
+    'esercizio.namePlaceholder': '例: 卧推',
+    'esercizio.serie': '组数',
+    'esercizio.reps': '次数',
+    'esercizio.reorder': '拖动以重新排序',
 
     'settings.h2': '设置',
     'settings.subtitle': '个性化你的体验',
@@ -468,6 +586,7 @@ export const translations = {
     'colors.tab.rings': '圆环',
     'colors.preset': '预设',
     'colors.custom': '自定义',
+    'colors.customColor': '自定义颜色',
     'colors.mainColor': '主色',
     'colors.mainColor.desc': '按钮、活动圆环、强调色',
     'colors.onAccent': '强调色上的文字',
@@ -513,7 +632,6 @@ export const translations = {
     'goal.gymHours': '健身时长',
     'goal.weeklyCalories': '每周卡路里',
 
-    'page.scheda': '计划',
     'page.profilo': '个人资料',
     'page.login': '登录',
     'page.registrazione': '注册',
