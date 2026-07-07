@@ -2,11 +2,13 @@ import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { IoColorPaletteOutline } from 'react-icons/io5'
 import { useTheme } from '../context/ThemeContext'
+import { useLang } from '../context/LanguageContext'
 
 const DELAY = 5000
 
 function ThemePicker() {
   const { theme, setTheme, themes } = useTheme()
+  const { t } = useLang()
   const [open, setOpen] = useState(false)
   const [timerKey, setTimerKey] = useState(0)
   const [timerActive, setTimerActive] = useState(false)
@@ -96,7 +98,7 @@ function ThemePicker() {
                 style={{
                   background: 'conic-gradient(from 0deg, #ff0000, #ff8800, #ffff00, #00cc00, #0088ff, #8800ff, #ff0000)',
                 }}
-                title="Colore personalizzato"
+                title={t('colors.customColor')}
               />
             </div>
 

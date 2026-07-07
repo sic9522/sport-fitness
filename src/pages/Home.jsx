@@ -53,7 +53,7 @@ function Home() {
 
   return (
     <div className="flex flex-col pb-28">
-      <TopBar icon={IoFlash} title="FITPULSE" titleLink="/" />
+      <TopBar icon={IoFlash} title={t('brand.app')} titleLink="/" />
 
       {/* Greeting */}
       <div className="px-5 pt-5 pb-2">
