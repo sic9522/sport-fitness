@@ -3,7 +3,7 @@ import { IoFlash } from 'react-icons/io5'
 import TopBar from '../components/TopBar'
 import RingChart from '../components/RingChart'
 import GoalCard from '../components/GoalCard'
-import { DEFAULT_RINGS } from '../data/ringDefaults'
+import { loadRings } from '../data/ringDefaults'
 import { DEFAULT_GOALS } from '../data/goalDefaults'
 import { useLang } from '../context/LanguageContext'
 
@@ -26,10 +26,7 @@ function loadGoals() {
 }
 
 function Home() {
-  const [rings] = useState(() => {
-    const saved = localStorage.getItem('fitpulse-ring-config')
-    return (saved ? JSON.parse(saved) : DEFAULT_RINGS).slice(0, 3)
-  })
+  const [rings] = useState(loadRings)
 
   const [goals] = useState(loadGoals)
   const [activeCategory, setActiveCategory] = useState('daily')
@@ -73,7 +70,7 @@ function Home() {
             <div key={ring.id} className="flex flex-col items-center gap-1">
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: ring.color }} />
-                <span className="text-xs text-[color:var(--text-muted)]">{ring.label}</span>
+                <span className="text-xs text-[color:var(--text-muted)]">{ring.labelKey ? t(ring.labelKey) : ring.label}</span>
               </div>
               <span className="text-sm font-bold">
                 {ring.current}

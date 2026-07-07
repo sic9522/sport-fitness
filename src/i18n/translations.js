@@ -108,6 +108,18 @@ export const translations = {
     // Lingua
     'language.subtitle': 'Scegli la lingua dell\'app',
 
+    // Nomi di default (anelli + obiettivi)
+    'ring.calorie': 'Calorie',
+    'ring.acqua': 'Acqua',
+    'ring.workout': 'Workout',
+    'goal.calorieEaten': 'Calorie consumate',
+    'goal.waterDrunk': 'Acqua bevuta',
+    'goal.workoutMin': 'Minuti allenamento',
+    'goal.gymHours': 'Ore in palestra',
+    'goal.weeklyCalories': 'Calorie settimanali',
+    'goal.loseWeight': 'Perdere peso',
+    'goal.muscleMass': 'Massa muscolare',
+
     // Placeholder pagine
     'page.scheda': 'Scheda',
     'page.profilo': 'Profilo',
@@ -201,6 +213,17 @@ export const translations = {
 
     'language.subtitle': 'Choose the app language',
 
+    'ring.calorie': 'Calories',
+    'ring.acqua': 'Water',
+    'ring.workout': 'Workout',
+    'goal.calorieEaten': 'Calories eaten',
+    'goal.waterDrunk': 'Water drunk',
+    'goal.workoutMin': 'Workout minutes',
+    'goal.gymHours': 'Hours at gym',
+    'goal.weeklyCalories': 'Weekly calories',
+    'goal.loseWeight': 'Lose weight',
+    'goal.muscleMass': 'Muscle mass',
+
     'page.scheda': 'Plan',
     'page.profilo': 'Profile',
     'page.login': 'Log in',
@@ -292,6 +315,17 @@ export const translations = {
     'goals.save': 'Guardar cambios',
 
     'language.subtitle': 'Elige el idioma de la app',
+
+    'ring.calorie': 'Calorías',
+    'ring.acqua': 'Agua',
+    'ring.workout': 'Entrenamiento',
+    'goal.calorieEaten': 'Calorías consumidas',
+    'goal.waterDrunk': 'Agua bebida',
+    'goal.workoutMin': 'Minutos de entrenamiento',
+    'goal.gymHours': 'Horas de gimnasio',
+    'goal.weeklyCalories': 'Calorías semanales',
+    'goal.loseWeight': 'Perder peso',
+    'goal.muscleMass': 'Masa muscular',
 
     'page.scheda': 'Rutina',
     'page.profilo': 'Perfil',
@@ -385,6 +419,17 @@ export const translations = {
 
     'language.subtitle': 'Choisis la langue de l\'app',
 
+    'ring.calorie': 'Calories',
+    'ring.acqua': 'Eau',
+    'ring.workout': 'Entraînement',
+    'goal.calorieEaten': 'Calories consommées',
+    'goal.waterDrunk': 'Eau bue',
+    'goal.workoutMin': 'Minutes d\'entraînement',
+    'goal.gymHours': 'Heures de gym',
+    'goal.weeklyCalories': 'Calories hebdomadaires',
+    'goal.loseWeight': 'Perdre du poids',
+    'goal.muscleMass': 'Masse musculaire',
+
     'page.scheda': 'Programme',
     'page.profilo': 'Profil',
     'page.login': 'Connexion',
@@ -476,6 +521,17 @@ export const translations = {
     'goals.save': '保存更改',
 
     'language.subtitle': '选择应用语言',
+
+    'ring.calorie': '卡路里',
+    'ring.acqua': '水',
+    'ring.workout': '训练',
+    'goal.calorieEaten': '已摄入卡路里',
+    'goal.waterDrunk': '已喝水量',
+    'goal.workoutMin': '训练分钟',
+    'goal.gymHours': '健身时长',
+    'goal.weeklyCalories': '每周卡路里',
+    'goal.loseWeight': '减重',
+    'goal.muscleMass': '肌肉量',
 
     'page.scheda': '计划',
     'page.profilo': '个人资料',

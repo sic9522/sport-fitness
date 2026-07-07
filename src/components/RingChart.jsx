@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useLang } from '../context/LanguageContext'
 
 function Ring({ cx, cy, r, strokeWidth, progress, color, onClick }) {
   const circumference = 2 * Math.PI * r
@@ -33,6 +34,7 @@ const RING_CONFIGS = {
 }
 
 function RingChart({ rings }) {
+  const { t } = useLang()
   const [selectedIndex, setSelectedIndex] = useState(0)
 
   const count = Math.min(Math.max(rings.length, 1), 3)
@@ -68,7 +70,7 @@ function RingChart({ rings }) {
           {pct}%
         </span>
         <span className="text-[color:var(--text-muted)] text-xs mt-0.5 transition-all duration-300">
-          {selected.label}
+          {selected.labelKey ? t(selected.labelKey) : selected.label}
         </span>
       </div>
     </div>

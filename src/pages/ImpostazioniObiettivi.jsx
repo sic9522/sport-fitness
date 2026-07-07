@@ -7,6 +7,9 @@ import { DEFAULT_GOALS } from '../data/goalDefaults'
 
 const MAX_GOALS = 5
 
+// Unità di misura fisse (simboli universali, non tradotte)
+const UNITS = ['Kcal', 'g', 'l', 'min', 'h']
+
 const SECTIONS = [
   { key: 'daily',   labelKey: 'goals.daily',   tabKey: 'period.daily'   },
   { key: 'weekly',  labelKey: 'goals.weekly',  tabKey: 'period.weekly'  },
@@ -31,7 +34,7 @@ function GoalRow({ goal, onEdit, onDelete }) {
     <div className="bg-[var(--surface)] rounded-xl px-4 py-3 flex items-center gap-3">
       <span className="text-xl shrink-0">{goal.emoji}</span>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">{goal.title}</p>
+        <p className="text-sm font-medium truncate">{goal.titleKey ? t(goal.titleKey) : goal.title}</p>
         <p className="text-xs text-[color:var(--text-dim)] mt-0.5">
           {t('goals.target', { target: goal.target, unit: goal.unit })}
         </p>
@@ -78,7 +81,7 @@ function GoalEditRow({ goal, onChange, onDone }) {
         <input type="text" value={goal.emoji} maxLength={2}
           onChange={e => onChange('emoji', e.target.value)}
           className={`${inputCls} w-10 text-center text-base shrink-0`} />
-        <input type="text" value={goal.title} placeholder={t('goals.name')}
+        <input type="text" value={goal.titleKey ? t(goal.titleKey) : goal.title} placeholder={t('goals.name')}
           onChange={e => onChange('title', e.target.value)}
           className={`${inputCls} flex-1 min-w-0`} />
         <button onClick={onDone}
@@ -97,9 +100,11 @@ function GoalEditRow({ goal, onChange, onDone }) {
           onChange={handleTarget}
           className={`${inputCls} flex-1 min-w-0`}
         />
-        <input type="text" value={goal.unit} placeholder={t('goals.unit')}
-          onChange={e => onChange('unit', e.target.value)}
-          className={`${inputCls} w-20 shrink-0`} />
+        <select value={goal.unit} onChange={e => onChange('unit', e.target.value)}
+          className={`${inputCls} w-20 shrink-0`}>
+          {!UNITS.includes(goal.unit) && goal.unit && <option value={goal.unit}>{goal.unit}</option>}
+          {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+        </select>
       </div>
     </div>
   )
@@ -108,7 +113,7 @@ function GoalEditRow({ goal, onChange, onDone }) {
 // ─── Form aggiunta ────────────────────────────────────────────────────────────
 function AddGoalForm({ onAdd, onCancel }) {
   const { t } = useLang()
-  const [draft, setDraft] = useState({ emoji: '🎯', title: '', target: '', unit: '' })
+  const [draft, setDraft] = useState({ emoji: '🎯', title: '', target: '', unit: UNITS[0] })
   const update = (f, v) => setDraft(p => ({ ...p, [f]: v }))
 
   function submit() {
@@ -137,9 +142,11 @@ function AddGoalForm({ onAdd, onCancel }) {
         <input type="number" value={draft.target} placeholder={t('goals.targetPh')}
           onChange={e => update('target', e.target.value)}
           className="flex-1 bg-[var(--surface-2)] border border-[color:var(--border-2)] rounded-lg px-3 py-2 text-sm text-[color:var(--text)] outline-none focus:border-[color:var(--border-4)]" />
-        <input type="text" value={draft.unit} placeholder={t('goals.unitEx')}
+        <select value={draft.unit}
           onChange={e => update('unit', e.target.value)}
-          className="w-28 bg-[var(--surface-2)] border border-[color:var(--border-2)] rounded-lg px-3 py-2 text-sm text-[color:var(--text)] outline-none focus:border-[color:var(--border-4)]" />
+          className="w-28 bg-[var(--surface-2)] border border-[color:var(--border-2)] rounded-lg px-3 py-2 text-sm text-[color:var(--text)] outline-none focus:border-[color:var(--border-4)]">
+          {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+        </select>
       </div>
       <div className="flex gap-2">
         <button onClick={onCancel}
@@ -175,7 +182,13 @@ function ImpostazioniObiettivi() {
   function updateGoal(category, id, field, value) {
     setGoals(prev => ({
       ...prev,
-      [category]: prev[category].map(g => g.id === id ? { ...g, [field]: value } : g),
+      [category]: prev[category].map(g => {
+        if (g.id !== id) return g
+        const updated = { ...g, [field]: value }
+        // Modificando il titolo l'obiettivo diventa "personalizzato": niente più traduzione
+        if (field === 'title') delete updated.titleKey
+        return updated
+      }),
     }))
   }
 

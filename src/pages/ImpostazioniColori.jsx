@@ -4,7 +4,7 @@ import TopBar from '../components/TopBar'
 import { useTheme } from '../context/ThemeContext'
 import { useLang } from '../context/LanguageContext'
 import { themes, defaultTheme, isLightColor } from '../themes'
-import { DEFAULT_RINGS } from '../data/ringDefaults'
+import { DEFAULT_RINGS, loadRings } from '../data/ringDefaults'
 
 // ─── Color picker row ─────────────────────────────────────────────────────────
 function ColorRow({ label, sublabel, hex, onChange, previewBg, previewText }) {
@@ -93,10 +93,7 @@ function ImpostazioniColori() {
   }
 
   // ── Colori anelli ─────────────────────────────────────────────────────────
-  const [rings, setRings] = useState(() => {
-    const saved = localStorage.getItem('fitpulse-ring-config')
-    return (saved ? JSON.parse(saved) : DEFAULT_RINGS).slice(0, 3)
-  })
+  const [rings, setRings] = useState(loadRings)
   const [ringsSaved, setRingsSaved] = useState(false)
 
   function updateRingColor(id, color) {
@@ -354,7 +351,7 @@ function ImpostazioniColori() {
                     style={{ backgroundColor: ring.color }}
                   />
                   <div>
-                    <p className="text-sm font-semibold">{ring.label}</p>
+                    <p className="text-sm font-semibold">{ring.labelKey ? t(ring.labelKey) : ring.label}</p>
                     <p className="text-[color:var(--text-dim)] text-xs">{t('colors.ring', { n: i + 1 })}</p>
                   </div>
                 </div>
