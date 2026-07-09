@@ -6,15 +6,18 @@ import { BrowserRouter } from "react-router-dom";
 import { ThemeProvider } from "./context/ThemeContext";
 import { LanguageProvider } from "./context/LanguageContext";
 import { TimerProvider } from "./context/TimerContext";
+import { AuthProvider } from "./context/AuthContext";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <BrowserRouter>
       <LanguageProvider>
         <ThemeProvider>
-          <TimerProvider>
-            <App />
-          </TimerProvider>
+          <AuthProvider>
+            <TimerProvider>
+              <App />
+            </TimerProvider>
+          </AuthProvider>
         </ThemeProvider>
       </LanguageProvider>
     </BrowserRouter>

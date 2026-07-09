@@ -1,8 +1,8 @@
-import { useLang } from '../context/LanguageContext'
+import RegistrationWizard from '../components/auth/RegistrationWizard'
 
+// La registrazione e' un wizard multi-step (metodo → anagrafica → dati fisici).
 function Registrazione() {
-  const { t } = useLang()
-  return <h1>{t('page.registrazione')}</h1>
+  return <RegistrationWizard />
 }
 
 export default Registrazione

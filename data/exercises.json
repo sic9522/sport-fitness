@@ -1,0 +1,827 @@
+[
+  {
+    "source": "seed",
+    "source_id": "barbell-bench-press",
+    "name": "Panca Piana con Bilanciere",
+    "description": "Lie on a flat bench and press a barbell from chest level to full arm extension.",
+    "category": "chest",
+    "equipment": "barbell",
+    "primary_muscles": [
+      "chest"
+    ],
+    "secondary_muscles": [
+      "triceps",
+      "front deltoids"
+    ],
+    "difficulty": "intermediate",
+    "image_url": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Bench_Press_-_Medium_Grip/0.jpg",
+    "video_url": null,
+    "names": {
+      "it": "Panca Piana con Bilanciere",
+      "en": "Barbell Bench Press",
+      "es": "Press de Banca con Barra",
+      "fr": "Développé Couché à la Barre",
+      "zh": "杠铃卧推"
+    }
+  },
+  {
+    "source": "seed",
+    "source_id": "incline-dumbbell-press",
+    "name": "Panca Inclinata con Manubri",
+    "description": "Press two dumbbells upward on an inclined bench to target the upper chest.",
+    "category": "chest",
+    "equipment": "dumbbell",
+    "primary_muscles": [
+      "chest"
+    ],
+    "secondary_muscles": [
+      "triceps",
+      "front deltoids"
+    ],
+    "difficulty": "intermediate",
+    "image_url": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Incline_Dumbbell_Press/0.jpg",
+    "video_url": null,
+    "names": {
+      "it": "Panca Inclinata con Manubri",
+      "en": "Incline Dumbbell Press",
+      "es": "Press Inclinado con Mancuernas",
+      "fr": "Développé Incliné aux Haltères",
+      "zh": "上斜哑铃卧推"
+    }
+  },
+  {
+    "source": "seed",
+    "source_id": "push-up",
+    "name": "Piegamenti sulle Braccia",
+    "description": "Lower and push your body up from the floor keeping a straight line from head to heels.",
+    "category": "chest",
+    "equipment": "bodyweight",
+    "primary_muscles": [
+      "chest"
+    ],
+    "secondary_muscles": [
+      "triceps",
+      "core"
+    ],
+    "difficulty": "beginner",
+    "image_url": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Pushups/0.jpg",
+    "video_url": null,
+    "names": {
+      "it": "Piegamenti sulle Braccia",
+      "en": "Push-Up",
+      "es": "Flexiones",
+      "fr": "Pompes",
+      "zh": "俯卧撑"
+    }
+  },
+  {
+    "source": "seed",
+    "source_id": "cable-chest-fly",
+    "name": "Croci ai Cavi",
+    "description": "Bring two cable handles together in front of the chest with a slight elbow bend.",
+    "category": "chest",
+    "equipment": "cable",
+    "primary_muscles": [
+      "chest"
+    ],
+    "secondary_muscles": [
+      "front deltoids"
+    ],
+    "difficulty": "beginner",
+    "image_url": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Crossover/0.jpg",
+    "video_url": null,
+    "names": {
+      "it": "Croci ai Cavi",
+      "en": "Cable Chest Fly",
+      "es": "Cruce de Poleas",
+      "fr": "Écarté à la Poulie",
+      "zh": "绳索夹胸"
+    }
+  },
+  {
+    "source": "seed",
+    "source_id": "dips",
+    "name": "Dips alle Parallele",
+    "description": "Lower and press your body on parallel bars to work chest and triceps.",
+    "category": "chest",
+    "equipment": "bodyweight",
+    "primary_muscles": [
+      "chest",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "front deltoids"
+    ],
+    "difficulty": "intermediate",
+    "image_url": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dips_-_Chest_Version/0.jpg",
+    "video_url": null,
+    "names": {
+      "it": "Dips alle Parallele",
+      "en": "Chest Dips",
+      "es": "Fondos en Paralelas",
+      "fr": "Dips aux Barres Parallèles",
+      "zh": "双杠臂屈伸"
+    }
+  },
+  {
+    "source": "seed",
+    "source_id": "deadlift",
+    "name": "Stacco da Terra",
+    "description": "Lift a loaded barbell from the floor to hip level with a neutral spine.",
+    "category": "back",
+    "equipment": "barbell",
+    "primary_muscles": [
+      "erector spinae",
+      "glutes",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "lats",
+      "forearms"
+    ],
+    "difficulty": "advanced",
+    "image_url": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Deadlift/0.jpg",
+    "video_url": null,
+    "names": {
+      "it": "Stacco da Terra",
+      "en": "Deadlift",
+      "es": "Peso Muerto",
+      "fr": "Soulevé de Terre",
+      "zh": "硬拉"
+    }
+  },
+  {
+    "source": "seed",
+    "source_id": "pull-up",
+    "name": "Trazioni alla Sbarra",
+    "description": "Hang from a bar and pull your chin above it using the back muscles.",
+    "category": "back",
+    "equipment": "bodyweight",
+    "primary_muscles": [
+      "lats"
+    ],
+    "secondary_muscles": [
+      "biceps",
+      "forearms"
+    ],
+    "difficulty": "intermediate",
+    "image_url": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Pullups/0.jpg",
+    "video_url": null,
+    "names": {
+      "it": "Trazioni alla Sbarra",
+      "en": "Pull-Up",
+      "es": "Dominadas",
+      "fr": "Tractions",
+      "zh": "引体向上"
+    }
+  },
+  {
+    "source": "seed",
+    "source_id": "bent-over-barbell-row",
+    "name": "Rematore con Bilanciere",
+    "description": "Hinge at the hips and row a barbell to the lower ribcage.",
+    "category": "back",
+    "equipment": "barbell",
+    "primary_muscles": [
+      "lats",
+      "rhomboids"
+    ],
+    "secondary_muscles": [
+      "biceps",
+      "rear deltoids"
+    ],
+    "difficulty": "intermediate",
+    "image_url": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bent_Over_Barbell_Row/0.jpg",
+    "video_url": null,
+    "names": {
+      "it": "Rematore con Bilanciere",
+      "en": "Bent-Over Barbell Row",
+      "es": "Remo con Barra",
+      "fr": "Rowing Barre Buste Penché",
+      "zh": "杠铃俯身划船"
+    }
+  },
+  {
+    "source": "seed",
+    "source_id": "lat-pulldown",
+    "name": "Lat Machine Avanti",
+    "description": "Pull a cable bar down to the upper chest while seated.",
+    "category": "back",
+    "equipment": "cable",
+    "primary_muscles": [
+      "lats"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "difficulty": "beginner",
+    "image_url": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Wide-Grip_Lat_Pulldown/0.jpg",
+    "video_url": null,
+    "names": {
+      "it": "Lat Machine Avanti",
+      "en": "Lat Pulldown",
+      "es": "Jalón al Pecho",
+      "fr": "Tirage Vertical",
+      "zh": "高位下拉"
+    }
+  },
+  {
+    "source": "seed",
+    "source_id": "seated-cable-row",
+    "name": "Pulley Basso",
+    "description": "Pull a cable handle toward the torso while seated with a tall chest.",
+    "category": "back",
+    "equipment": "cable",
+    "primary_muscles": [
+      "lats",
+      "rhomboids"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "difficulty": "beginner",
+    "image_url": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Seated_Cable_Rows/0.jpg",
+    "video_url": null,
+    "names": {
+      "it": "Pulley Basso",
+      "en": "Seated Cable Row",
+      "es": "Remo Sentado en Polea",
+      "fr": "Rowing Assis à la Poulie",
+      "zh": "坐姿绳索划船"
+    }
+  },
+  {
+    "source": "seed",
+    "source_id": "barbell-back-squat",
+    "name": "Squat con Bilanciere",
+    "description": "Squat down and stand back up with a barbell resting on the upper back.",
+    "category": "legs",
+    "equipment": "barbell",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "core"
+    ],
+    "difficulty": "intermediate",
+    "image_url": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Full_Squat/0.jpg",
+    "video_url": null,
+    "names": {
+      "it": "Squat con Bilanciere",
+      "en": "Barbell Back Squat",
+      "es": "Sentadilla con Barra",
+      "fr": "Squat à la Barre",
+      "zh": "杠铃深蹲"
+    }
+  },
+  {
+    "source": "seed",
+    "source_id": "romanian-deadlift",
+    "name": "Stacco Rumeno",
+    "description": "Hinge at the hips lowering a barbell along the legs to stretch the hamstrings.",
+    "category": "legs",
+    "equipment": "barbell",
+    "primary_muscles": [
+      "hamstrings",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "erector spinae"
+    ],
+    "difficulty": "intermediate",
+    "image_url": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Romanian_Deadlift/0.jpg",
+    "video_url": null,
+    "names": {
+      "it": "Stacco Rumeno",
+      "en": "Romanian Deadlift",
+      "es": "Peso Muerto Rumano",
+      "fr": "Soulevé de Terre Roumain",
+      "zh": "罗马尼亚硬拉"
+    }
+  },
+  {
+    "source": "seed",
+    "source_id": "leg-press",
+    "name": "Pressa per Gambe",
+    "description": "Push a loaded platform away with the legs on a seated machine.",
+    "category": "legs",
+    "equipment": "machine",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "difficulty": "beginner",
+    "image_url": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Leg_Press/0.jpg",
+    "video_url": null,
+    "names": {
+      "it": "Pressa per Gambe",
+      "en": "Leg Press",
+      "es": "Prensa de Piernas",
+      "fr": "Presse à Cuisses",
+      "zh": "腿举"
+    }
+  },
+  {
+    "source": "seed",
+    "source_id": "walking-lunge",
+    "name": "Affondi con Manubri",
+    "description": "Step forward into a lunge and continue walking, alternating legs.",
+    "category": "legs",
+    "equipment": "dumbbell",
+    "primary_muscles": [
+      "quadriceps",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "difficulty": "beginner",
+    "image_url": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Lunges/0.jpg",
+    "video_url": null,
+    "names": {
+      "it": "Affondi con Manubri",
+      "en": "Walking Lunge",
+      "es": "Zancadas Caminando",
+      "fr": "Fentes Marchées",
+      "zh": "行走箭步蹲"
+    }
+  },
+  {
+    "source": "seed",
+    "source_id": "leg-curl",
+    "name": "Leg Curl da Sdraiato",
+    "description": "Curl the heels toward the glutes against machine resistance.",
+    "category": "legs",
+    "equipment": "machine",
+    "primary_muscles": [
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "calves"
+    ],
+    "difficulty": "beginner",
+    "image_url": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Lying_Leg_Curls/0.jpg",
+    "video_url": null,
+    "names": {
+      "it": "Leg Curl da Sdraiato",
+      "en": "Lying Leg Curl",
+      "es": "Curl Femoral Tumbado",
+      "fr": "Leg Curl Allongé",
+      "zh": "俯卧腿弯举"
+    }
+  },
+  {
+    "source": "seed",
+    "source_id": "leg-extension",
+    "name": "Leg Extension",
+    "description": "Extend the knees to lift a padded lever against machine resistance.",
+    "category": "legs",
+    "equipment": "machine",
+    "primary_muscles": [
+      "quadriceps"
+    ],
+    "secondary_muscles": [],
+    "difficulty": "beginner",
+    "image_url": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Leg_Extensions/0.jpg",
+    "video_url": null,
+    "names": {
+      "it": "Leg Extension",
+      "en": "Leg Extension",
+      "es": "Extensión de Piernas",
+      "fr": "Leg Extension",
+      "zh": "腿屈伸"
+    }
+  },
+  {
+    "source": "seed",
+    "source_id": "standing-calf-raise",
+    "name": "Calf in Piedi",
+    "description": "Rise onto the balls of the feet and lower under control.",
+    "category": "legs",
+    "equipment": "machine",
+    "primary_muscles": [
+      "calves"
+    ],
+    "secondary_muscles": [],
+    "difficulty": "beginner",
+    "image_url": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Standing_Calf_Raises/0.jpg",
+    "video_url": null,
+    "names": {
+      "it": "Calf in Piedi",
+      "en": "Standing Calf Raise",
+      "es": "Elevación de Talones de Pie",
+      "fr": "Extension des Mollets Debout",
+      "zh": "站姿提踵"
+    }
+  },
+  {
+    "source": "seed",
+    "source_id": "overhead-barbell-press",
+    "name": "Lento Avanti con Bilanciere",
+    "description": "Press a barbell from the shoulders to overhead while standing.",
+    "category": "shoulders",
+    "equipment": "barbell",
+    "primary_muscles": [
+      "shoulders"
+    ],
+    "secondary_muscles": [
+      "triceps",
+      "core"
+    ],
+    "difficulty": "intermediate",
+    "image_url": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Standing_Military_Press/0.jpg",
+    "video_url": null,
+    "names": {
+      "it": "Lento Avanti con Bilanciere",
+      "en": "Overhead Barbell Press",
+      "es": "Press Militar con Barra",
+      "fr": "Développé Militaire à la Barre",
+      "zh": "杠铃站姿推举"
+    }
+  },
+  {
+    "source": "seed",
+    "source_id": "dumbbell-lateral-raise",
+    "name": "Alzate Laterali",
+    "description": "Raise two dumbbells out to the sides to shoulder height.",
+    "category": "shoulders",
+    "equipment": "dumbbell",
+    "primary_muscles": [
+      "side deltoids"
+    ],
+    "secondary_muscles": [],
+    "difficulty": "beginner",
+    "image_url": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Side_Lateral_Raise/0.jpg",
+    "video_url": null,
+    "names": {
+      "it": "Alzate Laterali",
+      "en": "Dumbbell Lateral Raise",
+      "es": "Elevaciones Laterales con Mancuernas",
+      "fr": "Élévations Latérales aux Haltères",
+      "zh": "哑铃侧平举"
+    }
+  },
+  {
+    "source": "seed",
+    "source_id": "face-pull",
+    "name": "Face Pull",
+    "description": "Pull a rope toward the face with high elbows to target the rear delts.",
+    "category": "shoulders",
+    "equipment": "cable",
+    "primary_muscles": [
+      "rear deltoids"
+    ],
+    "secondary_muscles": [
+      "traps"
+    ],
+    "difficulty": "beginner",
+    "image_url": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Face_Pull/0.jpg",
+    "video_url": null,
+    "names": {
+      "it": "Face Pull",
+      "en": "Face Pull",
+      "es": "Face Pull",
+      "fr": "Face Pull",
+      "zh": "面拉"
+    }
+  },
+  {
+    "source": "seed",
+    "source_id": "arnold-press",
+    "name": "Arnold Press",
+    "description": "Press dumbbells overhead while rotating the palms from facing in to facing out.",
+    "category": "shoulders",
+    "equipment": "dumbbell",
+    "primary_muscles": [
+      "shoulders"
+    ],
+    "secondary_muscles": [
+      "triceps"
+    ],
+    "difficulty": "intermediate",
+    "image_url": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Arnold_Dumbbell_Press/0.jpg",
+    "video_url": null,
+    "names": {
+      "it": "Arnold Press",
+      "en": "Arnold Press",
+      "es": "Press Arnold",
+      "fr": "Développé Arnold",
+      "zh": "阿诺德推举"
+    }
+  },
+  {
+    "source": "seed",
+    "source_id": "barbell-biceps-curl",
+    "name": "Curl con Bilanciere",
+    "description": "Curl a barbell from the thighs to the shoulders keeping the elbows fixed.",
+    "category": "arms",
+    "equipment": "barbell",
+    "primary_muscles": [
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "forearms"
+    ],
+    "difficulty": "beginner",
+    "image_url": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Curl/0.jpg",
+    "video_url": null,
+    "names": {
+      "it": "Curl con Bilanciere",
+      "en": "Barbell Biceps Curl",
+      "es": "Curl de Bíceps con Barra",
+      "fr": "Curl Biceps à la Barre",
+      "zh": "杠铃弯举"
+    }
+  },
+  {
+    "source": "seed",
+    "source_id": "dumbbell-hammer-curl",
+    "name": "Curl a Martello",
+    "description": "Curl dumbbells with a neutral grip to work biceps and forearms.",
+    "category": "arms",
+    "equipment": "dumbbell",
+    "primary_muscles": [
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "forearms"
+    ],
+    "difficulty": "beginner",
+    "image_url": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Hammer_Curls/0.jpg",
+    "video_url": null,
+    "names": {
+      "it": "Curl a Martello",
+      "en": "Dumbbell Hammer Curl",
+      "es": "Curl Martillo con Mancuernas",
+      "fr": "Curl Marteau aux Haltères",
+      "zh": "哑铃锤式弯举"
+    }
+  },
+  {
+    "source": "seed",
+    "source_id": "triceps-pushdown",
+    "name": "Pushdown ai Cavi",
+    "description": "Push a cable bar down by extending the elbows.",
+    "category": "arms",
+    "equipment": "cable",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [],
+    "difficulty": "beginner",
+    "image_url": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Triceps_Pushdown/0.jpg",
+    "video_url": null,
+    "names": {
+      "it": "Pushdown ai Cavi",
+      "en": "Triceps Pushdown",
+      "es": "Extensión de Tríceps en Polea",
+      "fr": "Extension Triceps à la Poulie",
+      "zh": "三头肌下压"
+    }
+  },
+  {
+    "source": "seed",
+    "source_id": "overhead-triceps-extension",
+    "name": "Estensioni Tricipiti in Piedi",
+    "description": "Extend a dumbbell overhead from behind the head to work the triceps.",
+    "category": "arms",
+    "equipment": "dumbbell",
+    "primary_muscles": [
+      "triceps"
+    ],
+    "secondary_muscles": [],
+    "difficulty": "beginner",
+    "image_url": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Standing_Dumbbell_Triceps_Extension/0.jpg",
+    "video_url": null,
+    "names": {
+      "it": "Estensioni Tricipiti in Piedi",
+      "en": "Overhead Triceps Extension",
+      "es": "Extensión de Tríceps sobre la Cabeza",
+      "fr": "Extension Triceps au-dessus de la Tête",
+      "zh": "过头三头肌臂屈伸"
+    }
+  },
+  {
+    "source": "seed",
+    "source_id": "preacher-curl",
+    "name": "Curl alla Panca Scott",
+    "description": "Curl a barbell with the upper arms supported on a preacher bench.",
+    "category": "arms",
+    "equipment": "barbell",
+    "primary_muscles": [
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "forearms"
+    ],
+    "difficulty": "beginner",
+    "image_url": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Preacher_Curl/0.jpg",
+    "video_url": null,
+    "names": {
+      "it": "Curl alla Panca Scott",
+      "en": "Preacher Curl",
+      "es": "Curl en Banco Scott",
+      "fr": "Curl au Pupitre",
+      "zh": "斜托弯举"
+    }
+  },
+  {
+    "source": "seed",
+    "source_id": "plank",
+    "name": "Plank",
+    "description": "Hold a straight body position on the forearms to brace the core.",
+    "category": "core",
+    "equipment": "bodyweight",
+    "primary_muscles": [
+      "core"
+    ],
+    "secondary_muscles": [
+      "shoulders"
+    ],
+    "difficulty": "beginner",
+    "image_url": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Plank/0.jpg",
+    "video_url": null,
+    "names": {
+      "it": "Plank",
+      "en": "Plank",
+      "es": "Plancha",
+      "fr": "Planche",
+      "zh": "平板支撑"
+    }
+  },
+  {
+    "source": "seed",
+    "source_id": "hanging-leg-raise",
+    "name": "Sollevamento Gambe alla Sbarra",
+    "description": "Hang from a bar and raise the legs to hip height or higher.",
+    "category": "core",
+    "equipment": "bodyweight",
+    "primary_muscles": [
+      "abs"
+    ],
+    "secondary_muscles": [
+      "hip flexors"
+    ],
+    "difficulty": "intermediate",
+    "image_url": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Hanging_Leg_Raise/0.jpg",
+    "video_url": null,
+    "names": {
+      "it": "Sollevamento Gambe alla Sbarra",
+      "en": "Hanging Leg Raise",
+      "es": "Elevación de Piernas Colgado",
+      "fr": "Relevé de Jambes Suspendu",
+      "zh": "悬垂举腿"
+    }
+  },
+  {
+    "source": "seed",
+    "source_id": "cable-crunch",
+    "name": "Crunch ai Cavi",
+    "description": "Kneel and crunch the torso downward against cable resistance.",
+    "category": "core",
+    "equipment": "cable",
+    "primary_muscles": [
+      "abs"
+    ],
+    "secondary_muscles": [],
+    "difficulty": "beginner",
+    "image_url": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Crunch/0.jpg",
+    "video_url": null,
+    "names": {
+      "it": "Crunch ai Cavi",
+      "en": "Cable Crunch",
+      "es": "Crunch en Polea",
+      "fr": "Crunch à la Poulie",
+      "zh": "绳索卷腹"
+    }
+  },
+  {
+    "source": "seed",
+    "source_id": "russian-twist",
+    "name": "Russian Twist",
+    "description": "Rotate the torso side to side while seated with the feet off the floor.",
+    "category": "core",
+    "equipment": "bodyweight",
+    "primary_muscles": [
+      "obliques"
+    ],
+    "secondary_muscles": [
+      "abs"
+    ],
+    "difficulty": "beginner",
+    "image_url": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Russian_Twist/0.jpg",
+    "video_url": null,
+    "names": {
+      "it": "Russian Twist",
+      "en": "Russian Twist",
+      "es": "Giro Ruso",
+      "fr": "Russian Twist",
+      "zh": "俄罗斯转体"
+    }
+  },
+  {
+    "source": "seed",
+    "source_id": "treadmill-running",
+    "name": "Corsa sul Tapis Roulant",
+    "description": "Run at a steady pace on a treadmill for cardiovascular conditioning.",
+    "category": "cardio",
+    "equipment": "machine",
+    "primary_muscles": [
+      "cardiovascular"
+    ],
+    "secondary_muscles": [
+      "quadriceps",
+      "calves"
+    ],
+    "difficulty": "beginner",
+    "image_url": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Running_Treadmill/0.jpg",
+    "video_url": null,
+    "names": {
+      "it": "Corsa sul Tapis Roulant",
+      "en": "Treadmill Running",
+      "es": "Correr en Cinta",
+      "fr": "Course sur Tapis",
+      "zh": "跑步机跑步"
+    }
+  },
+  {
+    "source": "seed",
+    "source_id": "rowing-machine",
+    "name": "Vogatore",
+    "description": "Drive with the legs and pull the handle to the ribs for full-body cardio.",
+    "category": "cardio",
+    "equipment": "machine",
+    "primary_muscles": [
+      "cardiovascular"
+    ],
+    "secondary_muscles": [
+      "lats",
+      "quadriceps"
+    ],
+    "difficulty": "beginner",
+    "image_url": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Rowing_Stationary/0.jpg",
+    "video_url": null,
+    "names": {
+      "it": "Vogatore",
+      "en": "Rowing Machine",
+      "es": "Máquina de Remo",
+      "fr": "Rameur",
+      "zh": "划船机"
+    }
+  },
+  {
+    "source": "seed",
+    "source_id": "jumping-jacks",
+    "name": "Jumping Jacks",
+    "description": "Jump while spreading the legs and raising the arms overhead, then return.",
+    "category": "cardio",
+    "equipment": "bodyweight",
+    "primary_muscles": [
+      "cardiovascular"
+    ],
+    "secondary_muscles": [
+      "calves"
+    ],
+    "difficulty": "beginner",
+    "image_url": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Star_Jump/0.jpg",
+    "video_url": null,
+    "names": {
+      "it": "Jumping Jacks",
+      "en": "Jumping Jacks",
+      "es": "Saltos de Tijera",
+      "fr": "Jumping Jacks",
+      "zh": "开合跳"
+    }
+  },
+  {
+    "source": "seed",
+    "source_id": "kettlebell-swing",
+    "name": "Kettlebell Swing",
+    "description": "Hinge at the hips and swing a kettlebell to chest height using the glutes.",
+    "category": "cardio",
+    "equipment": "kettlebell",
+    "primary_muscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "cardiovascular",
+      "core"
+    ],
+    "difficulty": "intermediate",
+    "image_url": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/One-Arm_Kettlebell_Swings/0.jpg",
+    "video_url": null,
+    "names": {
+      "it": "Kettlebell Swing",
+      "en": "Kettlebell Swing",
+      "es": "Swing con Pesa Rusa",
+      "fr": "Swing Kettlebell",
+      "zh": "壶铃摆荡"
+    }
+  }
+]

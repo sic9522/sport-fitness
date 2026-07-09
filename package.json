@@ -7,15 +7,18 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "import:exercises": "node scripts/import-exercises.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
+    "@supabase/supabase-js": "^2.110.1",
     "@tailwindcss/vite": "^4.3.2",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
+    "react-easy-crop": "^6.2.2",
     "react-icons": "^5.7.0",
     "react-router-dom": "^7.18.1",
     "tailwindcss": "^4.3.2"

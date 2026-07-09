@@ -9,8 +9,8 @@ import Impostazioni from "./pages/Impostazioni";
 import ImpostazioniColori from "./pages/ImpostazioniColori";
 import ImpostazioniObiettivi from "./pages/ImpostazioniObiettivi";
 import ImpostazioniLingua from "./pages/ImpostazioniLingua";
-import Login from "./pages/Login";
 import Registrazione from "./pages/Registrazione";
+import NotFound from "./pages/NotFound";
 
 function App() {
   return (
@@ -25,8 +25,8 @@ function App() {
         <Route path="/impostazioni/colori" element={<ImpostazioniColori />} />
         <Route path="/impostazioni/obiettivi" element={<ImpostazioniObiettivi />} />
         <Route path="/impostazioni/lingua" element={<ImpostazioniLingua />} />
+        <Route path="*" element={<NotFound />} />
       </Route>
-      <Route path="/login" element={<Login />} />
       <Route path="/registrazione" element={<Registrazione />} />
     </Routes>
   );

@@ -10,6 +10,7 @@ import { CSS } from '@dnd-kit/utilities'
 import TopBar from './TopBar'
 import EsercizioEditor from './EsercizioEditor'
 import { useLang } from '../context/LanguageContext'
+import { titleCase } from '../utils/text'
 
 function newId() {
   return (crypto?.randomUUID && crypto.randomUUID()) || String(Date.now())
@@ -40,8 +41,12 @@ function CardVisual({ ex, borderColor, handleProps, style, className = '' }) {
         borderColor ? 'border-2' : 'border border-[color:var(--border-1)]'
       } ${className}`}
     >
-      <div className="w-14 h-14 rounded-lg bg-[var(--fill-1)] flex items-center justify-center shrink-0">
-        <IoBarbellOutline className="text-2xl text-[color:var(--text-dim)]" />
+      <div className="w-14 h-14 rounded-lg bg-[var(--fill-1)] flex items-center justify-center shrink-0 overflow-hidden">
+        {ex.foto ? (
+          <img src={ex.foto} alt="" loading="lazy" className="w-full h-full object-cover" />
+        ) : (
+          <IoBarbellOutline className="text-2xl text-[color:var(--text-dim)]" />
+        )}
       </div>
       <div className="min-w-0 flex-1">
         <p className="font-semibold text-sm truncate">{ex.titolo}</p>
@@ -267,7 +272,9 @@ function SchedaView({ scheda, restLabel, onRename, onExercisesChange, onBack }) 
         <input
           value={scheda.nome}
           onChange={e => onRename(scheda.id, e.target.value)}
-          className="flex-1 min-w-0 bg-transparent text-2xl font-extrabold outline-none border-b border-transparent focus:border-[color:var(--border-3)] pb-1"
+          onBlur={e => onRename(scheda.id, titleCase(e.target.value.trim()))}
+          placeholder={t('palestra.schedaPlaceholder')}
+          className="flex-1 min-w-0 bg-transparent text-2xl font-extrabold outline-none border-b border-transparent focus:border-[color:var(--border-3)] pb-1 placeholder:text-[color:var(--text-faint)]"
         />
         <span className="flex items-center gap-1 rounded-full bg-[var(--fill-1)] border border-[color:var(--border-2)] px-2.5 py-1 shrink-0">
           <IoStopwatchOutline className="text-sm" style={{ color: 'var(--accent)' }} />

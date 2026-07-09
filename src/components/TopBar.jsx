@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { IoChevronBack } from 'react-icons/io5'
-import User from './User'
+import UserMenu from './auth/UserMenu'
 import ThemePicker from './ThemePicker'
 import LanguagePicker from './LanguagePicker'
 
@@ -26,7 +26,7 @@ function TopBar({ icon: Icon, title, onBack, titleLink }) {
       <div className="flex items-center gap-2">
         <LanguagePicker />
         <ThemePicker />
-        <User />
+        <UserMenu />
       </div>
     </div>
   )

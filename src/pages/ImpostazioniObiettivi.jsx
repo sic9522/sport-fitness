@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { IoAdd, IoTrash, IoPencil, IoCheckmark } from 'react-icons/io5'
+import { IoAdd, IoRemove, IoTrash, IoPencil, IoCheckmark } from 'react-icons/io5'
 import TopBar from '../components/TopBar'
 import { useLang } from '../context/LanguageContext'
 import { DEFAULT_GOALS } from '../data/goalDefaults'
+import { loadWeeklyGoal, saveWeeklyGoal } from '../data/giornateDefaults'
+import { titleCase } from '../utils/text'
 
 const MAX_GOALS = 5
 
@@ -83,6 +85,7 @@ function GoalEditRow({ goal, onChange, onDone }) {
           className={`${inputCls} w-10 text-center text-base shrink-0`} />
         <input type="text" value={goal.titleKey ? t(goal.titleKey) : goal.title} placeholder={t('goals.name')}
           onChange={e => onChange('title', e.target.value)}
+          onBlur={e => onChange('title', titleCase(e.target.value.trim()))}
           className={`${inputCls} flex-1 min-w-0`} />
         <button onClick={onDone}
           className="w-10 h-9 rounded-lg flex items-center justify-center shrink-0"
@@ -121,7 +124,7 @@ function AddGoalForm({ onAdd, onCancel }) {
     onAdd({
       id: `g${Date.now()}`,
       emoji: draft.emoji || '🎯',
-      title: draft.title.trim(),
+      title: titleCase(draft.title.trim()),
       current: 0,
       target: parseFloat(draft.target) || 0,
       unit: draft.unit.trim(),
@@ -168,6 +171,7 @@ function ImpostazioniObiettivi() {
   const navigate = useNavigate()
   const { t } = useLang()
   const [goals, setGoals] = useState(loadGoals)
+  const [weeklyGoal, setWeeklyGoal] = useState(loadWeeklyGoal)
   const [activeKey, setActiveKey] = useState('daily')
   const [editingId, setEditingId] = useState(null)
   const [addingSection, setAddingSection] = useState(null)
@@ -204,6 +208,7 @@ function ImpostazioniObiettivi() {
 
   function saveAll() {
     localStorage.setItem('fitpulse-goals', JSON.stringify(goals))
+    saveWeeklyGoal(weeklyGoal)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
@@ -221,6 +226,31 @@ function ImpostazioniObiettivi() {
         <p className="text-[color:var(--text-muted)] text-sm mb-5">
           {t('goals.max', { max: MAX_GOALS })}
         </p>
+
+        {/* Obiettivo allenamenti/settimana: alimenta la 3ª barra del Progresso in Palestra */}
+        <div className="bg-[var(--surface)] rounded-xl p-4 mb-4 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold">{t('settings.weeklyGoal')}</p>
+            <p className="text-xs text-[color:var(--text-dim)] mt-0.5">{t('settings.weeklyGoalDesc')}</p>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <button
+              onClick={() => setWeeklyGoal(g => Math.max(1, g - 1))}
+              disabled={weeklyGoal <= 1}
+              className="w-8 h-8 rounded-full bg-[var(--fill-1)] border border-[color:var(--border-2)] flex items-center justify-center disabled:opacity-40"
+            >
+              <IoRemove />
+            </button>
+            <span className="w-5 text-center text-lg font-bold tabular-nums">{weeklyGoal}</span>
+            <button
+              onClick={() => setWeeklyGoal(g => Math.min(7, g + 1))}
+              disabled={weeklyGoal >= 7}
+              className="w-8 h-8 rounded-full bg-[var(--fill-1)] border border-[color:var(--border-2)] flex items-center justify-center disabled:opacity-40"
+            >
+              <IoAdd />
+            </button>
+          </div>
+        </div>
 
         {/* Tab selector — stessa logica della Home */}
         <div className="grid grid-cols-3 gap-1 bg-[var(--surface)] rounded-xl p-1 mb-4">
