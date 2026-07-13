@@ -56,6 +56,24 @@ Da NON dare per scontato:
 
 ## Log
 
+### 2026-07-13 - Claude (sync cloud diario + .env.example)
+
+- **Sync cloud Alimentazione (Fase 5/6, parziale)**: colmato il buco noto "il
+  diario non e' sincronizzato". Ponte local-first + mirror speculare a quello
+  degli allenamenti: `hooks/useNutritionSync.js` (usato da `Alimentazione`) +
+  `services/nutrition.js` (`fetchDiary`/`replaceDiary`, full-replace) che
+  consumano le tabelle GIA' esistenti `public.meal_logs` + `public.meal_entries`
+  (migrazione 20260708170000, nessuna nuova migrazione). Nuovo marcatore
+  `fitpulse-diario-owner` + helper `loadDiarioOwner`/`saveDiarioOwner`/
+  `diarioHasData` in `nutritionDefaults`. Mapping pasti `snacks`↔`snack`.
+  No-op se Supabase non configurato. NB: gli OBIETTIVI nutrizionali restano solo
+  in localStorage (manca la tabella; da assegnare al lato backend/Codex).
+- **`.env.example`**: creato (era referenziato dal README ma assente). Documenta
+  `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` (frontend) e
+  `SUPABASE_SERVICE_ROLE_KEY` (solo importer).
+- ✅ **Verificato**: `npm run lint` + `npm run build` ok.
+- ⚠️ Sync diario da provare **end-to-end** da loggato su Supabase reale.
+
 ### 2026-07-13 - Claude (ponte cloud allenamenti + Alimentazione + README)
 
 - **Fase 5 avviata (allenamenti)**: ponte LOCAL-FIRST + MIRROR in

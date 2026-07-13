@@ -103,8 +103,19 @@ loggati come prima). Da loggato:
 2. **mirror** a ogni modifica (debounce ~800ms) via
    `services/workouts.replaceWorkoutDays(userId, giornate)` (full-replace).
 
-No-op se Supabase non e' configurato. Il diario **Alimentazione** non e' ancora
-sincronizzato (solo localStorage). Da verificare end-to-end su un Supabase reale.
+No-op se Supabase non e' configurato.
+
+## Sync cloud diario Alimentazione (Fase 5/6, parziale)
+
+Stesso ponte **local-first + mirror** del workout, in `hooks/useNutritionSync.js`
+(usato da `Alimentazione`), che consuma le tabelle gia' esistenti
+`public.meal_logs` + `public.meal_entries` via `services/nutrition.js`
+(`fetchDiary` / `replaceDiary(userId, diario)`, full-replace). Riconciliazione al
+login + mirror con debounce, marcatore `fitpulse-diario-owner` come per le
+giornate. Mapping pasti: il frontend usa `snacks` (plurale), il DB `snack`.
+Gli **obiettivi nutrizionali** (`fitpulse-nutrition-goals`) NON sono ancora
+sincronizzati: manca la tabella dedicata, restano solo in localStorage.
+Da verificare end-to-end su un Supabase reale.
 
 ## Pagine (`src/pages/`)
 

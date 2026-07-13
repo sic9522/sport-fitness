@@ -11,6 +11,7 @@ import {
   loadDiario, saveDiario, dayMeals, dayTotals, sumNutrients,
   loadNutritionGoals, saveNutritionGoals,
 } from '../data/nutritionDefaults'
+import { useNutritionSync } from '../hooks/useNutritionSync'
 
 // Macro mostrate come barre nel riepilogo (colori fissi, leggibili in dark/light).
 const MACROS = [
@@ -49,6 +50,9 @@ function Alimentazione() {
   const [editing, setEditing] = useState(null)  // { meal, food } → FoodEditor
   const [deleting, setDeleting] = useState(null) // { meal, food } → ConfirmModal
   const [editGoals, setEditGoals] = useState(false)
+
+  // Ponte local-first: da loggato rispecchia il diario su Supabase (no-op se non configurato).
+  useNutritionSync(diario, setDiario)
 
   const key = dateKey(selDate)
   const meals = dayMeals(diario, key)

@@ -68,6 +68,27 @@ export function saveNutritionGoals(goals) {
   localStorage.setItem(GOALS_KEY, JSON.stringify(goals))
 }
 
+// Proprietario del diario locale: userId Supabase se riconciliato con un account,
+// oppure null = dati "anonimi" (creati senza login). Usato dal ponte cloud
+// (useNutritionSync) per non spingere il diario di un utente nel DB di un altro
+// che apre l'app nello stesso browser. Speculare a loadGiornateOwner.
+const OWNER_KEY = 'fitpulse-diario-owner'
+export function loadDiarioOwner() {
+  return localStorage.getItem(OWNER_KEY) || null
+}
+export function saveDiarioOwner(userId) {
+  if (userId) localStorage.setItem(OWNER_KEY, userId)
+  else localStorage.removeItem(OWNER_KEY)
+}
+
+// true se il diario contiene almeno un alimento (una chiave-giorno con liste
+// pasto vuote NON conta come "ha dati": conta solo il contenuto reale).
+export function diarioHasData(diario) {
+  return Object.values(diario || {}).some(day =>
+    ['breakfast', 'lunch', 'dinner', 'snacks'].some(meal => (day?.[meal] || []).length > 0),
+  )
+}
+
 // Somma i nutrienti di una lista di alimenti (stringhe → numeri, vuoto = 0).
 export function sumNutrients(foods) {
   return foods.reduce(
