@@ -51,8 +51,8 @@ function Alimentazione() {
   const [deleting, setDeleting] = useState(null) // { meal, food } → ConfirmModal
   const [editGoals, setEditGoals] = useState(false)
 
-  // Ponte local-first: da loggato rispecchia il diario su Supabase (no-op se non configurato).
-  useNutritionSync(diario, setDiario)
+  // Ponte local-first: da loggato rispecchia diario e obiettivi su Supabase (no-op se non configurato).
+  useNutritionSync(diario, setDiario, goals, setGoals)
 
   const key = dateKey(selDate)
   const meals = dayMeals(diario, key)

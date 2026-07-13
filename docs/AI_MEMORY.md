@@ -56,6 +56,25 @@ Da NON dare per scontato:
 
 ## Log
 
+### 2026-07-13 - Claude (icone PWA + test + obiettivi nutrizione sync)
+
+- **Icone PWA PNG**: `scripts/generate-icons.mjs` (`npm run icons`, usa
+  `@resvg/resvg-js`) genera `public/icon-192/512`, `icon-maskable-512`,
+  `apple-touch-icon` (180) da una versione pulita del logo (accento + bolt bianco,
+  niente filtri blur). `manifest.webmanifest` + `apple-touch-icon` in `index.html`
+  aggiornati. Ora install-prompt "pieno" e icona home iOS/Android.
+- **Test unitari**: aggiunto Vitest (`npm run test`). 13 test sulle funzioni pure
+  (`nutritionDefaults`: sumNutrients/dayTotals/dateKey/diarioHasData/dayMeals;
+  `utils/text`: titleCase). Env node, nessun jsdom (solo funzioni pure).
+- **Obiettivi nutrizionali → cloud**: nuova migrazione
+  `20260713160000_nutrition_goals.sql` (tabella `public.nutrition_goals`, 1 riga/
+  utente, RLS own). `services/nutrition` + `fetchGoals`/`upsertGoals`;
+  `useNutritionSync` esteso a `(diario, setDiario, goals, setGoals)`: riconcilia e
+  rispecchia anche gli obiettivi, stesso marcatore `fitpulse-diario-owner`. Con
+  questo il diario alimentare e' completamente sincronizzabile (diario + obiettivi).
+- ✅ **Verificato**: `npm run lint` + `npm run test` + `npm run build` ok.
+- ⚠️ La migrazione `nutrition_goals` va APPLICATA su Supabase come le altre.
+
 ### 2026-07-13 - Claude (ErrorBoundary + parità i18n)
 
 - **ErrorBoundary globale**: nuovo `components/ErrorBoundary.jsx` (class

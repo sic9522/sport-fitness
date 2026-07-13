@@ -113,9 +113,11 @@ Stesso ponte **local-first + mirror** del workout, in `hooks/useNutritionSync.js
 (`fetchDiary` / `replaceDiary(userId, diario)`, full-replace). Riconciliazione al
 login + mirror con debounce, marcatore `fitpulse-diario-owner` come per le
 giornate. Mapping pasti: il frontend usa `snacks` (plurale), il DB `snack`.
-Gli **obiettivi nutrizionali** (`fitpulse-nutrition-goals`) NON sono ancora
-sincronizzati: manca la tabella dedicata, restano solo in localStorage.
-Da verificare end-to-end su un Supabase reale.
+Gli **obiettivi nutrizionali** (`fitpulse-nutrition-goals`) sono ora sincronizzati
+dallo stesso hook: tabella `public.nutrition_goals` (migrazione
+20260713160000, una riga per utente) via `fetchGoals` / `upsertGoals`. Lo stesso
+marcatore `fitpulse-diario-owner` governa anche gli obiettivi (niente eredita' fra
+utenti sullo stesso browser). Da verificare end-to-end su un Supabase reale.
 
 ## Pagine (`src/pages/`)
 

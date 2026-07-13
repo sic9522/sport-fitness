@@ -46,6 +46,8 @@ npm run dev      # ambiente di sviluppo
 npm run build    # build di produzione
 npm run preview  # anteprima della build
 npm run lint     # ESLint
+npm run test     # test unitari (Vitest)
+npm run icons    # rigenera le icone PWA da public/favicon.svg
 ```
 
 L'app funziona **subito, senza backend**: i dati vivono in `localStorage`.

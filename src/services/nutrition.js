@@ -118,3 +118,41 @@ export async function replaceDiary(userId, diario) {
     }
   }
 }
+
+// --- Obiettivi nutrizionali (tabella public.nutrition_goals, una riga per utente).
+// Forma UI: { kcal, protein, carbs, fat } (numeri). Colonne DB: kcal + *_g.
+
+export async function fetchGoals() {
+  const client = requireSupabase()
+  const { data, error } = await client
+    .from('nutrition_goals')
+    .select('kcal, protein_g, carbs_g, fat_g')
+    .maybeSingle() // RLS filtra sull'utente; PK user_id → al massimo una riga
+
+  if (error) throw error
+  if (!data) return null
+  return {
+    kcal: Number(data.kcal),
+    protein: Number(data.protein_g),
+    carbs: Number(data.carbs_g),
+    fat: Number(data.fat_g),
+  }
+}
+
+export async function upsertGoals(userId, goals) {
+  const client = requireSupabase()
+  const { error } = await client
+    .from('nutrition_goals')
+    .upsert(
+      {
+        user_id: userId,
+        kcal: Number(goals.kcal) || 0,
+        protein_g: Number(goals.protein) || 0,
+        carbs_g: Number(goals.carbs) || 0,
+        fat_g: Number(goals.fat) || 0,
+      },
+      { onConflict: 'user_id' },
+    )
+
+  if (error) throw error
+}
