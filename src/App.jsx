@@ -11,6 +11,8 @@ const Palestra = lazy(() => import("./pages/Palestra"));
 const Alimentazione = lazy(() => import("./pages/Alimentazione"));
 const Timer = lazy(() => import("./pages/Timer"));
 const Peso = lazy(() => import("./pages/Peso"));
+// Sezione predisposta ma non ancora esposta: nessun link la mostra (vedi config/features.js).
+const MisureCorporee = lazy(() => import("./pages/MisureCorporee"));
 const Profilo = lazy(() => import("./pages/Profilo"));
 const Impostazioni = lazy(() => import("./pages/Impostazioni"));
 const ImpostazioniColori = lazy(() => import("./pages/ImpostazioniColori"));
@@ -31,6 +33,7 @@ function App() {
           <Route path="/alimentazione" element={<Alimentazione />} />
           <Route path="/timer" element={<Timer />} />
           <Route path="/peso" element={<Peso />} />
+          <Route path="/misure" element={<MisureCorporee />} />
           <Route path="/profilo" element={<Profilo />} />
           <Route path="/impostazioni" element={<Impostazioni />} />
           <Route path="/impostazioni/colori" element={<ImpostazioniColori />} />
