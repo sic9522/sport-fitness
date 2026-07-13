@@ -1,9 +1,31 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    VitePWA({
+      registerType: 'autoUpdate', // il SW si aggiorna da solo al deploy successivo
+      injectRegister: 'auto',
+      // Usa il public/manifest.webmanifest gia' esistente (icone + tema): qui solo SW/precache.
+      manifest: false,
+      includeAssets: [
+        'favicon.svg',
+        'apple-touch-icon.png',
+        'icon-192.png',
+        'icon-512.png',
+        'icon-maskable-512.png',
+      ],
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,svg,png,webmanifest}'],
+        cleanupOutdatedCaches: true,
+      },
+      devOptions: { enabled: false }, // niente SW in dev
+    }),
+  ],
   build: {
     rollupOptions: {
       output: {
