@@ -56,6 +56,24 @@ Da NON dare per scontato:
 
 ## Log
 
+### 2026-07-13 - Claude (offline PWA + CI + backup dati + più test)
+
+- **Service worker / offline**: aggiunto `vite-plugin-pwa` (`registerType
+  autoUpdate`, `injectRegister auto`, `manifest:false` = usa il
+  `public/manifest.webmanifest` esistente). Precache Workbox degli asset di build:
+  l'app installata funziona offline e si auto-aggiorna. Disabilitato in dev.
+- **CI GitHub Actions**: `.github/workflows/ci.yml` — su push/PR a `main` esegue
+  `npm ci` + lint + test + build (Node 24).
+- **Backup dati**: nuova pagina `Impostazioni → Backup` (`/impostazioni/backup`,
+  `pages/ImpostazioniBackup.jsx`) + `utils/backup.js` (`buildBackup`/`applyBackup`/
+  `isValidBackup`, storage iniettabile). Esporta tutte le chiavi `fitpulse-*` in un
+  JSON e le reimporta (con conferma, poi reload). i18n `backup.*`/`settings.backup.*`
+  in tutte e 5 le lingue.
+- **Più test**: aggiunti `giornateDefaults`, `validators`, `backup` → totale
+  Vitest ora 40+ test.
+- ✅ **Verificato**: `npm run lint` + `npm run test` + `npm run build` ok, parità
+  i18n mantenuta.
+
 ### 2026-07-13 - Claude (icone PWA + test + obiettivi nutrizione sync)
 
 - **Icone PWA PNG**: `scripts/generate-icons.mjs` (`npm run icons`, usa
