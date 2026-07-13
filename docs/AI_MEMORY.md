@@ -56,6 +56,23 @@ Da NON dare per scontato:
 
 ## Log
 
+### 2026-07-13 - Claude (misure corporee — sezione NASCOSTA)
+
+- **Nuova sezione Misure corporee** (composizione + circonferenze: massa
+  magra/grassa, % grasso, massa muscolare, % acqua, girovita, fianchi, petto,
+  braccio, coscia, polpaccio, collo). Predisposta ma **NON ancora visibile**:
+  scelta prodotto di Simone (i dati vanno inseriti a mano e serviranno a gestire
+  peso/palestra/alimentazione). `pages/MisureCorporee.jsx` +
+  `components/BodyMeasuresEditor.jsx` + `data/bodyMeasuresDefaults.js` (chiave
+  `fitpulse-body-measures`, snapshot `{ id, date, values }`, upsert per data,
+  `latestValues` = valore più recente per campo). Campi in `MEASURE_FIELDS`
+  (aggiungerne uno = una riga lì + chiave `body.field.*`).
+- **Nascondiglio**: `config/features.js` (`FEATURES.bodyMeasures = false`). La
+  rotta `/misure` esiste (raggiungibile solo via URL), ma il link in `Profilo` è
+  dietro il flag. Per RENDERLA VISIBILE: mettere il flag a `true`.
+- i18n `body.*` in tutte e 5 le lingue. Test su `bodyMeasuresDefaults`.
+- ✅ **Verificato**: `npm run lint` + `npm run test` + `npm run build` ok, parità i18n.
+
 ### 2026-07-13 - Claude (peso corporeo + grafico andamento)
 
 - **Nuova feature Peso corporeo** (local-first, `/peso`, linkata da `Profilo`):
