@@ -73,6 +73,13 @@ Questa e' la struttura che, alla Fase 5 della roadmap, migrera' su Supabase.
   `fitpulse-body-bg`: tema e colori.
 - `fitpulse-lang`: lingua attiva.
 - `fitpulse-timer` / `fitpulse-rest-duration`: stato timer di recupero.
+- `fitpulse-giornate-owner`: userId Supabase proprietario dei dati giornate
+  locali (o assente = dati anonimi). Usato dal ponte cloud per non spingere i
+  dati di un utente nel DB di un altro sullo stesso browser (vedi sotto).
+- `fitpulse-diario`: diario alimentare `{ "YYYY-MM-DD": { breakfast:[], lunch:[],
+  dinner:[], snacks:[] } }`. Alimento = `{ id, nome, grammi, kcal, protein,
+  carbs, fat }` (numeri come stringhe). Helper in `data/nutritionDefaults.js`.
+- `fitpulse-nutrition-goals`: obiettivi giornalieri `{ kcal, protein, carbs, fat }`.
 - Legacy: `fitpulse-schede` (vecchie schede sciolte) viene migrato una-tantum
   in una giornata di default da `loadGiornate`.
 
@@ -85,6 +92,20 @@ prop e risale le modifiche con callback. `Palestra` e' l'unico che scrive su
 si aprono direttamente in `SchedaView`. Le card giornata (`GiornataCard`) si
 possono marcare `done`/`skip` con swipe orizzontale.
 
+## Sync cloud allenamenti (Fase 5, parziale)
+
+Ponte **local-first + mirror** per le GIORNATE, in `hooks/useWorkoutSync.js`
+(usato da `Palestra`). `localStorage` resta il motore (l'app va offline e da non
+loggati come prima). Da loggato:
+1. **riconciliazione** una-tantum al login: se il DB ha giornate le scarica nel
+   locale; se il DB e' vuoto e il locale e' anonimo (o gia' dello stesso utente)
+   lo carica su; se il locale e' di un altro utente parte pulito;
+2. **mirror** a ogni modifica (debounce ~800ms) via
+   `services/workouts.replaceWorkoutDays(userId, giornate)` (full-replace).
+
+No-op se Supabase non e' configurato. Il diario **Alimentazione** non e' ancora
+sincronizzato (solo localStorage). Da verificare end-to-end su un Supabase reale.
+
 ## Pagine (`src/pages/`)
 
 - `Home`: 3 anelli progresso + tab obiettivi (giorno/settimana/mese).
@@ -94,7 +115,12 @@ possono marcare `done`/`skip` con swipe orizzontale.
   da stati `done`/`skip` + weekly goal).
 - `Timer`: recupero countdown->countup, colori verde/rosso/giallo.
 - `Impostazioni` + `ImpostazioniColori`/`Obiettivi`/`Lingua`.
-- `Alimentazione`: placeholder.
+- `Alimentazione`: diario alimentare giornaliero. Selettore data (frecce
+  giorno prec./succ., pill "Oggi"), riepilogo (anello kcal via `RingChart` +
+  3 barre macro P/C/G vs obiettivi), 4 sezioni pasto
+  (colazione/pranzo/cena/spuntini) con inserimento manuale alimenti
+  (`FoodEditor`), elimina con `ConfirmModal`, obiettivi giornalieri modificabili
+  (`NutritionGoalsEditor`). Solo `localStorage` per ora (nessun mirror cloud).
 - `Login`/`Registrazione`/`Profilo`: collegati a Supabase Auth (backend).
 - `NotFound`: 404.
 
@@ -114,6 +140,8 @@ mostra il nome nella lingua attiva. Scegliendo un risultato compila
 `titolo` + `foto`. Se Supabase non e' configurato resta input manuale).
 Modali riusabili:
 `ConfirmModal`, `PromptModal`, `GiornataPickerModal`. Auth: `AuthShell`.
+Alimentazione: `FoodEditor` (aggiungi/modifica alimento, riusa `ui/Field`),
+`NutritionGoalsEditor` (obiettivi giornalieri).
 
 ## Theming e i18n
 

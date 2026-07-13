@@ -23,7 +23,8 @@ Due mondi coesistono e NON vanno confusi:
 
 - FRONTEND RUNTIME (cio' che gira davvero): React 19 + Vite, stato in
   `localStorage`. Funzionante: Home (anelli/obiettivi), Palestra
-  (giornate>schede>esercizi, swipe/riordino/stati), Timer di recupero,
+  (giornate>schede>esercizi, swipe/riordino/stati), Alimentazione (diario
+  giornaliero: pasti, alimenti manuali, macro vs obiettivi), Timer di recupero,
   Impostazioni (colori/obiettivi/lingua), i18n 5 lingue, tema dark/light.
   Dettagli in `frontend.md`.
 - BACKEND SCAFFOLDED (predisposto, NON ancora collegato alla UI): Supabase
@@ -32,8 +33,10 @@ Due mondi coesistono e NON vanno confusi:
   esercizi. Dettagli in `database.md`/`api.md`.
 
 Il ponte tra i due (migrazione `localStorage` -> Supabase) e' la Fase 5 della
-roadmap e NON e' ancora fatto. Finche' non e' fatto, la sorgente dati runtime
-resta `localStorage`.
+roadmap. **Avviato il 2026-07-13 per gli ALLENAMENTI** (mirror local-first in
+`useWorkoutSync`, vedi Log + `frontend.md`); il resto (alimentazione, obiettivi,
+impostazioni) e' ancora solo `localStorage`. La sorgente dati runtime resta
+`localStorage` come motore anche dove il mirror e' attivo.
 
 Da NON dare per scontato:
 
@@ -52,6 +55,30 @@ Da NON dare per scontato:
   con una nuova voce datata sotto "Log".
 
 ## Log
+
+### 2026-07-13 - Claude (ponte cloud allenamenti + Alimentazione + README)
+
+- **Fase 5 avviata (allenamenti)**: ponte LOCAL-FIRST + MIRROR in
+  `src/hooks/useWorkoutSync.js`, usato da `Palestra`. localStorage resta il
+  motore; da loggato riconcilia al login (pull dal DB / adozione dati anonimi /
+  clean se il locale e' di un altro utente) e rispecchia ogni modifica via
+  `replaceWorkoutDays` (debounce). Nuovo marcatore `fitpulse-giornate-owner`
+  (userId proprietario dei dati locali) per non spingere i dati di un utente nel
+  DB di un altro sullo stesso browser. No-op se Supabase non configurato.
+- **Alimentazione** (era placeholder): diario giornaliero localStorage-first.
+  4 pasti, inserimento manuale alimenti (kcal + P/C/G), riepilogo anello kcal +
+  barre macro vs obiettivi, navigazione per data, obiettivi modificabili. Nuovi:
+  `data/nutritionDefaults.js`, `components/FoodEditor.jsx`,
+  `components/NutritionGoalsEditor.jsx`. Chiavi localStorage `fitpulse-diario` e
+  `fitpulse-nutrition-goals`. i18n `nutrition.*` in tutte e 5 le lingue.
+  NB: il diario NON e' ancora sincronizzato su Supabase (solo locale).
+- **README** riscritto (era il template Vite) con feature, stack, setup, nota AI.
+- ✅ **Verificato**: `npm run lint` 0 errori + `npm run build` ok (warning chunk
+  >500kB preesistente, non bloccante). Fix in `useWorkoutSync`: aggiornamento del
+  ref spostato in `useEffect` (react-hooks/refs vieta di scrivere un ref in render).
+- ⚠️ Il ponte cloud allenamenti resta da provare **end-to-end** da loggato su Supabase.
+- 📁 **Spostamento cartella**: il progetto ora vive in `d:\progetti\sport-fitness`
+  (prima `c:\Users\simone\Desktop\sport-fitness`, ora copia stale/incompleta).
 
 ### 2026-07-09 - Claude (auth + registrazione wizard)
 
