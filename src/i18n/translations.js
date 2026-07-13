@@ -212,6 +212,20 @@ export const translations = {
     'settings.language.title': 'Lingua',
     'settings.language.desc': 'Scegli la lingua dell\'app',
 
+    // Backup
+    'title.backup': 'Backup',
+    'settings.backup.title': 'Backup dati',
+    'settings.backup.desc': 'Esporta o ripristina i tuoi dati',
+    'backup.subtitle': 'Salva tutti i tuoi dati in un file, o ripristinali da un backup.',
+    'backup.export': 'Esporta dati',
+    'backup.exportHint': 'Scarica un file JSON con allenamenti, diario, obiettivi e preferenze.',
+    'backup.import': 'Importa dati',
+    'backup.importHint': 'Ripristina i dati da un file di backup. Sostituirà i dati attuali.',
+    'backup.confirmTitle': 'Ripristinare i dati?',
+    'backup.confirmMsg': 'I dati attuali verranno sostituiti da quelli del backup. Continuare?',
+    'backup.invalid': 'File di backup non valido.',
+    'backup.exported': '✓ Esportato!',
+
     // Colori
     'colors.subtitle': 'Personalizza il tema e gli anelli',
     'colors.tab.theme': 'Tema',
@@ -464,6 +478,20 @@ export const translations = {
     'settings.language.title': 'Language',
     'settings.language.desc': 'Choose the app language',
 
+    // Backup
+    'title.backup': 'Backup',
+    'settings.backup.title': 'Data backup',
+    'settings.backup.desc': 'Export or restore your data',
+    'backup.subtitle': 'Save all your data to a file, or restore it from a backup.',
+    'backup.export': 'Export data',
+    'backup.exportHint': 'Download a JSON file with workouts, diary, goals and preferences.',
+    'backup.import': 'Import data',
+    'backup.importHint': 'Restore data from a backup file. It will replace current data.',
+    'backup.confirmTitle': 'Restore data?',
+    'backup.confirmMsg': 'Current data will be replaced with the backup. Continue?',
+    'backup.invalid': 'Invalid backup file.',
+    'backup.exported': '✓ Exported!',
+
     'colors.subtitle': 'Customize the theme and the rings',
     'colors.tab.theme': 'Theme',
     'colors.tab.background': 'Background',
@@ -710,6 +738,20 @@ export const translations = {
     'settings.weeklyGoalDesc': 'Cuántos entrenamientos quieres completar cada semana',
     'settings.language.title': 'Idioma',
     'settings.language.desc': 'Elige el idioma de la app',
+
+    // Backup
+    'title.backup': 'Copia de seguridad',
+    'settings.backup.title': 'Copia de datos',
+    'settings.backup.desc': 'Exporta o restaura tus datos',
+    'backup.subtitle': 'Guarda todos tus datos en un archivo o restáuralos desde una copia.',
+    'backup.export': 'Exportar datos',
+    'backup.exportHint': 'Descarga un archivo JSON con entrenamientos, diario, objetivos y preferencias.',
+    'backup.import': 'Importar datos',
+    'backup.importHint': 'Restaura los datos desde un archivo de copia. Sustituirá los datos actuales.',
+    'backup.confirmTitle': '¿Restaurar los datos?',
+    'backup.confirmMsg': 'Los datos actuales se sustituirán por los de la copia. ¿Continuar?',
+    'backup.invalid': 'Archivo de copia no válido.',
+    'backup.exported': '✓ ¡Exportado!',
 
     'colors.subtitle': 'Personaliza el tema y los anillos',
     'colors.tab.theme': 'Tema',
@@ -958,6 +1000,20 @@ export const translations = {
     'settings.language.title': 'Langue',
     'settings.language.desc': 'Choisis la langue de l\'app',
 
+    // Backup
+    'title.backup': 'Sauvegarde',
+    'settings.backup.title': 'Sauvegarde des données',
+    'settings.backup.desc': 'Exporte ou restaure tes données',
+    'backup.subtitle': 'Enregistre toutes tes données dans un fichier, ou restaure-les depuis une sauvegarde.',
+    'backup.export': 'Exporter les données',
+    'backup.exportHint': 'Télécharge un fichier JSON avec entraînements, journal, objectifs et préférences.',
+    'backup.import': 'Importer les données',
+    'backup.importHint': 'Restaure les données depuis un fichier de sauvegarde. Cela remplacera les données actuelles.',
+    'backup.confirmTitle': 'Restaurer les données ?',
+    'backup.confirmMsg': 'Les données actuelles seront remplacées par celles de la sauvegarde. Continuer ?',
+    'backup.invalid': 'Fichier de sauvegarde non valide.',
+    'backup.exported': '✓ Exporté !',
+
     'colors.subtitle': 'Personnalise le thème et les anneaux',
     'colors.tab.theme': 'Thème',
     'colors.tab.background': 'Fond',
@@ -1204,6 +1260,20 @@ export const translations = {
     'settings.weeklyGoalDesc': '你每周想完成的训练次数',
     'settings.language.title': '语言',
     'settings.language.desc': '选择应用语言',
+
+    // Backup
+    'title.backup': '备份',
+    'settings.backup.title': '数据备份',
+    'settings.backup.desc': '导出或恢复你的数据',
+    'backup.subtitle': '将所有数据保存到文件，或从备份中恢复。',
+    'backup.export': '导出数据',
+    'backup.exportHint': '下载包含训练、饮食日记、目标和偏好的 JSON 文件。',
+    'backup.import': '导入数据',
+    'backup.importHint': '从备份文件恢复数据。这将替换当前数据。',
+    'backup.confirmTitle': '恢复数据？',
+    'backup.confirmMsg': '当前数据将被备份中的数据替换。是否继续？',
+    'backup.invalid': '备份文件无效。',
+    'backup.exported': '✓ 已导出！',
 
     'colors.subtitle': '自定义主题和圆环',
     'colors.tab.theme': '主题',

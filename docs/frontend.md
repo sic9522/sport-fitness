@@ -21,7 +21,7 @@ chiama `useTimer()`; senza provider crasha l'intero albero (schermo vuoto).
 
 `<Layout>` = `<Outlet/>` + `<TimerPill/>` + `<Footer/>`.
 Rotte dentro Layout: `/` Home, `/palestra`, `/alimentazione`, `/timer`,
-`/profilo`, `/impostazioni` (+ `/colori`, `/obiettivi`, `/lingua`), e catch-all
+`/profilo`, `/impostazioni` (+ `/colori`, `/obiettivi`, `/lingua`, `/backup`), e catch-all
 `*` -> `NotFound` (dentro Layout, mantiene TopBar/Footer).
 Fuori Layout: `/registrazione` (wizard). `BrowserRouter` sta in `main.jsx`.
 Il login e' una MODALE aperta dall'icona utente in alto a destra (non piu' una
@@ -127,7 +127,9 @@ utenti sullo stesso browser). Da verificare end-to-end su un Supabase reale.
   personalizzato), Copia/Sposta per le custom, Progresso settimanale (3 barre
   da stati `done`/`skip` + weekly goal).
 - `Timer`: recupero countdown->countup, colori verde/rosso/giallo.
-- `Impostazioni` + `ImpostazioniColori`/`Obiettivi`/`Lingua`.
+- `Impostazioni` + `ImpostazioniColori`/`Obiettivi`/`Lingua`/`Backup`
+  (export/import di tutte le chiavi `fitpulse-*` in un file JSON, via
+  `utils/backup.js`; l'import sostituisce i dati e ricarica l'app).
 - `Alimentazione`: diario alimentare giornaliero. Selettore data (frecce
   giorno prec./succ., pill "Oggi"), riepilogo (anello kcal via `RingChart` +
   3 barre macro P/C/G vs obiettivi), 4 sezioni pasto

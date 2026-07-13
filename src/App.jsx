@@ -15,6 +15,7 @@ const Impostazioni = lazy(() => import("./pages/Impostazioni"));
 const ImpostazioniColori = lazy(() => import("./pages/ImpostazioniColori"));
 const ImpostazioniObiettivi = lazy(() => import("./pages/ImpostazioniObiettivi"));
 const ImpostazioniLingua = lazy(() => import("./pages/ImpostazioniLingua"));
+const ImpostazioniBackup = lazy(() => import("./pages/ImpostazioniBackup"));
 const Registrazione = lazy(() => import("./pages/Registrazione"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -33,6 +34,7 @@ function App() {
           <Route path="/impostazioni/colori" element={<ImpostazioniColori />} />
           <Route path="/impostazioni/obiettivi" element={<ImpostazioniObiettivi />} />
           <Route path="/impostazioni/lingua" element={<ImpostazioniLingua />} />
+          <Route path="/impostazioni/backup" element={<ImpostazioniBackup />} />
           <Route path="*" element={<NotFound />} />
         </Route>
         <Route path="/registrazione" element={<Registrazione />} />

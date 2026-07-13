@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { IoSettings, IoColorPaletteOutline, IoFlagOutline, IoLanguageOutline, IoChevronForward } from 'react-icons/io5'
+import { IoSettings, IoColorPaletteOutline, IoFlagOutline, IoLanguageOutline, IoArchiveOutline, IoChevronForward } from 'react-icons/io5'
 import TopBar from '../components/TopBar'
 import { useLang } from '../context/LanguageContext'
 
@@ -21,6 +21,12 @@ const MENU_ITEMS = [
     icon: IoLanguageOutline,
     titleKey: 'settings.language.title',
     descKey: 'settings.language.desc',
+  },
+  {
+    path: '/impostazioni/backup',
+    icon: IoArchiveOutline,
+    titleKey: 'settings.backup.title',
+    descKey: 'settings.backup.desc',
   },
 ]
 
