@@ -56,6 +56,18 @@ Da NON dare per scontato:
 
 ## Log
 
+### 2026-07-13 - Claude (peso corporeo + grafico andamento)
+
+- **Nuova feature Peso corporeo** (local-first, `/peso`, linkata da `Profilo`):
+  `pages/Peso.jsx` + `data/weightDefaults.js` (chiave `fitpulse-weight`, voci
+  `{ id, date, kg }`, upsert per data). Riepilogo peso attuale + variazione,
+  grafico di andamento a linea singola `components/WeightChart.jsx` (SVG inline in
+  accento, assi recessivi, serie singola → niente legenda, lista voci = table
+  view), editor `WeightEditor.jsx` (data + kg, validati). i18n `weight.*` +
+  `profilo.weightCard*` nelle 5 lingue. Test su `weightDefaults`.
+- Solo localStorage (nessun mirror cloud): tabella/sync futuri se serviranno.
+- ✅ **Verificato**: `npm run lint` + `npm run test` + `npm run build` ok, parità i18n.
+
 ### 2026-07-13 - Claude (offline PWA + CI + backup dati + più test)
 
 - **Service worker / offline**: aggiunto `vite-plugin-pwa` (`registerType
