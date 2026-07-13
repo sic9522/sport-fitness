@@ -56,6 +56,17 @@ Da NON dare per scontato:
 
 ## Log
 
+### 2026-07-13 - Claude (ErrorBoundary + parità i18n)
+
+- **ErrorBoundary globale**: nuovo `components/ErrorBoundary.jsx` (class
+  component), wrappa TUTTO l'albero in `main.jsx` (fuori dai provider). Un errore
+  di render ora mostra un fallback tematizzato con pulsante Ricarica invece dello
+  schermo bianco. Messaggi nelle 5 lingue letti da `localStorage` (`fitpulse-lang`,
+  fallback it) perche' non puo' usare `useLang()`.
+- **Parità i18n verificata**: 220 chiavi × 5 lingue, nessuna mancante né vuota.
+  Nessun fix necessario (solo controllo).
+- ✅ **Verificato**: `npm run lint` + `npm run build` ok.
+
 ### 2026-07-13 - Claude (PWA + code-splitting)
 
 - **PWA / installabilita'**: aggiunto `public/manifest.webmanifest` (nome, tema
