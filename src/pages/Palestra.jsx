@@ -11,6 +11,7 @@ import GiornataPickerModal from '../components/GiornataPickerModal'
 import { useLang } from '../context/LanguageContext'
 import { useTimer } from '../context/TimerContext'
 import { loadGiornate, saveGiornate, DAYS, dayIndex, newId, loadWeeklyGoal, giornataName, schedaNameTaken } from '../data/giornateDefaults'
+import { useWorkoutSync } from '../hooks/useWorkoutSync'
 import { titleCase } from '../utils/text'
 
 // Unisce schede in un contenitore: una incoming con lo stesso nome SOVRASCRIVE l'esistente
@@ -64,6 +65,9 @@ function Palestra() {
   const [overwrite, setOverwrite] = useState(null) // { mode, sourceId, targetId, name } → conferma sovrascrittura
   const [filter, setFilter] = useState('all')      // filtro card: 'all' | 'week' | 'plan'
   const [weeklyGoal] = useState(loadWeeklyGoal)    // obiettivo allenamenti/settimana (Impostazioni)
+
+  // Ponte local-first: da loggato rispecchia le giornate su Supabase (no-op se non configurato).
+  useWorkoutSync(giornate, setGiornate)
 
   const openGiornata = giornate.find(g => g.id === openId)
 

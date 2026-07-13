@@ -58,6 +58,19 @@ export function saveGiornate(giornate) {
   localStorage.setItem(KEY, JSON.stringify(giornate))
 }
 
+// Proprietario dei dati giornate salvati in localStorage: userId Supabase se sono stati
+// riconciliati con un account, oppure null = dati "anonimi" (creati senza login).
+// Serve al ponte cloud (useWorkoutSync) per NON spingere i dati di un utente nel DB di
+// un altro che apre l'app nello stesso browser.
+const OWNER_KEY = 'fitpulse-giornate-owner'
+export function loadGiornateOwner() {
+  return localStorage.getItem(OWNER_KEY) || null
+}
+export function saveGiornateOwner(userId) {
+  if (userId) localStorage.setItem(OWNER_KEY, userId)
+  else localStorage.removeItem(OWNER_KEY)
+}
+
 // Obiettivo: quanti allenamenti (giornate completate) l'utente vuole fare a settimana.
 const WEEKLY_GOAL_KEY = 'fitpulse-weekly-goal'
 export const DEFAULT_WEEKLY_GOAL = 4
