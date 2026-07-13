@@ -56,6 +56,20 @@ Da NON dare per scontato:
 
 ## Log
 
+### 2026-07-13 - Claude (PWA + code-splitting)
+
+- **PWA / installabilita'**: aggiunto `public/manifest.webmanifest` (nome, tema
+  `#863bff`, display standalone, icona `favicon.svg`) + meta nell'`index.html`
+  (`description`, `theme-color`, tag `apple-mobile-web-app-*`). NB: icona solo
+  SVG; per l'install prompt "pieno" di Chrome servirebbero PNG 192/512 (futuro).
+- **Code-splitting per rotta** (roadmap Fase 7 "lazy loading"): le pagine in
+  `App.jsx` passano a `React.lazy` + `Suspense`. Doppio boundary: uno esterno in
+  `App` (copre `/registrazione` e primo load), uno interno in `Layout` attorno a
+  `<Outlet/>` cosi' la shell (TopBar/Footer/TimerPill) resta durante il caricamento.
+  Nuovo `components/PageLoader.jsx` (spinner). Bundle iniziale ridotto, niente
+  piu' warning chunk >500kB.
+- ✅ **Verificato**: `npm run lint` + `npm run build` ok.
+
 ### 2026-07-13 - Claude (sync cloud diario + .env.example)
 
 - **Sync cloud Alimentazione (Fase 5/6, parziale)**: colmato il buco noto "il
