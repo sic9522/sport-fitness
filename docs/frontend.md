@@ -136,6 +136,11 @@ utenti sullo stesso browser). Da verificare end-to-end su un Supabase reale.
   (colazione/pranzo/cena/spuntini) con inserimento manuale alimenti
   (`FoodEditor`), elimina con `ConfirmModal`, obiettivi giornalieri modificabili
   (`NutritionGoalsEditor`). Solo `localStorage` per ora (nessun mirror cloud).
+- `Peso`: registro del peso corporeo local-first (`/peso`, linkata da `Profilo`).
+  Riepilogo (peso attuale + variazione), grafico di andamento a linea singola
+  (`WeightChart`, SVG inline in accento), aggiunta/modifica misura (`WeightEditor`:
+  data + kg) ed eliminazione con `ConfirmModal`. Dati in `data/weightDefaults.js`
+  (chiave localStorage `fitpulse-weight`, voce `{ id, date, kg }`, upsert per data).
 - `Login`/`Registrazione`/`Profilo`: collegati a Supabase Auth (backend).
 - `NotFound`: 404.
 

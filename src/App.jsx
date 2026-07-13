@@ -10,6 +10,7 @@ const Home = lazy(() => import("./pages/Home"));
 const Palestra = lazy(() => import("./pages/Palestra"));
 const Alimentazione = lazy(() => import("./pages/Alimentazione"));
 const Timer = lazy(() => import("./pages/Timer"));
+const Peso = lazy(() => import("./pages/Peso"));
 const Profilo = lazy(() => import("./pages/Profilo"));
 const Impostazioni = lazy(() => import("./pages/Impostazioni"));
 const ImpostazioniColori = lazy(() => import("./pages/ImpostazioniColori"));
@@ -29,6 +30,7 @@ function App() {
           <Route path="/palestra" element={<Palestra />} />
           <Route path="/alimentazione" element={<Alimentazione />} />
           <Route path="/timer" element={<Timer />} />
+          <Route path="/peso" element={<Peso />} />
           <Route path="/profilo" element={<Profilo />} />
           <Route path="/impostazioni" element={<Impostazioni />} />
           <Route path="/impostazioni/colori" element={<ImpostazioniColori />} />

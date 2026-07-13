@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { IoPersonCircleOutline } from 'react-icons/io5'
+import { IoPersonCircleOutline, IoScaleOutline, IoChevronForward } from 'react-icons/io5'
 import TopBar from '../components/TopBar'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
@@ -29,6 +29,20 @@ function Profilo() {
             </p>
           </div>
         </div>
+
+        <Link
+          to="/peso"
+          className="bg-[var(--surface)] rounded-xl p-4 flex items-center gap-4 w-full text-left hover:bg-[var(--surface-3)] transition-colors mb-6"
+        >
+          <div className="w-10 h-10 rounded-xl bg-[var(--fill-1)] flex items-center justify-center shrink-0">
+            <IoScaleOutline className="text-xl" style={{ color: 'var(--accent)' }} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm">{t('profilo.weightCard')}</p>
+            <p className="text-[color:var(--text-dim)] text-xs mt-0.5">{t('profilo.weightCardDesc')}</p>
+          </div>
+          <IoChevronForward className="text-[color:var(--text-faint)] shrink-0" />
+        </Link>
 
         {!isConfigured ? (
           <div className="rounded-xl border border-[color:var(--border-2)] bg-[var(--surface)] p-4 text-sm text-[color:var(--text-muted)]">
