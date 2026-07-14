@@ -34,7 +34,10 @@ function foodFromEntry(row) {
     kcal: numToStr(row.calories_kcal),
     protein: numToStr(row.protein_g),
     carbs: numToStr(row.carbs_g),
-    fat: numToStr(row.fat_g),
+    satFat: numToStr(row.sat_fat_g),
+    unsatFat: numToStr(row.unsat_fat_g),
+    sugars: numToStr(row.sugar_g),
+    fiber: numToStr(row.fiber_g),
   }
 }
 
@@ -54,7 +57,10 @@ export async function fetchDiary() {
         calories_kcal,
         protein_g,
         carbs_g,
-        fat_g,
+        sat_fat_g,
+        unsat_fat_g,
+        sugar_g,
+        fiber_g,
         sort_order
       )
     `)
@@ -109,7 +115,10 @@ export async function replaceDiary(userId, diario) {
         calories_kcal: strToNum(food.kcal),
         protein_g: strToNum(food.protein),
         carbs_g: strToNum(food.carbs),
-        fat_g: strToNum(food.fat),
+        sat_fat_g: strToNum(food.satFat),
+        unsat_fat_g: strToNum(food.unsatFat),
+        sugar_g: strToNum(food.sugars),
+        fiber_g: strToNum(food.fiber),
         sort_order: index,
       }))
 
@@ -126,7 +135,7 @@ export async function fetchGoals() {
   const client = requireSupabase()
   const { data, error } = await client
     .from('nutrition_goals')
-    .select('kcal, protein_g, carbs_g, fat_g')
+    .select('kcal, protein_g, carbs_g, sat_fat_g, unsat_fat_g, sugars_g, fiber_g')
     .maybeSingle() // RLS filtra sull'utente; PK user_id → al massimo una riga
 
   if (error) throw error
@@ -135,7 +144,10 @@ export async function fetchGoals() {
     kcal: Number(data.kcal),
     protein: Number(data.protein_g),
     carbs: Number(data.carbs_g),
-    fat: Number(data.fat_g),
+    satFat: Number(data.sat_fat_g),
+    unsatFat: Number(data.unsat_fat_g),
+    sugars: Number(data.sugars_g),
+    fiber: Number(data.fiber_g),
   }
 }
 
@@ -149,7 +161,10 @@ export async function upsertGoals(userId, goals) {
         kcal: Number(goals.kcal) || 0,
         protein_g: Number(goals.protein) || 0,
         carbs_g: Number(goals.carbs) || 0,
-        fat_g: Number(goals.fat) || 0,
+        sat_fat_g: Number(goals.satFat) || 0,
+        unsat_fat_g: Number(goals.unsatFat) || 0,
+        sugars_g: Number(goals.sugars) || 0,
+        fiber_g: Number(goals.fiber) || 0,
       },
       { onConflict: 'user_id' },
     )
