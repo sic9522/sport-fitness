@@ -1,23 +1,25 @@
 import { useState } from 'react'
-import { IoRestaurant, IoChevronBack, IoChevronForward, IoAdd, IoTrashOutline, IoOptionsOutline } from 'react-icons/io5'
+import { IoRestaurant, IoChevronBack, IoChevronForward, IoAdd, IoTrashOutline, IoOptionsOutline, IoChevronDown } from 'react-icons/io5'
 import TopBar from '../components/TopBar'
 import RingChart from '../components/RingChart'
+import NutritionTrendChart from '../components/NutritionTrendChart'
 import FoodEditor from '../components/FoodEditor'
 import NutritionGoalsEditor from '../components/NutritionGoalsEditor'
 import ConfirmModal from '../components/ConfirmModal'
 import { useLang } from '../context/LanguageContext'
 import {
-  MEALS, todayDate, addDays, dateKey, todayKey, newFoodId,
+  MEALS, MACROS, MACRO_KEYS, todayDate, addDays, dateKey, todayKey, newFoodId,
   loadDiario, saveDiario, dayMeals, dayTotals, sumNutrients,
+  rangeTotals, weekDateKeys, monthDateKeys, dailyKcalSeries,
   loadNutritionGoals, saveNutritionGoals,
 } from '../data/nutritionDefaults'
 import { useNutritionSync } from '../hooks/useNutritionSync'
 
-// Macro mostrate come barre nel riepilogo (colori fissi, leggibili in dark/light).
-const MACROS = [
-  { key: 'protein', labelKey: 'nutrition.proteinShort', color: '#f472b6' },
-  { key: 'carbs', labelKey: 'nutrition.carbsShort', color: '#f59e0b' },
-  { key: 'fat', labelKey: 'nutrition.fatShort', color: '#38bdf8' },
+// Tab del riepilogo (come in Home): giornaliero / settimanale / andamento mensile.
+const PERIODS = [
+  { key: 'daily', labelKey: 'period.daily' },
+  { key: 'weekly', labelKey: 'period.weekly' },
+  { key: 'monthly', labelKey: 'period.monthly' },
 ]
 
 // Barra macro: etichetta + "valore/obiettivo g" + riempimento colorato (cap 100%).
@@ -39,7 +41,7 @@ function MacroBar({ label, value, target, color }) {
 }
 
 // Bozza di un nuovo alimento (id generato in handler, non in render).
-const newFood = () => ({ id: newFoodId(), nome: '', grammi: '', kcal: '', protein: '', carbs: '', fat: '' })
+const newFood = () => ({ id: newFoodId(), nome: '', grammi: '', kcal: '', ...Object.fromEntries(MACRO_KEYS.map(k => [k, ''])) })
 
 function Alimentazione() {
   const { t, lang } = useLang()
@@ -50,6 +52,8 @@ function Alimentazione() {
   const [editing, setEditing] = useState(null)  // { meal, food } → FoodEditor
   const [deleting, setDeleting] = useState(null) // { meal, food } → ConfirmModal
   const [editGoals, setEditGoals] = useState(false)
+  const [period, setPeriod] = useState('daily')     // tab attivo: daily | weekly | monthly
+  const [macrosOpen, setMacrosOpen] = useState(false) // accordion Macro-nutrienti
 
   // Ponte local-first: da loggato rispecchia diario e obiettivi su Supabase (no-op se non configurato).
   useNutritionSync(diario, setDiario, goals, setGoals)
@@ -58,6 +62,15 @@ function Alimentazione() {
   const meals = dayMeals(diario, key)
   const totals = dayTotals(meals)
   const isToday = key === todayKey()
+
+  // Totali e obiettivo del periodo attivo. Obiettivo = giornaliero × giorni del periodo.
+  const monthKeys = monthDateKeys(selDate)
+  const goalMult = period === 'weekly' ? 7 : period === 'monthly' ? monthKeys.length : 1
+  const periodTotals = period === 'weekly' ? rangeTotals(diario, weekDateKeys(selDate))
+    : period === 'monthly' ? rangeTotals(diario, monthKeys)
+      : totals
+  const kcalTarget = Math.round((goals.kcal || 0) * goalMult)
+  const monthSeries = dailyKcalSeries(diario, monthKeys)
 
   function commitDiario(next) {
     setDiario(next)
@@ -83,7 +96,7 @@ function Alimentazione() {
     setEditGoals(false)
   }
 
-  const kcalRing = [{ id: 'kcal', current: totals.kcal, target: goals.kcal || 1, color: 'var(--accent)', label: t('nutrition.kcal') }]
+  const kcalRing = [{ id: 'kcal', current: Math.round(periodTotals.kcal), target: kcalTarget || 1, color: 'var(--accent)', label: t('nutrition.kcal') }]
   const dateLabel = selDate.toLocaleDateString(lang, { weekday: 'short', day: 'numeric', month: 'long' })
 
   return (
@@ -106,27 +119,63 @@ function Alimentazione() {
         </button>
       </div>
 
-      {/* Riepilogo giornata: anello kcal + barre macro, tutto vs obiettivi */}
+      {/* Riepilogo periodo: tab (giorno/settimana/mese) + anello o grafico + accordion macro */}
       <div className="mx-5 mt-4 rounded-2xl bg-[var(--surface)] border border-[color:var(--border-1)] p-4">
-        <div className="flex items-center justify-between mb-1">
-          <p className="text-xs font-bold uppercase tracking-widest text-[color:var(--text-dim)]">{t('nutrition.dayGoals')}</p>
-          <button onClick={() => setEditGoals(true)} aria-label={t('nutrition.editGoals')} className="text-[color:var(--text-muted)] hover:text-[color:var(--text)] transition-colors">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="grid grid-cols-3 gap-1 bg-[var(--surface-2)] rounded-xl p-1 flex-1">
+            {PERIODS.map(p => (
+              <button
+                key={p.key}
+                onClick={() => setPeriod(p.key)}
+                className="py-1.5 rounded-lg text-xs font-semibold transition-all"
+                style={period === p.key ? { backgroundColor: 'var(--accent)', color: 'var(--on-accent)' } : { color: 'var(--text-dim)' }}
+              >
+                {t(p.labelKey)}
+              </button>
+            ))}
+          </div>
+          <button onClick={() => setEditGoals(true)} aria-label={t('nutrition.editGoals')} className="shrink-0 text-[color:var(--text-muted)] hover:text-[color:var(--text)] transition-colors">
             <IoOptionsOutline className="text-lg" />
           </button>
         </div>
 
-        <div className="flex flex-col items-center">
-          <RingChart rings={kcalRing} />
-          <div className="-mt-2 mb-3">
-            <span className="text-xl font-extrabold tabular-nums">{totals.kcal}</span>
-            <span className="text-[color:var(--text-dim)] text-sm"> / {goals.kcal} {t('nutrition.kcal')}</span>
+        {period === 'monthly' ? (
+          <div className="mb-1">
+            <NutritionTrendChart values={monthSeries} goal={goals.kcal} unit={t('nutrition.kcal')} />
+            <p className="text-center text-sm mt-2">
+              <span className="font-extrabold tabular-nums">{Math.round(periodTotals.kcal)}</span>
+              <span className="text-[color:var(--text-dim)]"> {t('nutrition.kcal')} · {t('nutrition.monthlyTrend')}</span>
+            </p>
           </div>
-        </div>
+        ) : (
+          <div className="flex flex-col items-center">
+            <RingChart rings={kcalRing} />
+            <div className="-mt-2 mb-1">
+              <span className="text-xl font-extrabold tabular-nums">{Math.round(periodTotals.kcal)}</span>
+              <span className="text-[color:var(--text-dim)] text-sm"> / {kcalTarget} {t('nutrition.kcal')}</span>
+            </div>
+          </div>
+        )}
 
-        <div className="flex flex-col gap-3">
-          {MACROS.map(m => (
-            <MacroBar key={m.key} label={t(m.labelKey)} value={totals[m.key]} target={goals[m.key]} color={m.color} />
-          ))}
+        {/* Accordion Macro-nutrienti (vs obiettivo del periodo) */}
+        <div className="mt-3 border-t border-[color:var(--border-1)] pt-3">
+          <button onClick={() => setMacrosOpen(o => !o)} className="w-full flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-widest text-[color:var(--text-dim)]">{t('nutrition.macros')}</span>
+            <IoChevronDown className={`text-[color:var(--text-dim)] transition-transform ${macrosOpen ? 'rotate-180' : ''}`} />
+          </button>
+          {macrosOpen && (
+            <div className="flex flex-col gap-3 mt-3">
+              {MACROS.map(m => (
+                <MacroBar
+                  key={m.key}
+                  label={t(m.shortKey)}
+                  value={Math.round(periodTotals[m.key])}
+                  target={Math.round((goals[m.key] || 0) * goalMult)}
+                  color={m.color}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

@@ -13,7 +13,21 @@ export const MEALS = [
   { key: 'snacks', labelKey: 'nutrition.snacks' },
 ]
 
-export const DEFAULT_NUTRITION_GOALS = { kcal: 2000, protein: 150, carbs: 220, fat: 60 }
+// Macro-nutrienti tracciati per alimento e mostrati nell'accordion (ordine = UI).
+// key = campo nell'alimento/obiettivi; shortKey = etichetta i18n; color = barra.
+export const MACROS = [
+  { key: 'protein', shortKey: 'nutrition.proteinShort', color: '#f472b6' },
+  { key: 'carbs', shortKey: 'nutrition.carbsShort', color: '#f59e0b' },
+  { key: 'satFat', shortKey: 'nutrition.satFatShort', color: '#38bdf8' },
+  { key: 'unsatFat', shortKey: 'nutrition.unsatFatShort', color: '#22d3ee' },
+  { key: 'sugars', shortKey: 'nutrition.sugarsShort', color: '#a78bfa' },
+  { key: 'fiber', shortKey: 'nutrition.fiberShort', color: '#34d399' },
+]
+export const MACRO_KEYS = MACROS.map(m => m.key)
+
+export const DEFAULT_NUTRITION_GOALS = {
+  kcal: 2000, protein: 150, carbs: 220, satFat: 20, unsatFat: 40, sugars: 50, fiber: 30,
+}
 
 // --- Date (helper impuri a livello di modulo: tengono new Date fuori dai componenti,
 // come newId in giornateDefaults, per non far scattare react-hooks/purity). ---
@@ -90,19 +104,57 @@ export function diarioHasData(diario) {
 }
 
 // Somma i nutrienti di una lista di alimenti (stringhe → numeri, vuoto = 0).
+// Ritorna { kcal, ...MACRO_KEYS }.
 export function sumNutrients(foods) {
-  return foods.reduce(
-    (acc, f) => ({
-      kcal: acc.kcal + (Number(f.kcal) || 0),
-      protein: acc.protein + (Number(f.protein) || 0),
-      carbs: acc.carbs + (Number(f.carbs) || 0),
-      fat: acc.fat + (Number(f.fat) || 0),
-    }),
-    { kcal: 0, protein: 0, carbs: 0, fat: 0 },
-  )
+  const acc = { kcal: 0 }
+  for (const k of MACRO_KEYS) acc[k] = 0
+  for (const f of foods) {
+    acc.kcal += Number(f.kcal) || 0
+    for (const k of MACRO_KEYS) acc[k] += Number(f[k]) || 0
+  }
+  return acc
+}
+
+// Alimenti di un giorno appiattiti (tutti i pasti).
+function dayFoods(meals) {
+  return [...meals.breakfast, ...meals.lunch, ...meals.dinner, ...meals.snacks]
 }
 
 // Totali dell'intero giorno (tutti i pasti insieme).
 export function dayTotals(meals) {
-  return sumNutrients([...meals.breakfast, ...meals.lunch, ...meals.dinner, ...meals.snacks])
+  return sumNutrients(dayFoods(meals))
+}
+
+// --- Aggregazione per periodo (tab Settimanale / Mensile) ---
+
+// Lunedì della settimana che contiene `d` (fuso locale).
+export function startOfWeek(d) {
+  const r = new Date(d)
+  const dow = (r.getDay() + 6) % 7 // lun=0 … dom=6
+  r.setDate(r.getDate() - dow)
+  return r
+}
+
+// Le 7 chiavi-giorno (lun→dom) della settimana di `d`.
+export function weekDateKeys(d) {
+  const start = startOfWeek(d)
+  return Array.from({ length: 7 }, (_, i) => dateKey(addDays(start, i)))
+}
+
+// Le chiavi-giorno di tutti i giorni del mese di `d`.
+export function monthDateKeys(d) {
+  const y = d.getFullYear()
+  const m = d.getMonth()
+  const days = new Date(y, m + 1, 0).getDate()
+  return Array.from({ length: days }, (_, i) => dateKey(new Date(y, m, i + 1)))
+}
+
+// Totali nutrienti su un insieme di chiavi-giorno.
+export function rangeTotals(diario, keys) {
+  return sumNutrients(keys.flatMap(k => dayFoods(dayMeals(diario, k))))
+}
+
+// Serie delle kcal giornaliere sull'insieme di chiavi (per il grafico mensile).
+export function dailyKcalSeries(diario, keys) {
+  return keys.map(k => dayTotals(dayMeals(diario, k)).kcal)
 }

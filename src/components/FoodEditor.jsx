@@ -3,6 +3,7 @@ import { IoClose } from 'react-icons/io5'
 import { useLang } from '../context/LanguageContext'
 import useScrollLock from '../hooks/useScrollLock'
 import { titleCase } from '../utils/text'
+import { MACROS } from '../data/nutritionDefaults'
 import Field from './ui/Field'
 
 // Editor di un alimento (nuovo o esistente). Lavora su una copia locale (`form`):
@@ -49,9 +50,16 @@ function FoodEditor({ food, onSave, onCancel }) {
             <Field label={t('nutrition.kcal')} value={form.kcal} onChange={e => set({ kcal: e.target.value })} inputMode="numeric" placeholder="0" />
           </div>
           <div className="grid grid-cols-3 gap-2">
-            <Field label={t('nutrition.proteinShort')} value={form.protein} onChange={e => set({ protein: e.target.value })} inputMode="numeric" placeholder="0" />
-            <Field label={t('nutrition.carbsShort')} value={form.carbs} onChange={e => set({ carbs: e.target.value })} inputMode="numeric" placeholder="0" />
-            <Field label={t('nutrition.fatShort')} value={form.fat} onChange={e => set({ fat: e.target.value })} inputMode="numeric" placeholder="0" />
+            {MACROS.map(m => (
+              <Field
+                key={m.key}
+                label={`${t(m.shortKey)} (g)`}
+                value={form[m.key] ?? ''}
+                onChange={e => set({ [m.key]: e.target.value })}
+                inputMode="decimal"
+                placeholder="0"
+              />
+            ))}
           </div>
         </div>
 

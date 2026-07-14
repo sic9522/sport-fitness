@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { IoClose } from 'react-icons/io5'
 import { useLang } from '../context/LanguageContext'
 import useScrollLock from '../hooks/useScrollLock'
+import { MACROS } from '../data/nutritionDefaults'
 import Field from './ui/Field'
 
-// Modale per modificare gli obiettivi nutrizionali del giorno (kcal + P/C/G).
+// Modale per modificare gli obiettivi nutrizionali del giorno (kcal + 6 macro).
 // Copia locale applicata solo con Salva. I campi vuoti tornano a 0.
 function NutritionGoalsEditor({ goals, onSave, onCancel }) {
   const { t } = useLang()
@@ -15,12 +16,9 @@ function NutritionGoalsEditor({ goals, onSave, onCancel }) {
   const num = v => Math.max(0, Math.round(Number(v) || 0))
 
   function save() {
-    onSave({
-      kcal: num(form.kcal),
-      protein: num(form.protein),
-      carbs: num(form.carbs),
-      fat: num(form.fat),
-    })
+    const next = { kcal: num(form.kcal) }
+    for (const m of MACROS) next[m.key] = num(form[m.key])
+    onSave(next)
   }
 
   return (
@@ -41,9 +39,16 @@ function NutritionGoalsEditor({ goals, onSave, onCancel }) {
         <div className="flex flex-col gap-3">
           <Field label={t('nutrition.kcal')} value={form.kcal} onChange={e => set({ kcal: e.target.value })} inputMode="numeric" placeholder="2000" />
           <div className="grid grid-cols-3 gap-2">
-            <Field label={`${t('nutrition.proteinShort')} (g)`} value={form.protein} onChange={e => set({ protein: e.target.value })} inputMode="numeric" placeholder="150" />
-            <Field label={`${t('nutrition.carbsShort')} (g)`} value={form.carbs} onChange={e => set({ carbs: e.target.value })} inputMode="numeric" placeholder="220" />
-            <Field label={`${t('nutrition.fatShort')} (g)`} value={form.fat} onChange={e => set({ fat: e.target.value })} inputMode="numeric" placeholder="60" />
+            {MACROS.map(m => (
+              <Field
+                key={m.key}
+                label={`${t(m.shortKey)} (g)`}
+                value={form[m.key] ?? ''}
+                onChange={e => set({ [m.key]: e.target.value })}
+                inputMode="numeric"
+                placeholder="0"
+              />
+            ))}
           </div>
         </div>
 

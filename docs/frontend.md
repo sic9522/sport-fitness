@@ -83,7 +83,11 @@ Questa e' la struttura che, alla Fase 5 della roadmap, migrera' su Supabase.
   dati di un utente nel DB di un altro sullo stesso browser (vedi sotto).
 - `fitpulse-diario`: diario alimentare `{ "YYYY-MM-DD": { breakfast:[], lunch:[],
   dinner:[], snacks:[] } }`. Alimento = `{ id, nome, grammi, kcal, protein,
-  carbs, fat }` (numeri come stringhe). Helper in `data/nutritionDefaults.js`.
+  carbs, satFat, unsatFat, sugars, fiber }` (numeri come stringhe). I 6 macro
+  sono in `MACROS` (`data/nutritionDefaults.js`), iterati da editor/obiettivi/barre.
+  Aggregazioni per periodo: `weekDateKeys`/`monthDateKeys`/`rangeTotals`/
+  `dailyKcalSeries`. Riepilogo Alimentazione con tab giorno/settimana/mese (mese =
+  grafico `NutritionTrendChart`) e accordion "Macro-nutrienti".
 - `fitpulse-nutrition-goals`: obiettivi giornalieri `{ kcal, protein, carbs, fat }`.
 - Legacy: `fitpulse-schede` (vecchie schede sciolte) viene migrato una-tantum
   in una giornata di default da `loadGiornate`.
