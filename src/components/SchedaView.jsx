@@ -222,11 +222,20 @@ function SchedaView({ scheda, restLabel, onRename, onExercisesChange, onBack }) 
   const [editingId, setEditingId] = useState(null)
   const [newDraft, setNewDraft] = useState(null)
   const [activeId, setActiveId] = useState(null) // card trascinata (per il DragOverlay)
+  const [nameError, setNameError] = useState(false) // nome scheda mancante al click su +
+  const nameRef = useRef(null)
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
   function openNew() {
-    // Nome vuoto (placeholder nell'editor); serie/rip/kg con valori di default
+    // Nome scheda OBBLIGATORIO prima di aggiungere un esercizio: se vuoto non si va
+    // avanti (evita che la scheda venga poi auto-nominata "Nuova scheda").
+    if (!scheda.nome.trim()) {
+      setNameError(true)
+      nameRef.current?.focus()
+      return
+    }
+    // Nome esercizio vuoto (placeholder nell'editor); serie/rip/kg con valori di default
     setNewDraft({ id: newId(), titolo: '', serie: '3', reps: '8', kg: '20', split: false, foto: null })
   }
   function saveEsercizio(ex) {
@@ -268,26 +277,35 @@ function SchedaView({ scheda, restLabel, onRename, onExercisesChange, onBack }) 
       <TopBar onBack={onBack} title={(scheda.nome || '').toUpperCase()} />
 
       {/* Header: nome modificabile + badge recupero + aggiungi */}
-      <div className="px-5 pt-3 flex items-center gap-2">
-        <input
-          value={scheda.nome}
-          onChange={e => onRename(scheda.id, e.target.value)}
-          onBlur={e => onRename(scheda.id, titleCase(e.target.value.trim()))}
-          placeholder={t('palestra.schedaPlaceholder')}
-          className="flex-1 min-w-0 bg-transparent text-2xl font-extrabold outline-none border-b border-transparent focus:border-[color:var(--border-3)] pb-1 placeholder:text-[color:var(--text-faint)]"
-        />
-        <span className="flex items-center gap-1 rounded-full bg-[var(--fill-1)] border border-[color:var(--border-2)] px-2.5 py-1 shrink-0">
-          <IoStopwatchOutline className="text-sm" style={{ color: 'var(--accent)' }} />
-          <span className="text-sm font-semibold tabular-nums">{restLabel}</span>
-        </span>
-        <button
-          onClick={openNew}
-          aria-label={t('palestra.addExercise')}
-          className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-          style={{ backgroundColor: 'var(--accent)', color: 'var(--on-accent)' }}
-        >
-          <IoAdd className="text-xl" />
-        </button>
+      <div className="px-5 pt-3">
+        <div className="flex items-center gap-2">
+          <input
+            ref={nameRef}
+            value={scheda.nome}
+            onChange={e => {
+              onRename(scheda.id, e.target.value)
+              if (nameError && e.target.value.trim()) setNameError(false)
+            }}
+            onBlur={e => onRename(scheda.id, titleCase(e.target.value.trim()))}
+            placeholder={t('palestra.schedaPlaceholder')}
+            className={`flex-1 min-w-0 bg-transparent text-2xl font-extrabold outline-none border-b pb-1 placeholder:text-[color:var(--text-faint)] ${
+              nameError ? 'border-red-400' : 'border-transparent focus:border-[color:var(--border-3)]'
+            }`}
+          />
+          <span className="flex items-center gap-1 rounded-full bg-[var(--fill-1)] border border-[color:var(--border-2)] px-2.5 py-1 shrink-0">
+            <IoStopwatchOutline className="text-sm" style={{ color: 'var(--accent)' }} />
+            <span className="text-sm font-semibold tabular-nums">{restLabel}</span>
+          </span>
+          <button
+            onClick={openNew}
+            aria-label={t('palestra.addExercise')}
+            className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+            style={{ backgroundColor: 'var(--accent)', color: 'var(--on-accent)' }}
+          >
+            <IoAdd className="text-xl" />
+          </button>
+        </div>
+        {nameError && <p className="text-xs text-red-400 mt-1">{t('palestra.schedaNameRequired')}</p>}
       </div>
 
       {/* Lista esercizi (1 per riga) */}
