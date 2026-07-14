@@ -97,7 +97,10 @@ Questa e' la struttura che, alla Fase 5 della roadmap, migrera' su Supabase.
   "Nª settimana" + range "dal X al Y" più piccolo). Il grafico mensile
   (`NutritionTrendChart`) mostra il DEFICIT kcal giornaliero (`dailyDeficitSeries`:
   obiettivo−consumato, 0 nei giorni senza dati) con baseline a zero e andamento
-  fluttuante (deficit sopra / surplus sotto). La modifica obiettivi è per ora
+  fluttuante (deficit sopra / surplus sotto); le etichette agli estremi indicano il
+  GIORNO del deficit/surplus massimo ("deficit max gg: n"). Doppio tap/click apre
+  `NutritionDeficitDetail` (piano cartesiano ingrandito: X = giorni del mese, Y con
+  "Deficit kcal"/"Surplus kcal" verticali, zero al centro). La modifica obiettivi è per ora
   NASCOSTA (rimosso il trigger; `NutritionGoalsEditor` resta, andrà in Impostazioni).
   Intestazione = indicatore piccolo sopra + valore sotto: Oggi/data, "Nª settimana ·
   mese"/"dal X al Y", Corrente/mese. Le settimane sono RITAGLIATE al mese (non

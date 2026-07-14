@@ -6,7 +6,7 @@ const W = 320
 const H = 120
 const PAD = { top: 16, right: 10, bottom: 16, left: 10 }
 
-function NutritionTrendChart({ values, unit = 'kcal' }) {
+function NutritionTrendChart({ values, unit = 'kcal', topLabel, bottomLabel }) {
   const n = values.length
   const max = Math.max(0, ...values)
   const min = Math.min(0, ...values)
@@ -28,9 +28,9 @@ function NutritionTrendChart({ values, unit = 'kcal' }) {
       className="block"
       style={{ height: 'auto' }}
     >
-      {/* Etichette estremi (deficit in alto, surplus in basso) */}
-      {max > 0 && <text x={PAD.left} y={PAD.top - 5} fontSize="9" fill="var(--text-dim)">+{Math.round(max)} {unit}</text>}
-      {min < 0 && <text x={PAD.left} y={H - PAD.bottom + 11} fontSize="9" fill="var(--text-dim)">{Math.round(min)} {unit}</text>}
+      {/* Etichette estremi: giorno del deficit max (alto) e del surplus max (basso) */}
+      {max > 0 && topLabel && <text x={PAD.left} y={PAD.top - 5} fontSize="9" fill="var(--text-dim)">{topLabel}</text>}
+      {min < 0 && bottomLabel && <text x={PAD.left} y={H - PAD.bottom + 11} fontSize="9" fill="var(--text-dim)">{bottomLabel}</text>}
 
       {/* Baseline a zero */}
       <line x1={PAD.left} y1={zeroY} x2={W - PAD.right} y2={zeroY} stroke="var(--text-faint)" strokeWidth="1" strokeDasharray="3 3" />

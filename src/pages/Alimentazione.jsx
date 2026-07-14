@@ -1,8 +1,9 @@
 import { useState, useRef } from 'react'
-import { IoRestaurant, IoChevronBack, IoChevronForward, IoAdd, IoTrashOutline, IoChevronDown } from 'react-icons/io5'
+import { IoRestaurant, IoChevronBack, IoChevronForward, IoAdd, IoTrashOutline, IoChevronDown, IoClose } from 'react-icons/io5'
 import TopBar from '../components/TopBar'
 import RingChart from '../components/RingChart'
 import NutritionTrendChart from '../components/NutritionTrendChart'
+import NutritionDeficitDetail from '../components/NutritionDeficitDetail'
 import FoodEditor from '../components/FoodEditor'
 import NutritionGoalsEditor from '../components/NutritionGoalsEditor'
 import ConfirmModal from '../components/ConfirmModal'
@@ -85,6 +86,7 @@ function Alimentazione() {
   const [period, setPeriod] = useState('daily')     // tab attivo: daily | weekly | monthly
   const [macrosOpen, setMacrosOpen] = useState(false) // accordion Macro-nutrienti (giorno/settimana)
   const [openWeek, setOpenWeek] = useState(null)      // indice settimana aperta nel mese (una alla volta)
+  const [chartZoom, setChartZoom] = useState(false)   // grafico deficit ingrandito (doppio tap/click)
 
   // Ponte local-first: da loggato rispecchia diario e obiettivi su Supabase (no-op se non configurato).
   useNutritionSync(diario, setDiario, goals, setGoals)
@@ -103,6 +105,11 @@ function Alimentazione() {
   const kcalTarget = Math.round((goals.kcal || 0) * goalMult)
   const deficitSeries = dailyDeficitSeries(diario, monthKeys, goals.kcal)
   const netDeficit = Math.round(deficitSeries.reduce((a, b) => a + b, 0))
+  // Giorno (del mese) col deficit massimo (top) e col surplus massimo (bottom).
+  const maxDefIdx = deficitSeries.reduce((b, v, i) => (v > deficitSeries[b] ? i : b), 0)
+  const maxSurIdx = deficitSeries.reduce((b, v, i) => (v < deficitSeries[b] ? i : b), 0)
+  const deficitTopLabel = t('nutrition.maxDeficitDay', { n: maxDefIdx + 1 })
+  const surplusBottomLabel = t('nutrition.maxSurplusDay', { n: maxSurIdx + 1 })
 
   function commitDiario(next) {
     setDiario(next)
@@ -166,6 +173,14 @@ function Alimentazione() {
     const diff = touchStartX.current - e.changedTouches[0].clientX
     if (Math.abs(diff) > 50) go(diff > 0 ? 1 : -1) // swipe sx → succ, dx → prec
     touchStartX.current = null
+  }
+
+  // Doppio tap/click sul grafico → apre la versione ingrandita.
+  const lastChartTap = useRef(0)
+  function onChartTap(e) {
+    const nowT = e.timeStamp
+    if (nowT - lastChartTap.current < 300) { setChartZoom(true); lastChartTap.current = 0 }
+    else lastChartTap.current = nowT
   }
 
   const now = todayDate()
@@ -253,8 +268,13 @@ function Alimentazione() {
 
           <div key={`${period}-${key}`} className={animClass}>
             {period === 'monthly' ? (
-              <div className="mb-1">
-                <NutritionTrendChart values={deficitSeries} unit={t('nutrition.kcal')} />
+              <div className="mb-1" onClick={onChartTap}>
+                <NutritionTrendChart
+                  values={deficitSeries}
+                  unit={t('nutrition.kcal')}
+                  topLabel={deficitTopLabel}
+                  bottomLabel={surplusBottomLabel}
+                />
                 <p className="text-center text-sm mt-2">
                   <span className="font-extrabold tabular-nums">{Math.abs(netDeficit)}</span>
                   <span className="text-[color:var(--text-dim)]"> {t('nutrition.kcal')} · {t(netDeficit >= 0 ? 'nutrition.deficit' : 'nutrition.surplus')}</span>
@@ -364,6 +384,25 @@ function Alimentazione() {
 
       {editGoals && (
         <NutritionGoalsEditor goals={goals} onSave={saveGoals} onCancel={() => setEditGoals(false)} />
+      )}
+
+      {chartZoom && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setChartZoom(false)}>
+          <div className="w-full max-w-sm rounded-2xl bg-[var(--surface)] border border-[color:var(--border-2)] p-4" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold uppercase tracking-widest text-[color:var(--text-dim)]">{monthLabel}</span>
+              <button onClick={() => setChartZoom(false)} aria-label={t('common.cancel')} className="text-[color:var(--text-muted)] hover:text-[color:var(--text)] transition-colors">
+                <IoClose className="text-2xl" />
+              </button>
+            </div>
+            <NutritionDeficitDetail
+              values={deficitSeries}
+              unit={t('nutrition.kcal')}
+              deficitLabel={t('nutrition.deficit')}
+              surplusLabel={t('nutrition.surplus')}
+            />
+          </div>
+        </div>
       )}
 
       {deleting && (
