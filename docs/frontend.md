@@ -87,8 +87,10 @@ Questa e' la struttura che, alla Fase 5 della roadmap, migrera' su Supabase.
   (`data/nutritionDefaults.js`), iterati da editor/obiettivi/barre. Grassi = valore
   unico (no saturi/insaturi). Aggregazioni per periodo: `weekDateKeys`/`monthDateKeys`/
   `rangeTotals`/`dailyKcalSeries`/`weekOfMonth`/`clippedWeek`. Riepilogo Alimentazione
-  con tab giorno/settimana/mese: cambio tab TORNA a oggi (reset `selDate`); le frecce
-  navigano per periodo; l'accordion "Macro-nutrienti" si chiude al cambio tab.
+  con tab giorno/settimana/mese: cambio tab TORNA a oggi (reset `selDate`); la
+  navigazione periodo è DENTRO la scheda (frecce in overlay ai lati + swipe
+  orizzontale sulla card; la freccia si illumina in accento su click/swipe);
+  l'accordion "Macro-nutrienti" si chiude al cambio tab.
   Intestazione = indicatore piccolo sopra + valore sotto: Oggi/data, "Nª settimana ·
   mese"/"dal X al Y", Corrente/mese. Le settimane sono RITAGLIATE al mese (non
   sconfinano: es. 28→30, poi 1→…) e la numerazione riparte ogni mese. Mese = grafico

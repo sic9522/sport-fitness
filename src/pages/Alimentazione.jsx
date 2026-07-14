@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { IoRestaurant, IoChevronBack, IoChevronForward, IoAdd, IoTrashOutline, IoOptionsOutline, IoChevronDown } from 'react-icons/io5'
 import TopBar from '../components/TopBar'
 import RingChart from '../components/RingChart'
@@ -116,6 +116,25 @@ function Alimentazione() {
     })
   }
 
+  // Illuminazione transitoria della freccia (click o swipe) col colore accento.
+  const [litDir, setLitDir] = useState(null) // 'prev' | 'next' | null
+  const touchStartX = useRef(null)
+  function flash(dir) {
+    setLitDir(dir)
+    setTimeout(() => setLitDir(cur => (cur === dir ? null : cur)), 220)
+  }
+  function go(dir) { // -1 = precedente, +1 = successivo
+    flash(dir < 0 ? 'prev' : 'next')
+    shift(dir)
+  }
+  function onTouchStart(e) { touchStartX.current = e.touches[0].clientX }
+  function onTouchEnd(e) {
+    if (touchStartX.current == null) return
+    const diff = touchStartX.current - e.changedTouches[0].clientX
+    if (Math.abs(diff) > 50) go(diff > 0 ? 1 : -1) // swipe sx → succ, dx → prec
+    touchStartX.current = null
+  }
+
   const now = todayDate()
   const isCurrentMonth = selDate.getMonth() === now.getMonth() && selDate.getFullYear() === now.getFullYear()
   const week = clippedWeek(selDate)
@@ -129,11 +148,8 @@ function Alimentazione() {
     <div className="flex flex-col pb-28">
       <TopBar icon={IoRestaurant} title={t('title.nutrition')} />
 
-      {/* Selettore periodo (giorno / settimana / mese) */}
-      <div className="flex items-center justify-between px-5 pt-4">
-        <button onClick={() => shift(-1)} aria-label="−1" className="p-2 text-[color:var(--text-muted)] hover:text-[color:var(--text)] transition-colors">
-          <IoChevronBack className="text-xl" />
-        </button>
+      {/* Intestazione periodo (solo etichetta; frecce e swipe stanno nella scheda sotto) */}
+      <div className="flex justify-center px-5 pt-4">
         <div className="flex flex-col items-center text-center">
           {period === 'daily' && (
             <>
@@ -158,13 +174,32 @@ function Alimentazione() {
             </>
           )}
         </div>
-        <button onClick={() => shift(1)} aria-label="+1" className="p-2 text-[color:var(--text-muted)] hover:text-[color:var(--text)] transition-colors">
-          <IoChevronForward className="text-xl" />
-        </button>
       </div>
 
-      {/* Riepilogo periodo: tab (giorno/settimana/mese) + anello o grafico + accordion macro */}
-      <div className="mx-5 mt-4 rounded-2xl bg-[var(--surface)] border border-[color:var(--border-1)] p-4">
+      {/* Riepilogo periodo: tab + anello/grafico + accordion. Frecce interne (overlay,
+          non interrompono la grafica) + swipe orizzontale per cambiare periodo. */}
+      <div
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+        className="relative mx-5 mt-4 rounded-2xl bg-[var(--surface)] border border-[color:var(--border-1)] p-4"
+      >
+        <button
+          onClick={() => go(-1)}
+          aria-label="−1"
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-1 transition-colors"
+          style={{ color: litDir === 'prev' ? 'var(--accent)' : 'var(--text-faint)' }}
+        >
+          <IoChevronBack className="text-xl" />
+        </button>
+        <button
+          onClick={() => go(1)}
+          aria-label="+1"
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-1 transition-colors"
+          style={{ color: litDir === 'next' ? 'var(--accent)' : 'var(--text-faint)' }}
+        >
+          <IoChevronForward className="text-xl" />
+        </button>
+
         <div className="flex items-center gap-2 mb-3">
           <div className="grid grid-cols-3 gap-1 bg-[var(--surface-2)] rounded-xl p-1 flex-1">
             {PERIODS.map(p => (
