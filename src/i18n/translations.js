@@ -146,6 +146,7 @@ export const translations = {
     // Esercizi (dentro la scheda)
     'esercizio.namePlaceholder': 'es: Panca piana',
     'esercizio.serie': 'Serie',
+    'esercizio.split': 'Split',
     'esercizio.reps': 'Rip.',
     'esercizio.reorder': 'Trascina per riordinare',
     'esercizio.searching': 'Ricerca…',
@@ -458,6 +459,7 @@ export const translations = {
 
     'esercizio.namePlaceholder': 'e.g. Bench press',
     'esercizio.serie': 'Sets',
+    'esercizio.split': 'Split',
     'esercizio.reps': 'Reps',
     'esercizio.reorder': 'Drag to reorder',
     'esercizio.searching': 'Searching…',
@@ -764,6 +766,7 @@ export const translations = {
 
     'esercizio.namePlaceholder': 'ej: Press de banca',
     'esercizio.serie': 'Series',
+    'esercizio.split': 'Split',
     'esercizio.reps': 'Reps',
     'esercizio.reorder': 'Arrastra para reordenar',
     'esercizio.searching': 'Buscando…',
@@ -1070,6 +1073,7 @@ export const translations = {
 
     'esercizio.namePlaceholder': 'ex : Développé couché',
     'esercizio.serie': 'Séries',
+    'esercizio.split': 'Split',
     'esercizio.reps': 'Rép.',
     'esercizio.reorder': 'Glisser pour réordonner',
     'esercizio.searching': 'Recherche…',
@@ -1376,6 +1380,7 @@ export const translations = {
 
     'esercizio.namePlaceholder': '例: 卧推',
     'esercizio.serie': '组数',
+    'esercizio.split': '拆分',
     'esercizio.reps': '次数',
     'esercizio.reorder': '拖动以重新排序',
     'esercizio.searching': '搜索中…',

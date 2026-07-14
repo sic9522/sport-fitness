@@ -227,7 +227,7 @@ function SchedaView({ scheda, restLabel, onRename, onExercisesChange, onBack }) 
 
   function openNew() {
     // Nome vuoto (placeholder nell'editor); serie/rip/kg con valori di default
-    setNewDraft({ id: newId(), titolo: '', serie: '3', reps: '8', kg: '20', foto: null })
+    setNewDraft({ id: newId(), titolo: '', serie: '3', reps: '8', kg: '20', split: false, foto: null })
   }
   function saveEsercizio(ex) {
     onExercisesChange(

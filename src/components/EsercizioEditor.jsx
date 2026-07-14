@@ -1,17 +1,19 @@
 import { useState, useEffect, useRef } from 'react'
-import { IoClose, IoBarbellOutline } from 'react-icons/io5'
+import { IoClose, IoBarbellOutline, IoChevronDown } from 'react-icons/io5'
 import { useLang } from '../context/LanguageContext'
 import useScrollLock from '../hooks/useScrollLock'
 import { titleCase } from '../utils/text'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { searchCatalogExercises } from '../services/catalogs'
+import { serieCount, editorRows, rowsValid, buildExercise, SERIE_MAX } from '../data/exerciseSets'
 import ExerciseImageField from './ExerciseImageField'
 
-// Campo etichettato dell'editor esercizio (numerici)
+// Campo etichettato dell'editor esercizio (numerici). La label è opzionale:
+// nelle righe multiple (split) l'intestazione è unica sopra, non per riga.
 function Field({ label, value, onChange, inputMode, placeholder }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-xs uppercase tracking-wider text-[color:var(--text-dim)]">{label}</span>
+      {label && <span className="text-xs uppercase tracking-wider text-[color:var(--text-dim)]">{label}</span>}
       <input
         value={value}
         onChange={e => onChange(e.target.value)}
@@ -20,6 +22,66 @@ function Field({ label, value, onChange, inputMode, placeholder }) {
         className="w-full bg-[var(--surface-2)] rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)] placeholder:text-[color:var(--text-faint)]"
       />
     </label>
+  )
+}
+
+// Select custom del numero di serie (1-5). Diversa da una <select> nativa perché
+// il menu contiene, in alto a destra, un radio "split" che attiva le righe per-serie.
+function SerieSelect({ serie, split, onSerie, onToggleSplit }) {
+  const { t } = useLang()
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    function onDown(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('pointerdown', onDown)
+    return () => document.removeEventListener('pointerdown', onDown)
+  }, [])
+
+  return (
+    <div className="relative w-16 shrink-0" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full bg-[var(--surface-2)] rounded-lg px-3 py-2 text-sm flex items-center justify-between outline-none focus:ring-1 focus:ring-[var(--accent)]"
+      >
+        <span className="font-semibold tabular-nums">{serie}</span>
+        <IoChevronDown className="text-xs text-[color:var(--text-dim)]" />
+      </button>
+
+      {open && (
+        <div className="absolute z-20 left-0 mt-1 w-44 rounded-lg bg-[var(--surface-2)] border border-[color:var(--border-2)] shadow-xl p-2">
+          {/* Intestazione: etichetta + radio "split" in alto a destra */}
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] uppercase tracking-wider text-[color:var(--text-dim)]">{t('esercizio.serie')}</span>
+            <button type="button" onClick={onToggleSplit} aria-pressed={split} className="flex items-center gap-1.5">
+              <span className="text-xs">{t('esercizio.split')}</span>
+              <span
+                className="w-4 h-4 rounded-full border flex items-center justify-center"
+                style={{ borderColor: split ? 'var(--accent)' : 'var(--border-3)' }}
+              >
+                {split && <span className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--accent)' }} />}
+              </span>
+            </button>
+          </div>
+          <div className="grid grid-cols-5 gap-1">
+            {Array.from({ length: SERIE_MAX }, (_, i) => i + 1).map(n => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => { onSerie(n); setOpen(false) }}
+                className="py-1.5 rounded text-sm font-semibold tabular-nums transition-colors"
+                style={n === serie ? { backgroundColor: 'var(--accent)', color: 'var(--on-accent)' } : { color: 'var(--text-dim)' }}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -136,15 +198,47 @@ function NameField({ label, value, placeholder, onChange, onPick }) {
 function EsercizioEditor({ esercizio, onSave, onCancel }) {
   const { t } = useLang()
   useScrollLock()
-  const [form, setForm] = useState(esercizio)
+  const [form, setForm] = useState(esercizio) // titolo, foto, stato, id
   const set = patch => setForm(f => ({ ...f, ...patch }))
 
-  // Tutti i campi obbligatori: Salva attivo solo se sono compilati (nome incluso)
-  const valid =
-    form.titolo.trim() !== '' &&
-    String(form.serie).trim() !== '' &&
-    String(form.reps).trim() !== '' &&
-    String(form.kg).trim() !== ''
+  // Serie (1-5), split e righe reps/kg gestite a parte dal resto del form.
+  const [serie, setSerie] = useState(() => serieCount(esercizio))
+  const [split, setSplit] = useState(() => Boolean(esercizio.split))
+  const [rows, setRows] = useState(() => editorRows(esercizio))
+
+  const emptyRow = { reps: '', kg: '' }
+
+  // Cambio numero serie: con split cresce/riduce le righe (le nuove copiano l'ultima).
+  function changeSerie(n) {
+    if (split) {
+      const next = rows.slice(0, n)
+      while (next.length < n) next.push({ ...(rows[rows.length - 1] || emptyRow) })
+      setRows(next)
+    }
+    setSerie(n)
+  }
+
+  // Split ON: espande la riga unica in N righe uguali. OFF: torna a una sola riga.
+  function toggleSplit() {
+    const ns = !split
+    if (ns) {
+      const base = rows[0] || emptyRow
+      setRows(Array.from({ length: serie }, () => ({ ...base })))
+    } else {
+      setRows([rows[0] || emptyRow])
+    }
+    setSplit(ns)
+  }
+
+  const setRow = (i, patch) => setRows(rs => rs.map((r, idx) => (idx === i ? { ...r, ...patch } : r)))
+
+  const valid = form.titolo.trim() !== '' && rowsValid(rows)
+
+  function save() {
+    if (!valid) return
+    const ex = buildExercise(form, { serie, split, rows })
+    onSave({ ...ex, titolo: titleCase(form.titolo.trim()) })
+  }
 
   return (
     <div
@@ -174,10 +268,28 @@ function EsercizioEditor({ esercizio, onSave, onCancel }) {
             onChange={v => set({ titolo: v })}
             onPick={item => set({ titolo: item.name, foto: item.image_url || null })}
           />
-          <div className="grid grid-cols-3 gap-2">
-            <Field label={t('esercizio.serie')} value={form.serie} onChange={v => set({ serie: v })} inputMode="numeric" placeholder="3" />
-            <Field label={t('esercizio.reps')} value={form.reps} onChange={v => set({ reps: v })} inputMode="numeric" placeholder="8" />
-            <Field label="kg" value={form.kg} onChange={v => set({ kg: v })} inputMode="numeric" placeholder="20" />
+          {/* Serie (select con split) a sinistra + righe reps/kg a destra.
+              items-center centra verticalmente la select rispetto alle righe:
+              2 righe → tra la 1ª e la 2ª; 3 → sulla 2ª; 4 → tra 2ª e 3ª; 5 → sulla 3ª. */}
+          <div>
+            <div className="flex gap-3 mb-1">
+              <span className="w-16 shrink-0 text-xs uppercase tracking-wider text-[color:var(--text-dim)]">{t('esercizio.serie')}</span>
+              <div className="flex-1 grid grid-cols-2 gap-2">
+                <span className="text-xs uppercase tracking-wider text-[color:var(--text-dim)]">{t('esercizio.reps')}</span>
+                <span className="text-xs uppercase tracking-wider text-[color:var(--text-dim)]">kg</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <SerieSelect serie={serie} split={split} onSerie={changeSerie} onToggleSplit={toggleSplit} />
+              <div className="flex-1 flex flex-col gap-2">
+                {rows.map((r, i) => (
+                  <div key={i} className="grid grid-cols-2 gap-2">
+                    <Field value={r.reps} onChange={v => setRow(i, { reps: v })} inputMode="numeric" placeholder="8" />
+                    <Field value={r.kg} onChange={v => setRow(i, { kg: v })} inputMode="numeric" placeholder="20" />
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -191,7 +303,7 @@ function EsercizioEditor({ esercizio, onSave, onCancel }) {
             {t('common.cancel')}
           </button>
           <button
-            onClick={() => valid && onSave({ ...form, titolo: titleCase(form.titolo.trim()) })}
+            onClick={save}
             disabled={!valid}
             className="flex-1 rounded-xl py-3 font-semibold text-white transition-opacity disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90"
             style={{ backgroundColor: '#3b82f6' }}

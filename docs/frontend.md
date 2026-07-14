@@ -52,7 +52,12 @@ Questa e' la struttura che, alla Fase 5 della roadmap, migrera' su Supabase.
   personalizzato). `custom:true` solo se creata via "Nome personalizzato".
   `stato` = `done`/`skip` (dallo swipe).
   - Scheda = `{ id, nome, esercizi:[], custom? }`.
-  - Esercizio = `{ id, titolo, serie, reps, kg, foto, stato? }`
+  - Esercizio = `{ id, titolo, serie, reps, kg, foto, stato?, split?, sets? }`
+    (serie 1-5. Con `split:true` ogni serie ha la sua riga reps/kg in
+    `sets:[{reps,kg}]`; `reps`/`kg` rispecchiano la 1ª serie per card/cloud.
+    Helper in `data/exerciseSets.js`. UI: select custom con radio "split" e righe
+    centrate — `EsercizioEditor`. Cloud: colonne `is_split`/`set_details` su
+    `public.exercises`, migrazione 20260713170000)
     (serie/reps/kg come stringhe; `foto` = URL catalogo, oppure data URL di una
     foto scelta dall'utente da galleria/fotocamera, oppure null = placeholder
     icona bilanciere). Immagini in `utils/image.js` (`readFileAsDataUrl`,
