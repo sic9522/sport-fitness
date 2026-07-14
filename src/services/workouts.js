@@ -14,6 +14,8 @@ function exerciseFromRow(row) {
     kg: row.weight_kg,
     foto: row.photo_url,
     stato: row.status === 'none' ? undefined : row.status,
+    split: row.is_split || false,
+    ...(row.is_split && Array.isArray(row.set_details) ? { sets: row.set_details } : {}),
   }
 }
 
@@ -65,6 +67,8 @@ export async function fetchWorkoutDays() {
           weight_kg,
           photo_url,
           status,
+          is_split,
+          set_details,
           sort_order
         )
       )
@@ -126,6 +130,8 @@ export async function replaceWorkoutDays(userId, giornate) {
         weight_kg: String(exercise.kg),
         photo_url: exercise.foto || null,
         status: exercise.stato || 'none',
+        is_split: Boolean(exercise.split),
+        set_details: exercise.split ? (exercise.sets || null) : null,
         sort_order: exerciseIndex,
       }))
 
