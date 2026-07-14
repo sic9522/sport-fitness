@@ -93,8 +93,12 @@ Questa e' la struttura che, alla Fase 5 della roadmap, migrera' su Supabase.
   illumina in accento ~380ms su click/swipe) con transizione direzionale/fade del
   contenuto (`.nut-in-*`/`.nut-fade`). Accordion: uno "Macro-nutrienti" in
   giorno/settimana, mentre in mese ce n'è UNO PER SETTIMANA (`monthWeeks`,
-  `MacroAccordion`). La modifica obiettivi è per ora NASCOSTA (rimosso il trigger;
-  `NutritionGoalsEditor` resta, andrà in Impostazioni).
+  `MacroAccordion`) ad apertura SINGOLA (aprendone uno si chiude l'altro; titolo
+  "Nª settimana" + range "dal X al Y" più piccolo). Il grafico mensile
+  (`NutritionTrendChart`) mostra il DEFICIT kcal giornaliero (`dailyDeficitSeries`:
+  obiettivo−consumato, 0 nei giorni senza dati) con baseline a zero e andamento
+  fluttuante (deficit sopra / surplus sotto). La modifica obiettivi è per ora
+  NASCOSTA (rimosso il trigger; `NutritionGoalsEditor` resta, andrà in Impostazioni).
   Intestazione = indicatore piccolo sopra + valore sotto: Oggi/data, "Nª settimana ·
   mese"/"dal X al Y", Corrente/mese. Le settimane sono RITAGLIATE al mese (non
   sconfinano: es. 28→30, poi 1→…) e la numerazione riparte ogni mese. Mese = grafico

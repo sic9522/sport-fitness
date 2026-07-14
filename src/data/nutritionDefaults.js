@@ -194,3 +194,13 @@ export function rangeTotals(diario, keys) {
 export function dailyKcalSeries(diario, keys) {
   return keys.map(k => dayTotals(dayMeals(diario, k)).kcal)
 }
+
+// Serie del DEFICIT kcal giornaliero (obiettivo − consumato) sull'insieme di chiavi.
+// Giorni senza alimenti → 0 (nessun deficit/surplus). Positivo = deficit (sotto
+// l'obiettivo), negativo = surplus. Base del grafico ad andamento fluttuante.
+export function dailyDeficitSeries(diario, keys, goalKcal) {
+  return keys.map(k => {
+    const kcal = dayTotals(dayMeals(diario, k)).kcal
+    return kcal > 0 ? (goalKcal || 0) - kcal : 0
+  })
+}

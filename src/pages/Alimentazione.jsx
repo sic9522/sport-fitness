@@ -10,7 +10,7 @@ import { useLang } from '../context/LanguageContext'
 import {
   MEALS, MACROS, MACRO_KEYS, todayDate, addDays, dateKey, todayKey, newFoodId,
   loadDiario, saveDiario, dayMeals, dayTotals, sumNutrients,
-  rangeTotals, weekDateKeys, monthDateKeys, monthWeeks, dailyKcalSeries, clippedWeek, weekOfMonth,
+  rangeTotals, weekDateKeys, monthDateKeys, monthWeeks, dailyDeficitSeries, clippedWeek, weekOfMonth,
   loadNutritionGoals, saveNutritionGoals,
 } from '../data/nutritionDefaults'
 import { useNutritionSync } from '../hooks/useNutritionSync'
@@ -42,12 +42,15 @@ function MacroBar({ label, value, target, color }) {
 
 // Accordion delle barre macro (vs obiettivo del periodo). Riusato per il singolo
 // "Macro-nutrienti" (giorno/settimana) e per gli accordion per-settimana (mese).
-function MacroAccordion({ title, open, onToggle, totals, goals, mult }) {
+function MacroAccordion({ title, subtitle, open, onToggle, totals, goals, mult }) {
   const { t } = useLang()
   return (
     <div className="mt-3 border-t border-[color:var(--border-1)] pt-3">
       <button onClick={onToggle} className="w-full flex items-center justify-between gap-2">
-        <span className="text-xs font-bold uppercase tracking-widest text-[color:var(--text-dim)] truncate">{title}</span>
+        <span className={`text-xs font-bold tracking-widest text-[color:var(--text-dim)] truncate ${subtitle ? '' : 'uppercase'}`}>
+          {title}
+          {subtitle && <span className="ml-2 font-semibold tracking-normal text-[10px] text-[color:var(--text-faint)]">{subtitle}</span>}
+        </span>
         <IoChevronDown className={`shrink-0 text-[color:var(--text-dim)] transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
@@ -81,7 +84,7 @@ function Alimentazione() {
   const [editGoals, setEditGoals] = useState(false)
   const [period, setPeriod] = useState('daily')     // tab attivo: daily | weekly | monthly
   const [macrosOpen, setMacrosOpen] = useState(false) // accordion Macro-nutrienti (giorno/settimana)
-  const [openWeeks, setOpenWeeks] = useState({})      // accordion aperti nel mese, per indice settimana
+  const [openWeek, setOpenWeek] = useState(null)      // indice settimana aperta nel mese (una alla volta)
 
   // Ponte local-first: da loggato rispecchia diario e obiettivi su Supabase (no-op se non configurato).
   useNutritionSync(diario, setDiario, goals, setGoals)
@@ -98,7 +101,8 @@ function Alimentazione() {
     : period === 'monthly' ? rangeTotals(diario, monthKeys)
       : totals
   const kcalTarget = Math.round((goals.kcal || 0) * goalMult)
-  const monthSeries = dailyKcalSeries(diario, monthKeys)
+  const deficitSeries = dailyDeficitSeries(diario, monthKeys, goals.kcal)
+  const netDeficit = Math.round(deficitSeries.reduce((a, b) => a + b, 0))
 
   function commitDiario(next) {
     setDiario(next)
@@ -128,7 +132,7 @@ function Alimentazione() {
   function changePeriod(p) {
     setPeriod(p)
     setMacrosOpen(false)
-    setOpenWeeks({})
+    setOpenWeek(null)
     setSelDate(todayDate())
   }
 
@@ -250,10 +254,10 @@ function Alimentazione() {
           <div key={`${period}-${key}`} className={animClass}>
             {period === 'monthly' ? (
               <div className="mb-1">
-                <NutritionTrendChart values={monthSeries} goal={goals.kcal} unit={t('nutrition.kcal')} />
+                <NutritionTrendChart values={deficitSeries} unit={t('nutrition.kcal')} />
                 <p className="text-center text-sm mt-2">
-                  <span className="font-extrabold tabular-nums">{Math.round(periodTotals.kcal)}</span>
-                  <span className="text-[color:var(--text-dim)]"> {t('nutrition.kcal')} · {t('nutrition.monthlyTrend')}</span>
+                  <span className="font-extrabold tabular-nums">{Math.abs(netDeficit)}</span>
+                  <span className="text-[color:var(--text-dim)]"> {t('nutrition.kcal')} · {t(netDeficit >= 0 ? 'nutrition.deficit' : 'nutrition.surplus')}</span>
                 </p>
               </div>
             ) : (
@@ -272,13 +276,13 @@ function Alimentazione() {
         {period === 'monthly' ? (
           monthWeeks(selDate).map((w, i) => {
             const keys = weekDateKeys(w.start)
-            const title = `${t('nutrition.weekShort', { n: i + 1 })} · ${t('nutrition.weekRange', { from: w.start.getDate(), to: w.end.getDate() })}`
             return (
               <MacroAccordion
                 key={i}
-                title={title}
-                open={!!openWeeks[i]}
-                onToggle={() => setOpenWeeks(o => ({ ...o, [i]: !o[i] }))}
+                title={t('nutrition.weekShort', { n: i + 1 })}
+                subtitle={t('nutrition.weekRange', { from: w.start.getDate(), to: w.end.getDate() })}
+                open={openWeek === i}
+                onToggle={() => setOpenWeek(cur => (cur === i ? null : i))}
                 totals={rangeTotals(diario, keys)}
                 goals={goals}
                 mult={keys.length}

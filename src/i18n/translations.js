@@ -54,6 +54,8 @@ export const translations = {
     'nutrition.fiberShort': 'Fibre',
     'nutrition.macros': 'Macro-nutrienti',
     'nutrition.monthlyTrend': 'Andamento mensile',
+    'nutrition.deficit': 'Deficit',
+    'nutrition.surplus': 'Surplus',
     'nutrition.foodNamePlaceholder': 'es: Pasta al pomodoro',
     'nutrition.deleteFood': 'Eliminare alimento?',
 
@@ -383,6 +385,8 @@ export const translations = {
     'nutrition.fiberShort': 'Fiber',
     'nutrition.macros': 'Macronutrients',
     'nutrition.monthlyTrend': 'Monthly trend',
+    'nutrition.deficit': 'Deficit',
+    'nutrition.surplus': 'Surplus',
     'nutrition.foodNamePlaceholder': 'e.g. Tomato pasta',
     'nutrition.deleteFood': 'Delete food?',
 
@@ -699,6 +703,8 @@ export const translations = {
     'nutrition.fiberShort': 'Fibra',
     'nutrition.macros': 'Macronutrientes',
     'nutrition.monthlyTrend': 'Tendencia mensual',
+    'nutrition.deficit': 'Déficit',
+    'nutrition.surplus': 'Superávit',
     'nutrition.foodNamePlaceholder': 'ej: Pasta con tomate',
     'nutrition.deleteFood': '¿Eliminar alimento?',
 
@@ -1015,6 +1021,8 @@ export const translations = {
     'nutrition.fiberShort': 'Fibre',
     'nutrition.macros': 'Macronutriments',
     'nutrition.monthlyTrend': 'Tendance mensuelle',
+    'nutrition.deficit': 'Déficit',
+    'nutrition.surplus': 'Surplus',
     'nutrition.foodNamePlaceholder': 'ex : Pâtes à la tomate',
     'nutrition.deleteFood': "Supprimer l'aliment ?",
 
@@ -1331,6 +1339,8 @@ export const translations = {
     'nutrition.fiberShort': '纤维',
     'nutrition.macros': '宏量营养素',
     'nutrition.monthlyTrend': '月度趋势',
+    'nutrition.deficit': '热量缺口',
+    'nutrition.surplus': '热量盈余',
     'nutrition.foodNamePlaceholder': '例：番茄意面',
     'nutrition.deleteFood': '删除食物？',
 

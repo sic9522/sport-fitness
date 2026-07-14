@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import {
   sumNutrients, dayTotals, dateKey, diarioHasData, dayMeals,
-  weekDateKeys, monthDateKeys, monthWeeks, rangeTotals, dailyKcalSeries, startOfWeek, weekOfMonth, clippedWeek,
+  weekDateKeys, monthDateKeys, monthWeeks, rangeTotals, dailyKcalSeries, dailyDeficitSeries,
+  startOfWeek, weekOfMonth, clippedWeek,
 } from './nutritionDefaults'
 
 describe('sumNutrients', () => {
@@ -139,5 +140,17 @@ describe('rangeTotals / dailyKcalSeries', () => {
   })
   it('dailyKcalSeries: kcal per ciascuna chiave (0 se assente)', () => {
     expect(dailyKcalSeries(diario, keys)).toEqual([100, 200, 0])
+  })
+})
+
+describe('dailyDeficitSeries', () => {
+  it('obiettivo − consumato; giorni senza dati = 0', () => {
+    const diario = {
+      '2026-01-01': { breakfast: [{ kcal: '1800' }], lunch: [], dinner: [], snacks: [] },
+      '2026-01-02': { breakfast: [{ kcal: '2300' }], lunch: [], dinner: [], snacks: [] },
+    }
+    // 2000-1800=+200 (deficit), 2000-2300=-300 (surplus), giorno assente = 0
+    expect(dailyDeficitSeries(diario, ['2026-01-01', '2026-01-02', '2026-01-03'], 2000))
+      .toEqual([200, -300, 0])
   })
 })
