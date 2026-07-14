@@ -56,6 +56,20 @@ Da NON dare per scontato:
 
 ## Log
 
+### 2026-07-13 - Claude (serie con split per-serie in Palestra)
+
+- **Serie come select 1-5 + "split"**: nell'`EsercizioEditor` la serie è una
+  select custom (non nativa: il menu contiene in alto a destra un radio "split").
+  Split OFF = una riga reps/kg condivisa (come prima). Split ON = N righe, una per
+  serie, indipendenti (piramidale). La select è centrata verticalmente rispetto
+  alle righe (flex `items-center`: 2→tra le righe, 3→riga centrale, ecc.).
+- **Modello** `data/exerciseSets.js` (helper puri + test): esercizio ora
+  `{..., serie, reps, kg, split?, sets?:[{reps,kg}]}`, retro-compatibile
+  (`reps`/`kg` = 1ª serie). Card invariata (usa reps/kg = prima serie).
+- **Cloud**: `workouts.js` mappa `is_split`/`set_details`; migrazione
+  `20260713170000_exercise_sets.sql` (ALTER `public.exercises`) DA APPLICARE.
+- i18n `esercizio.split` nelle 5 lingue. ✅ lint + test + build + parità i18n ok.
+
 ### 2026-07-13 - Claude (misure corporee — sezione NASCOSTA)
 
 - **Nuova sezione Misure corporee** (composizione + circonferenze: massa
