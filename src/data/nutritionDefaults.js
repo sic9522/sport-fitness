@@ -126,26 +126,39 @@ export function dayTotals(meals) {
 
 // --- Aggregazione per periodo (tab Settimanale / Mensile) ---
 
-// Lunedì della settimana che contiene `d` (fuso locale).
+// Lunedì della settimana che contiene `d` (fuso locale, orario azzerato).
 export function startOfWeek(d) {
-  const r = new Date(d)
+  const r = new Date(d.getFullYear(), d.getMonth(), d.getDate())
   const dow = (r.getDay() + 6) % 7 // lun=0 … dom=6
   r.setDate(r.getDate() - dow)
   return r
 }
 
-// Le 7 chiavi-giorno (lun→dom) della settimana di `d`.
-export function weekDateKeys(d) {
-  const start = startOfWeek(d)
-  return Array.from({ length: 7 }, (_, i) => dateKey(addDays(start, i)))
+// Settimana (lun→dom) di `d` RITAGLIATA al mese: non sconfina nel mese vicino.
+// Es: se la settimana inizia il 28 e il mese finisce il 30 → 28→30; la successiva
+// riparte dal giorno 1 del mese dopo. `start`/`end` a mezzanotte.
+export function clippedWeek(d) {
+  const first = new Date(d.getFullYear(), d.getMonth(), 1)
+  const last = new Date(d.getFullYear(), d.getMonth() + 1, 0)
+  let start = startOfWeek(d)
+  let end = addDays(start, 6)
+  if (start < first) start = first
+  if (end > last) end = last
+  return { start, end }
 }
 
-// Numero della settimana all'interno del mese di `d` (1-based, settimane lun→dom;
-// la 1ª è quella che contiene il giorno 1). Es: 13 lug 2026 → 3.
+// Chiavi-giorno della settimana di `d`, ritagliate al mese (da 1 a 7 giorni).
+export function weekDateKeys(d) {
+  const { start, end } = clippedWeek(d)
+  const days = Math.round((end - start) / 86400000) + 1
+  return Array.from({ length: days }, (_, i) => dateKey(addDays(start, i)))
+}
+
+// Numero della settimana nel mese (1-based, settimane lun→dom ritagliate al mese;
+// la 1ª contiene il giorno 1). Es: 13 lug 2026 → 3. Riparte da 1 ogni mese.
 export function weekOfMonth(d) {
-  const monday = startOfWeek(d)
-  const firstMonday = startOfWeek(new Date(d.getFullYear(), d.getMonth(), 1))
-  return Math.round((monday - firstMonday) / (7 * 86400000)) + 1
+  const firstDow = (new Date(d.getFullYear(), d.getMonth(), 1).getDay() + 6) % 7
+  return Math.ceil((d.getDate() + firstDow) / 7)
 }
 
 // Le chiavi-giorno di tutti i giorni del mese di `d`.

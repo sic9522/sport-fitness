@@ -10,7 +10,7 @@ import { useLang } from '../context/LanguageContext'
 import {
   MEALS, MACROS, MACRO_KEYS, todayDate, addDays, dateKey, todayKey, newFoodId,
   loadDiario, saveDiario, dayMeals, dayTotals, sumNutrients,
-  rangeTotals, weekDateKeys, monthDateKeys, dailyKcalSeries, startOfWeek, weekOfMonth,
+  rangeTotals, weekDateKeys, monthDateKeys, dailyKcalSeries, clippedWeek, weekOfMonth,
   loadNutritionGoals, saveNutritionGoals,
 } from '../data/nutritionDefaults'
 import { useNutritionSync } from '../hooks/useNutritionSync'
@@ -96,25 +96,33 @@ function Alimentazione() {
     setEditGoals(false)
   }
 
-  // Cambio tab: chiude l'accordion (riparte chiuso a ogni sezione).
+  // Cambio tab: chiude l'accordion e TORNA sempre al periodo corrente (oggi).
   function changePeriod(p) {
     setPeriod(p)
     setMacrosOpen(false)
+    setSelDate(todayDate())
   }
 
-  // Frecce: navigano per periodo attivo (giorno / settimana / mese).
+  // Frecce: navigano per periodo attivo. La settimana salta alla successiva/
+  // precedente ritagliata al mese (il giorno dopo la fine / prima dell'inizio).
   function shift(dir) {
     setSelDate(d => {
-      if (period === 'weekly') return addDays(d, 7 * dir)
+      if (period === 'weekly') {
+        const { start, end } = clippedWeek(d)
+        return dir > 0 ? addDays(end, 1) : addDays(start, -1)
+      }
       if (period === 'monthly') return new Date(d.getFullYear(), d.getMonth() + dir, 1)
       return addDays(d, dir)
     })
   }
 
+  const now = todayDate()
+  const isCurrentMonth = selDate.getMonth() === now.getMonth() && selDate.getFullYear() === now.getFullYear()
+  const week = clippedWeek(selDate)
   const kcalRing = [{ id: 'kcal', current: Math.round(periodTotals.kcal), target: kcalTarget || 1, color: 'var(--accent)', label: t('nutrition.kcal') }]
   const dateLabel = selDate.toLocaleDateString(lang, { weekday: 'short', day: 'numeric', month: 'long' })
-  const weekStart = startOfWeek(selDate)
-  const weekRangeLabel = t('nutrition.weekRange', { from: weekStart.getDate(), to: addDays(weekStart, 6).getDate() })
+  const weekLabel = t('nutrition.weekLabel', { n: weekOfMonth(selDate), month: selDate.toLocaleDateString(lang, { month: 'long' }) })
+  const weekRangeLabel = t('nutrition.weekRange', { from: week.start.getDate(), to: week.end.getDate() })
   const monthLabel = selDate.toLocaleDateString(lang, { month: 'long', year: 'numeric' })
 
   return (
@@ -129,20 +137,25 @@ function Alimentazione() {
         <div className="flex flex-col items-center text-center">
           {period === 'daily' && (
             <>
-              <span className="font-bold capitalize">{dateLabel}</span>
               {isToday && (
                 <span className="text-[10px] uppercase tracking-widest font-bold text-[color:var(--accent)]">{t('nutrition.today')}</span>
               )}
+              <span className="font-bold capitalize">{dateLabel}</span>
             </>
           )}
           {period === 'weekly' && (
             <>
+              <span className="text-[10px] capitalize tracking-wide font-bold text-[color:var(--accent)]">{weekLabel}</span>
               <span className="font-bold capitalize">{weekRangeLabel}</span>
-              <span className="text-[10px] uppercase tracking-widest font-bold text-[color:var(--accent)]">{t('nutrition.weekOfMonth', { n: weekOfMonth(selDate) })}</span>
             </>
           )}
           {period === 'monthly' && (
-            <span className="font-bold capitalize">{monthLabel}</span>
+            <>
+              {isCurrentMonth && (
+                <span className="text-[10px] uppercase tracking-widest font-bold text-[color:var(--accent)]">{t('nutrition.current')}</span>
+              )}
+              <span className="font-bold capitalize">{monthLabel}</span>
+            </>
           )}
         </div>
         <button onClick={() => shift(1)} aria-label="+1" className="p-2 text-[color:var(--text-muted)] hover:text-[color:var(--text)] transition-colors">

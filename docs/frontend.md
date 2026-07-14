@@ -86,10 +86,13 @@ Questa e' la struttura che, alla Fase 5 della roadmap, migrera' su Supabase.
   carbs, fat, sugars, fiber }` (numeri come stringhe). I 5 macro sono in `MACROS`
   (`data/nutritionDefaults.js`), iterati da editor/obiettivi/barre. Grassi = valore
   unico (no saturi/insaturi). Aggregazioni per periodo: `weekDateKeys`/`monthDateKeys`/
-  `rangeTotals`/`dailyKcalSeries`/`weekOfMonth`. Riepilogo Alimentazione con tab
-  giorno/settimana/mese: l'intestazione data si adatta (oggi / "dal X al Y" +
-  settimana N / mese), le frecce navigano per periodo, l'accordion "Macro-nutrienti"
-  si chiude al cambio tab. Mese = grafico `NutritionTrendChart`.
+  `rangeTotals`/`dailyKcalSeries`/`weekOfMonth`/`clippedWeek`. Riepilogo Alimentazione
+  con tab giorno/settimana/mese: cambio tab TORNA a oggi (reset `selDate`); le frecce
+  navigano per periodo; l'accordion "Macro-nutrienti" si chiude al cambio tab.
+  Intestazione = indicatore piccolo sopra + valore sotto: Oggi/data, "Nª settimana ·
+  mese"/"dal X al Y", Corrente/mese. Le settimane sono RITAGLIATE al mese (non
+  sconfinano: es. 28→30, poi 1→…) e la numerazione riparte ogni mese. Mese = grafico
+  `NutritionTrendChart`.
 - `fitpulse-nutrition-goals`: obiettivi giornalieri `{ kcal, protein, carbs, fat }`.
 - Legacy: `fitpulse-schede` (vecchie schede sciolte) viene migrato una-tantum
   in una giornata di default da `loadGiornate`.

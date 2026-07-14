@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   sumNutrients, dayTotals, dateKey, diarioHasData, dayMeals,
-  weekDateKeys, monthDateKeys, rangeTotals, dailyKcalSeries, startOfWeek, weekOfMonth,
+  weekDateKeys, monthDateKeys, rangeTotals, dailyKcalSeries, startOfWeek, weekOfMonth, clippedWeek,
 } from './nutritionDefaults'
 
 describe('sumNutrients', () => {
@@ -76,12 +76,32 @@ describe('startOfWeek / weekDateKeys', () => {
     expect(startOfWeek(new Date(2026, 0, 7)).getDay()).toBe(1)
     expect(startOfWeek(new Date(2026, 0, 4)).getDay()).toBe(1) // una domenica → lunedì precedente
   })
-  it('weekDateKeys: 7 giorni consecutivi', () => {
+  it('weekDateKeys: 7 giorni consecutivi (settimana interna al mese)', () => {
     const keys = weekDateKeys(new Date(2026, 0, 7))
     expect(keys).toHaveLength(7)
     for (let i = 1; i < 7; i++) {
       expect((new Date(keys[i]) - new Date(keys[i - 1])) / 86400000).toBe(1)
     }
+  })
+  it('weekDateKeys: ritagliata a fine mese', () => {
+    expect(weekDateKeys(new Date(2026, 0, 31))).toEqual([
+      '2026-01-26', '2026-01-27', '2026-01-28', '2026-01-29', '2026-01-30', '2026-01-31',
+    ])
+  })
+})
+
+describe('clippedWeek', () => {
+  it('non sconfina: fine clampata a fine mese', () => {
+    const w = clippedWeek(new Date(2026, 0, 31)) // sab 31 gen → settimana 26–31
+    expect(w.start.getDate()).toBe(26)
+    expect(w.end.getDate()).toBe(31)
+    expect(w.end.getMonth()).toBe(0)
+  })
+  it('inizio clampato al giorno 1 del mese', () => {
+    const w = clippedWeek(new Date(2026, 1, 1)) // dom 1 feb → settimana 1–1
+    expect(w.start.getDate()).toBe(1)
+    expect(w.end.getDate()).toBe(1)
+    expect(w.start.getMonth()).toBe(1)
   })
 })
 
