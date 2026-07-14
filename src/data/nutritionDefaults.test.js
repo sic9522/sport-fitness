@@ -1,23 +1,30 @@
 import { describe, it, expect } from 'vitest'
 import {
   sumNutrients, dayTotals, dateKey, diarioHasData, dayMeals,
-  weekDateKeys, monthDateKeys, rangeTotals, dailyKcalSeries, startOfWeek,
+  weekDateKeys, monthDateKeys, rangeTotals, dailyKcalSeries, startOfWeek, weekOfMonth,
 } from './nutritionDefaults'
 
 describe('sumNutrients', () => {
-  it('somma i 6 macro + kcal (stringhe o numeri)', () => {
+  it('somma i 5 macro + kcal (stringhe o numeri)', () => {
     const foods = [
-      { kcal: '100', protein: '10', carbs: '20', satFat: '5', unsatFat: '3', sugars: '8', fiber: '2' },
-      { kcal: 50, protein: 5, carbs: 10, satFat: 2, unsatFat: 1, sugars: 4, fiber: 1 },
+      { kcal: '100', protein: '10', carbs: '20', fat: '5', sugars: '8', fiber: '2' },
+      { kcal: 50, protein: 5, carbs: 10, fat: 2, sugars: 4, fiber: 1 },
     ]
     expect(sumNutrients(foods)).toEqual({
-      kcal: 150, protein: 15, carbs: 30, satFat: 7, unsatFat: 4, sugars: 12, fiber: 3,
+      kcal: 150, protein: 15, carbs: 30, fat: 7, sugars: 12, fiber: 3,
     })
   })
   it('tratta i valori vuoti/non numerici/assenti come 0', () => {
     expect(sumNutrients([{ kcal: '', protein: 'x' }])).toEqual({
-      kcal: 0, protein: 0, carbs: 0, satFat: 0, unsatFat: 0, sugars: 0, fiber: 0,
+      kcal: 0, protein: 0, carbs: 0, fat: 0, sugars: 0, fiber: 0,
     })
+  })
+})
+
+describe('weekOfMonth', () => {
+  it('numera le settimane lun→dom dentro il mese', () => {
+    expect(weekOfMonth(new Date(2026, 6, 13))).toBe(3) // 13 lug 2026 (lunedì) → settimana 3
+    expect(weekOfMonth(new Date(2026, 6, 1))).toBe(1)  // 1 lug → settimana 1
   })
 })
 

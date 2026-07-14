@@ -56,6 +56,17 @@ Da NON dare per scontato:
 
 ## Log
 
+### 2026-07-13 - Claude (Alimentazione: rifiniture tab/data/grassi)
+
+- **Grassi unico**: rimossi saturi/insaturi, torna `fat` singolo (macro totali = 5:
+  protein, carbs, fat, sugars, fiber). Migrazione `nutrition_macros` ridotta (solo
+  `sugars_g`/`fiber_g` sugli obiettivi; il diario usa `fat_g`/`sugar_g`/`fiber_g`).
+- **Intestazione data per tab**: Giornaliero = data odierna (+ "Oggi"); Settimanale
+  = "dal X al Y" + "Settimana N" (`weekOfMonth`); Mensile = mese corrente. Le frecce
+  navigano per periodo (giorno/settimana/mese).
+- **Accordion Macro-nutrienti** si chiude automaticamente al cambio tab.
+- ✅ lint + test + build + parità ok.
+
 ### 2026-07-13 - Claude (Alimentazione: tab periodo + macro estesi)
 
 - **Riepilogo a tab** (come Home): Giornaliero / Settimanale (anello kcal + barre

@@ -18,15 +18,14 @@ export const MEALS = [
 export const MACROS = [
   { key: 'protein', shortKey: 'nutrition.proteinShort', color: '#f472b6' },
   { key: 'carbs', shortKey: 'nutrition.carbsShort', color: '#f59e0b' },
-  { key: 'satFat', shortKey: 'nutrition.satFatShort', color: '#38bdf8' },
-  { key: 'unsatFat', shortKey: 'nutrition.unsatFatShort', color: '#22d3ee' },
+  { key: 'fat', shortKey: 'nutrition.fatShort', color: '#38bdf8' },
   { key: 'sugars', shortKey: 'nutrition.sugarsShort', color: '#a78bfa' },
   { key: 'fiber', shortKey: 'nutrition.fiberShort', color: '#34d399' },
 ]
 export const MACRO_KEYS = MACROS.map(m => m.key)
 
 export const DEFAULT_NUTRITION_GOALS = {
-  kcal: 2000, protein: 150, carbs: 220, satFat: 20, unsatFat: 40, sugars: 50, fiber: 30,
+  kcal: 2000, protein: 150, carbs: 220, fat: 60, sugars: 50, fiber: 30,
 }
 
 // --- Date (helper impuri a livello di modulo: tengono new Date fuori dai componenti,
@@ -139,6 +138,14 @@ export function startOfWeek(d) {
 export function weekDateKeys(d) {
   const start = startOfWeek(d)
   return Array.from({ length: 7 }, (_, i) => dateKey(addDays(start, i)))
+}
+
+// Numero della settimana all'interno del mese di `d` (1-based, settimane lun→dom;
+// la 1ª è quella che contiene il giorno 1). Es: 13 lug 2026 → 3.
+export function weekOfMonth(d) {
+  const monday = startOfWeek(d)
+  const firstMonday = startOfWeek(new Date(d.getFullYear(), d.getMonth(), 1))
+  return Math.round((monday - firstMonday) / (7 * 86400000)) + 1
 }
 
 // Le chiavi-giorno di tutti i giorni del mese di `d`.

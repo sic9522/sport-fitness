@@ -10,7 +10,7 @@ import { useLang } from '../context/LanguageContext'
 import {
   MEALS, MACROS, MACRO_KEYS, todayDate, addDays, dateKey, todayKey, newFoodId,
   loadDiario, saveDiario, dayMeals, dayTotals, sumNutrients,
-  rangeTotals, weekDateKeys, monthDateKeys, dailyKcalSeries,
+  rangeTotals, weekDateKeys, monthDateKeys, dailyKcalSeries, startOfWeek, weekOfMonth,
   loadNutritionGoals, saveNutritionGoals,
 } from '../data/nutritionDefaults'
 import { useNutritionSync } from '../hooks/useNutritionSync'
@@ -96,25 +96,56 @@ function Alimentazione() {
     setEditGoals(false)
   }
 
+  // Cambio tab: chiude l'accordion (riparte chiuso a ogni sezione).
+  function changePeriod(p) {
+    setPeriod(p)
+    setMacrosOpen(false)
+  }
+
+  // Frecce: navigano per periodo attivo (giorno / settimana / mese).
+  function shift(dir) {
+    setSelDate(d => {
+      if (period === 'weekly') return addDays(d, 7 * dir)
+      if (period === 'monthly') return new Date(d.getFullYear(), d.getMonth() + dir, 1)
+      return addDays(d, dir)
+    })
+  }
+
   const kcalRing = [{ id: 'kcal', current: Math.round(periodTotals.kcal), target: kcalTarget || 1, color: 'var(--accent)', label: t('nutrition.kcal') }]
   const dateLabel = selDate.toLocaleDateString(lang, { weekday: 'short', day: 'numeric', month: 'long' })
+  const weekStart = startOfWeek(selDate)
+  const weekRangeLabel = t('nutrition.weekRange', { from: weekStart.getDate(), to: addDays(weekStart, 6).getDate() })
+  const monthLabel = selDate.toLocaleDateString(lang, { month: 'long', year: 'numeric' })
 
   return (
     <div className="flex flex-col pb-28">
       <TopBar icon={IoRestaurant} title={t('title.nutrition')} />
 
-      {/* Selettore data */}
+      {/* Selettore periodo (giorno / settimana / mese) */}
       <div className="flex items-center justify-between px-5 pt-4">
-        <button onClick={() => setSelDate(d => addDays(d, -1))} aria-label="−1" className="p-2 text-[color:var(--text-muted)] hover:text-[color:var(--text)] transition-colors">
+        <button onClick={() => shift(-1)} aria-label="−1" className="p-2 text-[color:var(--text-muted)] hover:text-[color:var(--text)] transition-colors">
           <IoChevronBack className="text-xl" />
         </button>
-        <div className="flex flex-col items-center">
-          <span className="font-bold capitalize">{dateLabel}</span>
-          {isToday && (
-            <span className="text-[10px] uppercase tracking-widest font-bold text-[color:var(--accent)]">{t('nutrition.today')}</span>
+        <div className="flex flex-col items-center text-center">
+          {period === 'daily' && (
+            <>
+              <span className="font-bold capitalize">{dateLabel}</span>
+              {isToday && (
+                <span className="text-[10px] uppercase tracking-widest font-bold text-[color:var(--accent)]">{t('nutrition.today')}</span>
+              )}
+            </>
+          )}
+          {period === 'weekly' && (
+            <>
+              <span className="font-bold capitalize">{weekRangeLabel}</span>
+              <span className="text-[10px] uppercase tracking-widest font-bold text-[color:var(--accent)]">{t('nutrition.weekOfMonth', { n: weekOfMonth(selDate) })}</span>
+            </>
+          )}
+          {period === 'monthly' && (
+            <span className="font-bold capitalize">{monthLabel}</span>
           )}
         </div>
-        <button onClick={() => setSelDate(d => addDays(d, 1))} aria-label="+1" className="p-2 text-[color:var(--text-muted)] hover:text-[color:var(--text)] transition-colors">
+        <button onClick={() => shift(1)} aria-label="+1" className="p-2 text-[color:var(--text-muted)] hover:text-[color:var(--text)] transition-colors">
           <IoChevronForward className="text-xl" />
         </button>
       </div>
@@ -126,7 +157,7 @@ function Alimentazione() {
             {PERIODS.map(p => (
               <button
                 key={p.key}
-                onClick={() => setPeriod(p.key)}
+                onClick={() => changePeriod(p.key)}
                 className="py-1.5 rounded-lg text-xs font-semibold transition-all"
                 style={period === p.key ? { backgroundColor: 'var(--accent)', color: 'var(--on-accent)' } : { color: 'var(--text-dim)' }}
               >
