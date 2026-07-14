@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { IoRestaurant, IoChevronBack, IoChevronForward, IoAdd, IoTrashOutline, IoOptionsOutline, IoChevronDown } from 'react-icons/io5'
+import { IoRestaurant, IoChevronBack, IoChevronForward, IoAdd, IoTrashOutline, IoChevronDown } from 'react-icons/io5'
 import TopBar from '../components/TopBar'
 import RingChart from '../components/RingChart'
 import NutritionTrendChart from '../components/NutritionTrendChart'
@@ -10,7 +10,7 @@ import { useLang } from '../context/LanguageContext'
 import {
   MEALS, MACROS, MACRO_KEYS, todayDate, addDays, dateKey, todayKey, newFoodId,
   loadDiario, saveDiario, dayMeals, dayTotals, sumNutrients,
-  rangeTotals, weekDateKeys, monthDateKeys, dailyKcalSeries, clippedWeek, weekOfMonth,
+  rangeTotals, weekDateKeys, monthDateKeys, monthWeeks, dailyKcalSeries, clippedWeek, weekOfMonth,
   loadNutritionGoals, saveNutritionGoals,
 } from '../data/nutritionDefaults'
 import { useNutritionSync } from '../hooks/useNutritionSync'
@@ -40,6 +40,33 @@ function MacroBar({ label, value, target, color }) {
   )
 }
 
+// Accordion delle barre macro (vs obiettivo del periodo). Riusato per il singolo
+// "Macro-nutrienti" (giorno/settimana) e per gli accordion per-settimana (mese).
+function MacroAccordion({ title, open, onToggle, totals, goals, mult }) {
+  const { t } = useLang()
+  return (
+    <div className="mt-3 border-t border-[color:var(--border-1)] pt-3">
+      <button onClick={onToggle} className="w-full flex items-center justify-between gap-2">
+        <span className="text-xs font-bold uppercase tracking-widest text-[color:var(--text-dim)] truncate">{title}</span>
+        <IoChevronDown className={`shrink-0 text-[color:var(--text-dim)] transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="flex flex-col gap-3 mt-3">
+          {MACROS.map(m => (
+            <MacroBar
+              key={m.key}
+              label={t(m.shortKey)}
+              value={Math.round(totals[m.key])}
+              target={Math.round((goals[m.key] || 0) * mult)}
+              color={m.color}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // Bozza di un nuovo alimento (id generato in handler, non in render).
 const newFood = () => ({ id: newFoodId(), nome: '', grammi: '', kcal: '', ...Object.fromEntries(MACRO_KEYS.map(k => [k, ''])) })
 
@@ -53,7 +80,8 @@ function Alimentazione() {
   const [deleting, setDeleting] = useState(null) // { meal, food } → ConfirmModal
   const [editGoals, setEditGoals] = useState(false)
   const [period, setPeriod] = useState('daily')     // tab attivo: daily | weekly | monthly
-  const [macrosOpen, setMacrosOpen] = useState(false) // accordion Macro-nutrienti
+  const [macrosOpen, setMacrosOpen] = useState(false) // accordion Macro-nutrienti (giorno/settimana)
+  const [openWeeks, setOpenWeeks] = useState({})      // accordion aperti nel mese, per indice settimana
 
   // Ponte local-first: da loggato rispecchia diario e obiettivi su Supabase (no-op se non configurato).
   useNutritionSync(diario, setDiario, goals, setGoals)
@@ -96,10 +124,11 @@ function Alimentazione() {
     setEditGoals(false)
   }
 
-  // Cambio tab: chiude l'accordion e TORNA sempre al periodo corrente (oggi).
+  // Cambio tab: chiude gli accordion e TORNA sempre al periodo corrente (oggi).
   function changePeriod(p) {
     setPeriod(p)
     setMacrosOpen(false)
+    setOpenWeeks({})
     setSelDate(todayDate())
   }
 
@@ -121,7 +150,7 @@ function Alimentazione() {
   const touchStartX = useRef(null)
   function flash(dir) {
     setLitDir(dir)
-    setTimeout(() => setLitDir(cur => (cur === dir ? null : cur)), 220)
+    setTimeout(() => setLitDir(cur => (cur === dir ? null : cur)), 380)
   }
   function go(dir) { // -1 = precedente, +1 = successivo
     flash(dir < 0 ? 'prev' : 'next')
@@ -143,6 +172,8 @@ function Alimentazione() {
   const weekLabel = t('nutrition.weekLabel', { n: weekOfMonth(selDate), month: selDate.toLocaleDateString(lang, { month: 'long' }) })
   const weekRangeLabel = t('nutrition.weekRange', { from: week.start.getDate(), to: week.end.getDate() })
   const monthLabel = selDate.toLocaleDateString(lang, { month: 'long', year: 'numeric' })
+  // Animazione di cambio periodo: direzionale su freccia/swipe, fade sul cambio tab.
+  const animClass = litDir === 'prev' ? 'nut-in-left' : litDir === 'next' ? 'nut-in-right' : 'nut-fade'
 
   return (
     <div className="flex flex-col pb-28">
@@ -176,86 +207,94 @@ function Alimentazione() {
         </div>
       </div>
 
-      {/* Riepilogo periodo: tab + anello/grafico + accordion. Frecce interne (overlay,
-          non interrompono la grafica) + swipe orizzontale per cambiare periodo. */}
+      {/* Riepilogo periodo: tab + navigazione (frecce fisse + swipe) + accordion.
+          Le frecce sono ancorate all'anello/grafico: aprendo gli accordion non si muovono. */}
       <div
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
-        className="relative mx-5 mt-4 rounded-2xl bg-[var(--surface)] border border-[color:var(--border-1)] p-4"
+        className="mx-5 mt-4 rounded-2xl bg-[var(--surface)] border border-[color:var(--border-1)] p-4"
       >
-        <button
-          onClick={() => go(-1)}
-          aria-label="−1"
-          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-1 transition-colors"
-          style={{ color: litDir === 'prev' ? 'var(--accent)' : 'var(--text-faint)' }}
-        >
-          <IoChevronBack className="text-xl" />
-        </button>
-        <button
-          onClick={() => go(1)}
-          aria-label="+1"
-          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-1 transition-colors"
-          style={{ color: litDir === 'next' ? 'var(--accent)' : 'var(--text-faint)' }}
-        >
-          <IoChevronForward className="text-xl" />
-        </button>
-
-        <div className="flex items-center gap-2 mb-3">
-          <div className="grid grid-cols-3 gap-1 bg-[var(--surface-2)] rounded-xl p-1 flex-1">
-            {PERIODS.map(p => (
-              <button
-                key={p.key}
-                onClick={() => changePeriod(p.key)}
-                className="py-1.5 rounded-lg text-xs font-semibold transition-all"
-                style={period === p.key ? { backgroundColor: 'var(--accent)', color: 'var(--on-accent)' } : { color: 'var(--text-dim)' }}
-              >
-                {t(p.labelKey)}
-              </button>
-            ))}
-          </div>
-          <button onClick={() => setEditGoals(true)} aria-label={t('nutrition.editGoals')} className="shrink-0 text-[color:var(--text-muted)] hover:text-[color:var(--text)] transition-colors">
-            <IoOptionsOutline className="text-lg" />
-          </button>
+        {/* Tab periodo a larghezza piena (il tasto obiettivi è stato rimosso: andrà in Impostazioni) */}
+        <div className="grid grid-cols-3 gap-1 bg-[var(--surface-2)] rounded-xl p-1 mb-3">
+          {PERIODS.map(p => (
+            <button
+              key={p.key}
+              onClick={() => changePeriod(p.key)}
+              className="py-1.5 rounded-lg text-xs font-semibold transition-all"
+              style={period === p.key ? { backgroundColor: 'var(--accent)', color: 'var(--on-accent)' } : { color: 'var(--text-dim)' }}
+            >
+              {t(p.labelKey)}
+            </button>
+          ))}
         </div>
 
+        {/* Zona navigabile: frecce FISSE (ancorate qui) + contenuto animato al cambio */}
+        <div className="relative">
+          <button
+            onClick={() => go(-1)}
+            aria-label="−1"
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-1 transition-colors"
+            style={{ color: litDir === 'prev' ? 'var(--accent)' : 'var(--text-faint)' }}
+          >
+            <IoChevronBack className="text-xl" />
+          </button>
+          <button
+            onClick={() => go(1)}
+            aria-label="+1"
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-1 transition-colors"
+            style={{ color: litDir === 'next' ? 'var(--accent)' : 'var(--text-faint)' }}
+          >
+            <IoChevronForward className="text-xl" />
+          </button>
+
+          <div key={`${period}-${key}`} className={animClass}>
+            {period === 'monthly' ? (
+              <div className="mb-1">
+                <NutritionTrendChart values={monthSeries} goal={goals.kcal} unit={t('nutrition.kcal')} />
+                <p className="text-center text-sm mt-2">
+                  <span className="font-extrabold tabular-nums">{Math.round(periodTotals.kcal)}</span>
+                  <span className="text-[color:var(--text-dim)]"> {t('nutrition.kcal')} · {t('nutrition.monthlyTrend')}</span>
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center">
+                <RingChart rings={kcalRing} />
+                <div className="-mt-2 mb-1">
+                  <span className="text-xl font-extrabold tabular-nums">{Math.round(periodTotals.kcal)}</span>
+                  <span className="text-[color:var(--text-dim)] text-sm"> / {kcalTarget} {t('nutrition.kcal')}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Accordion: singolo Macro-nutrienti (giorno/settimana) o uno per settimana (mese) */}
         {period === 'monthly' ? (
-          <div className="mb-1">
-            <NutritionTrendChart values={monthSeries} goal={goals.kcal} unit={t('nutrition.kcal')} />
-            <p className="text-center text-sm mt-2">
-              <span className="font-extrabold tabular-nums">{Math.round(periodTotals.kcal)}</span>
-              <span className="text-[color:var(--text-dim)]"> {t('nutrition.kcal')} · {t('nutrition.monthlyTrend')}</span>
-            </p>
-          </div>
+          monthWeeks(selDate).map((w, i) => {
+            const keys = weekDateKeys(w.start)
+            const title = `${t('nutrition.weekShort', { n: i + 1 })} · ${t('nutrition.weekRange', { from: w.start.getDate(), to: w.end.getDate() })}`
+            return (
+              <MacroAccordion
+                key={i}
+                title={title}
+                open={!!openWeeks[i]}
+                onToggle={() => setOpenWeeks(o => ({ ...o, [i]: !o[i] }))}
+                totals={rangeTotals(diario, keys)}
+                goals={goals}
+                mult={keys.length}
+              />
+            )
+          })
         ) : (
-          <div className="flex flex-col items-center">
-            <RingChart rings={kcalRing} />
-            <div className="-mt-2 mb-1">
-              <span className="text-xl font-extrabold tabular-nums">{Math.round(periodTotals.kcal)}</span>
-              <span className="text-[color:var(--text-dim)] text-sm"> / {kcalTarget} {t('nutrition.kcal')}</span>
-            </div>
-          </div>
+          <MacroAccordion
+            title={t('nutrition.macros')}
+            open={macrosOpen}
+            onToggle={() => setMacrosOpen(o => !o)}
+            totals={periodTotals}
+            goals={goals}
+            mult={goalMult}
+          />
         )}
-
-        {/* Accordion Macro-nutrienti (vs obiettivo del periodo) */}
-        <div className="mt-3 border-t border-[color:var(--border-1)] pt-3">
-          <button onClick={() => setMacrosOpen(o => !o)} className="w-full flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-widest text-[color:var(--text-dim)]">{t('nutrition.macros')}</span>
-            <IoChevronDown className={`text-[color:var(--text-dim)] transition-transform ${macrosOpen ? 'rotate-180' : ''}`} />
-          </button>
-          {macrosOpen && (
-            <div className="flex flex-col gap-3 mt-3">
-              {MACROS.map(m => (
-                <MacroBar
-                  key={m.key}
-                  label={t(m.shortKey)}
-                  value={Math.round(periodTotals[m.key])}
-                  target={Math.round((goals[m.key] || 0) * goalMult)}
-                  color={m.color}
-                />
-              ))}
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Pasti del giorno */}

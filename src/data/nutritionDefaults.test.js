@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   sumNutrients, dayTotals, dateKey, diarioHasData, dayMeals,
-  weekDateKeys, monthDateKeys, rangeTotals, dailyKcalSeries, startOfWeek, weekOfMonth, clippedWeek,
+  weekDateKeys, monthDateKeys, monthWeeks, rangeTotals, dailyKcalSeries, startOfWeek, weekOfMonth, clippedWeek,
 } from './nutritionDefaults'
 
 describe('sumNutrients', () => {
@@ -87,6 +87,17 @@ describe('startOfWeek / weekDateKeys', () => {
     expect(weekDateKeys(new Date(2026, 0, 31))).toEqual([
       '2026-01-26', '2026-01-27', '2026-01-28', '2026-01-29', '2026-01-30', '2026-01-31',
     ])
+  })
+})
+
+describe('monthWeeks', () => {
+  it('divide il mese in settimane clippate contigue che coprono tutti i giorni', () => {
+    const weeks = monthWeeks(new Date(2026, 6, 15)) // luglio 2026 → 5 settimane
+    expect(weeks[0].start.getDate()).toBe(1)
+    expect(weeks[weeks.length - 1].end.getDate()).toBe(31)
+    for (let i = 1; i < weeks.length; i++) {
+      expect((weeks[i].start - weeks[i - 1].end) / 86400000).toBe(1) // contigue
+    }
   })
 })
 

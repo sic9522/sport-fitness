@@ -88,9 +88,13 @@ Questa e' la struttura che, alla Fase 5 della roadmap, migrera' su Supabase.
   unico (no saturi/insaturi). Aggregazioni per periodo: `weekDateKeys`/`monthDateKeys`/
   `rangeTotals`/`dailyKcalSeries`/`weekOfMonth`/`clippedWeek`. Riepilogo Alimentazione
   con tab giorno/settimana/mese: cambio tab TORNA a oggi (reset `selDate`); la
-  navigazione periodo è DENTRO la scheda (frecce in overlay ai lati + swipe
-  orizzontale sulla card; la freccia si illumina in accento su click/swipe);
-  l'accordion "Macro-nutrienti" si chiude al cambio tab.
+  navigazione periodo è DENTRO la scheda (frecce ancorate all'anello/grafico —
+  aprendo gli accordion non si muovono — + swipe orizzontale; la freccia si
+  illumina in accento ~380ms su click/swipe) con transizione direzionale/fade del
+  contenuto (`.nut-in-*`/`.nut-fade`). Accordion: uno "Macro-nutrienti" in
+  giorno/settimana, mentre in mese ce n'è UNO PER SETTIMANA (`monthWeeks`,
+  `MacroAccordion`). La modifica obiettivi è per ora NASCOSTA (rimosso il trigger;
+  `NutritionGoalsEditor` resta, andrà in Impostazioni).
   Intestazione = indicatore piccolo sopra + valore sotto: Oggi/data, "Nª settimana ·
   mese"/"dal X al Y", Corrente/mese. Le settimane sono RITAGLIATE al mese (non
   sconfinano: es. 28→30, poi 1→…) e la numerazione riparte ogni mese. Mese = grafico

@@ -102,3 +102,11 @@ input[type='number']::-webkit-inner-spin-button { -webkit-appearance: none; marg
 .jiggle {
   animation: jiggle 0.2s ease-in-out infinite;
 }
+
+/* Transizione cambio periodo (scheda Alimentazione): slide direzionale o fade */
+@keyframes nutInRight { from { opacity: 0; transform: translateX(16px) } to { opacity: 1; transform: none } }
+@keyframes nutInLeft  { from { opacity: 0; transform: translateX(-16px) } to { opacity: 1; transform: none } }
+@keyframes nutFade    { from { opacity: 0 } to { opacity: 1 } }
+.nut-in-right { animation: nutInRight 260ms ease }
+.nut-in-left  { animation: nutInLeft 260ms ease }
+.nut-fade     { animation: nutFade 220ms ease }

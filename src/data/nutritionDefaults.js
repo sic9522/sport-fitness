@@ -169,6 +169,22 @@ export function monthDateKeys(d) {
   return Array.from({ length: days }, (_, i) => dateKey(new Date(y, m, i + 1)))
 }
 
+// Le settimane (ritagliate al mese) che compongono il mese di `d`, in ordine.
+// Ognuna { start, end } (Date a mezzanotte). Numero variabile (4-6).
+export function monthWeeks(d) {
+  const y = d.getFullYear()
+  const m = d.getMonth()
+  const lastDay = new Date(y, m + 1, 0).getDate()
+  const weeks = []
+  let day = 1
+  while (day <= lastDay) {
+    const { start, end } = clippedWeek(new Date(y, m, day))
+    weeks.push({ start, end })
+    day = end.getDate() + 1
+  }
+  return weeks
+}
+
 // Totali nutrienti su un insieme di chiavi-giorno.
 export function rangeTotals(diario, keys) {
   return sumNutrients(keys.flatMap(k => dayFoods(dayMeals(diario, k))))
