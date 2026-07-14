@@ -56,6 +56,21 @@ Da NON dare per scontato:
 
 ## Log
 
+### 2026-07-13 - Claude (Alimentazione: tab periodo + macro estesi)
+
+- **Riepilogo a tab** (come Home): Giornaliero / Settimanale (anello kcal + barre
+  vs obiettivo×giorni) / Mensile (grafico `NutritionTrendChart` kcal/giorno +
+  linea obiettivo). Aggregazioni pure in `nutritionDefaults`
+  (`weekDateKeys`/`monthDateKeys`/`rangeTotals`/`dailyKcalSeries`).
+- **Macro estesi**: da P/C/G a 6 macro in `MACROS` (protein, carbs, satFat,
+  unsatFat, sugars, fiber). `sumNutrients`/DEFAULT_GOALS/FoodEditor/
+  NutritionGoalsEditor iterano la config. Barre nell'**accordion "Macro-nutrienti"**.
+- **Cloud**: `nutrition.js` mappa i nuovi campi; migrazione
+  `20260713180000_nutrition_macros.sql` (colonne sat/unsat su meal_entries +
+  obiettivi su nutrition_goals; zuccheri/fibre usano sugar_g/fiber_g esistenti) DA APPLICARE.
+- i18n `nutrition.*` (macro corti, macros, monthlyTrend) nelle 5 lingue. Tab =
+  chiavi `period.*` esistenti. ✅ lint + test + build + parità ok.
+
 ### 2026-07-13 - Claude (serie con split per-serie in Palestra)
 
 - **Serie come select 1-5 + "split"**: nell'`EsercizioEditor` la serie è una
