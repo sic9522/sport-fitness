@@ -67,10 +67,16 @@ Da NON dare per scontato:
 - **Scelta (confermata da Simone)**: niente componente Button con varianti (in `ui/`
   c'era solo `Field`); si riusano i colori già presenti. "primary" = blu, non accento.
 - **Card esercizio**: titolo in contenitore dedicato; info serie estratte in
-  `ExerciseInfo` — split OFF = riga unica "Serie 3 • Rip 8 • 30 kg" centrata
-  verticalmente sotto il titolo (`self-stretch` + `flex-1 justify-center`);
-  split ON = una riga per serie con solo rip/peso, righe da `editorRows()`
+  `ExerciseInfoLine` (split OFF) / `ExerciseSetRows` (split ON), righe da `editorRows()`
   (riuso, nessuna duplicazione della logica split). Immagine e maniglia invariate.
+- **Rifinitura layout (subito dopo, confermata da Simone)**: header con
+  `justify-between` e campo nome largo quanto il testo (`size`) → titolo/Play/
+  Organizza/badge/"+" equidistanti (prima il nome era `flex-1` e ammassava i pulsanti
+  a destra). Card: con split ON due contenitori affiancati — titolo **~65%**
+  (`basis-[65%]`, va a capo su più righe: niente `truncate`) e righe **~35%**
+  (`basis-[35%]`), ogni riga "Rip 8 - 30 kg" con due span e separatore
+  spazio-trattino-spazio. Con split OFF **layout invariato** (scelta ribadita da
+  Simone: "split off non lo toccare", il numero di serie resta nella riga unica).
 - ✅ lint + test + build + parità i18n ok.
 
 ### 2026-07-13 - Claude (Palestra: swipe → modalità modifica stile iPhone)

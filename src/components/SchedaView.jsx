@@ -37,28 +37,29 @@ const EDIT_BTN = 'absolute z-20 w-6 h-6 rounded-full flex items-center justify-c
 const resolveBorder = ex =>
   ex.stato === 'done' ? STATO_DONE : ex.stato === 'skip' ? STATO_SKIP : null
 
-// Info serie/rip/peso della card (solo layout: i dati arrivano dal modello).
-// - Split OFF → una riga sola: "Serie 3 • Rip 8 • 30 kg".
-// - Split ON  → una riga per serie con SOLO rip e peso (il numero di righe è già il
-//   numero di serie). Le righe vengono da editorRows(), quindi restano sempre
-//   sincronizzate col valore della select senza duplicare la logica dello split.
-function ExerciseInfo({ ex }) {
-  const { t } = useLang()
-  const cls = 'text-[color:var(--text-muted)] text-xs tabular-nums'
+const INFO_CLS = 'text-[color:var(--text-muted)] text-xs tabular-nums'
 
-  if (!ex.split) {
-    return (
-      <p className={cls}>
-        {t('esercizio.serie')} {ex.serie} • {t('esercizio.reps')} {ex.reps} • {ex.kg} kg
-      </p>
-    )
-  }
+// Split OFF: riga unica "Serie 3 • Rip. 8 • 30 kg" (layout invariato).
+function ExerciseInfoLine({ ex }) {
+  const { t } = useLang()
+  return (
+    <p className={INFO_CLS}>
+      {t('esercizio.serie')} {ex.serie} • {t('esercizio.reps')} {ex.reps} • {ex.kg} kg
+    </p>
+  )
+}
+
+// Split ON: una riga per serie con SOLO rip e peso (il numero di righe È già il numero
+// di serie), nel formato "<span>Rip 8</span> - <span>30 kg</span>". Le righe vengono da
+// editorRows(), quindi restano sincronizzate col valore della select senza duplicare la
+// logica dello split.
+function ExerciseSetRows({ ex }) {
+  const { t } = useLang()
   return (
     <div className="flex flex-col gap-0.5">
       {editorRows(ex).map((r, i) => (
-        <p key={i} className={`${cls} grid grid-cols-2 gap-2 max-w-[9rem]`}>
-          <span>{t('esercizio.reps')} {r.reps}</span>
-          <span>{r.kg} kg</span>
+        <p key={i} className={INFO_CLS}>
+          <span>{t('esercizio.reps')} {r.reps}</span> - <span>{r.kg} kg</span>
         </p>
       ))}
     </div>
@@ -69,6 +70,8 @@ function ExerciseInfo({ ex }) {
 // è il punto di trascinamento per il riordino (handleProps = ref/listeners di @dnd-kit).
 function CardVisual({ ex, borderColor, handleProps, style, className = '' }) {
   const { t } = useLang()
+  // Base comune del titolo: nel layout split va a capo, in quello base resta su una riga.
+  const titleCls = 'font-semibold text-sm'
   return (
     <div
       style={{ borderColor: borderColor || undefined, ...style }}
@@ -83,17 +86,31 @@ function CardVisual({ ex, borderColor, handleProps, style, className = '' }) {
           <IoBarbellOutline className="text-2xl text-[color:var(--text-dim)]" />
         )}
       </div>
-      {/* Colonna testo: titolo in contenitore dedicato + info serie sotto.
-          `self-stretch` fa arrivare la colonna all'altezza della card (data dall'immagine),
-          così la riga info può centrarsi verticalmente nell'area sotto il titolo. */}
-      <div className="min-w-0 flex-1 self-stretch flex flex-col">
-        <div className="min-w-0">
-          <p className="font-semibold text-sm truncate">{ex.titolo}</p>
+      {/* Area centrale (fra immagine e maniglia, entrambe invariate).
+          - Split ON  → due contenitori affiancati: titolo ~65% / righe serie ~35%.
+          - Split OFF → layout invariato: titolo sopra + riga info centrata sotto.
+          `self-stretch` porta la colonna all'altezza della card (data dall'immagine). */}
+      {ex.split ? (
+        <div className="min-w-0 flex-1 self-stretch flex items-center gap-2">
+          {/* Contenitore 1 (~65%): titolo, va a capo e riempie tutta la larghezza */}
+          <div className="min-w-0 basis-[65%] flex flex-col justify-center">
+            <p className={`${titleCls} break-words`}>{ex.titolo}</p>
+          </div>
+          {/* Contenitore 2 (~35%): righe generate, centrate verticalmente */}
+          <div className="min-w-0 basis-[35%] flex flex-col justify-center">
+            <ExerciseSetRows ex={ex} />
+          </div>
         </div>
-        <div className="flex-1 flex flex-col justify-center mt-1">
-          <ExerciseInfo ex={ex} />
+      ) : (
+        <div className="min-w-0 flex-1 self-stretch flex flex-col">
+          <div className="min-w-0">
+            <p className={`${titleCls} truncate`}>{ex.titolo}</p>
+          </div>
+          <div className="flex-1 flex flex-col justify-center mt-1">
+            <ExerciseInfoLine ex={ex} />
+          </div>
         </div>
-      </div>
+      )}
       <button
         {...(handleProps || {})}
         aria-label={t('esercizio.reorder')}
@@ -298,6 +315,8 @@ function SchedaView({ scheda, restLabel, onRename, onExercisesChange, onBack }) 
 
   const activeEx = esercizi.find(e => e.id === activeId)
   const deletingEx = esercizi.find(e => e.id === deleteExId)
+  // Larghezza del campo nome ≈ lunghezza del testo (a vuoto: quanto basta al placeholder).
+  const nameSize = Math.max(6, scheda.nome.length || 12)
 
   return (
     <div className="flex flex-col min-h-screen pb-24">
@@ -305,17 +324,21 @@ function SchedaView({ scheda, restLabel, onRename, onExercisesChange, onBack }) 
 
       {/* Header: nome modificabile + badge recupero + aggiungi */}
       <div className="px-5 pt-3">
-        <div className="flex items-center gap-2">
+        {/* `justify-between`: lo spazio libero si distribuisce in parti uguali tra titolo,
+            Play, Organizza, badge e "+". Il campo nome è largo quanto il testo (`size`)
+            invece di prendersi tutto lo spazio, altrimenti i pulsanti restano ammassati. */}
+        <div className="flex items-center justify-between gap-2">
           <input
             ref={nameRef}
             value={scheda.nome}
+            size={nameSize}
             onChange={e => {
               onRename(scheda.id, e.target.value)
               if (nameError && e.target.value.trim()) setNameError(false)
             }}
             onBlur={e => onRename(scheda.id, titleCase(e.target.value.trim()))}
             placeholder={t('palestra.schedaPlaceholder')}
-            className={`flex-1 min-w-0 bg-transparent text-2xl font-extrabold outline-none border-b pb-1 placeholder:text-[color:var(--text-faint)] ${
+            className={`min-w-0 bg-transparent text-2xl font-extrabold outline-none border-b pb-1 placeholder:text-[color:var(--text-faint)] ${
               nameError ? 'border-red-400' : 'border-transparent focus:border-[color:var(--border-3)]'
             }`}
           />
