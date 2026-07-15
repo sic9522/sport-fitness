@@ -56,6 +56,23 @@ Da NON dare per scontato:
 
 ## Log
 
+### 2026-07-13 - Claude (Palestra: header scheda + restyling card esercizio)
+
+- **Solo grafica**, nessuna logica toccata. Header scheda: due pulsanti accanto al
+  titolo (prima del badge recupero) — **Play** (verde `#22c55e`, success) e
+  **Organizza** (blu `#3b82f6`, primary, icona custom `components/ui/ReorderIcon.jsx`:
+  numeri 1/2/3 a sinistra + linee a destra, l'1 alzato = elemento in spostamento).
+  Entrambi SENZA funzionalità per ora (solo aria-label + nuove chiavi i18n
+  `palestra.play`/`palestra.organize`).
+- **Scelta (confermata da Simone)**: niente componente Button con varianti (in `ui/`
+  c'era solo `Field`); si riusano i colori già presenti. "primary" = blu, non accento.
+- **Card esercizio**: titolo in contenitore dedicato; info serie estratte in
+  `ExerciseInfo` — split OFF = riga unica "Serie 3 • Rip 8 • 30 kg" centrata
+  verticalmente sotto il titolo (`self-stretch` + `flex-1 justify-center`);
+  split ON = una riga per serie con solo rip/peso, righe da `editorRows()`
+  (riuso, nessuna duplicazione della logica split). Immagine e maniglia invariate.
+- ✅ lint + test + build + parità i18n ok.
+
 ### 2026-07-13 - Claude (Palestra: swipe → modalità modifica stile iPhone)
 
 - **Swipe RIMOSSO** dalle card esercizio (sinistra/destra + animazioni e logica

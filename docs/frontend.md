@@ -184,7 +184,13 @@ prima. Lo stato `editMode` sta in `SchedaView`. USCITA: click su modifica (apre
 l'editor) oppure tocco fuori dalle card (listener su `[data-ex-card]`). La X apre
 invece una conferma (`ConfirmModal`, `confirm.deleteEsercizio`) e NON fa uscire dalla
 modalità, né confermando né annullando (il listener è disattivo mentre è aperta).
-Restano doppio/triplo tap stati + riordino via maniglia @dnd-kit),
+Restano doppio/triplo tap stati + riordino via maniglia @dnd-kit.
+LAYOUT card: titolo in contenitore dedicato (elemento testuale principale) e sotto le
+info serie (`ExerciseInfo`): split OFF = una riga "Serie 3 • Rip 8 • 30 kg" centrata
+verticalmente; split ON = una riga per serie con solo rip/peso (righe da `editorRows`,
+sempre sincronizzate con la select). Immagine e maniglia invariate.
+Header scheda: accanto al titolo i pulsanti Play (verde, success) e Organizza (blu,
+primary, icona custom `ui/ReorderIcon`) — per ora SOLO grafica, nessuna azione),
 `EsercizioEditor` (modale, tutti i campi obbligatori; il campo Nome ha
 autocomplete sul catalogo `public.catalog_exercises` via
 `services/catalogs.searchCatalogExercises`, che chiama la RPC

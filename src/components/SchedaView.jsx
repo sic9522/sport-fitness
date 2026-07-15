@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { IoAdd, IoStopwatchOutline, IoBarbellOutline, IoClose, IoPencil, IoReorderTwoOutline } from 'react-icons/io5'
+import { IoAdd, IoPlay, IoStopwatchOutline, IoBarbellOutline, IoClose, IoPencil, IoReorderTwoOutline } from 'react-icons/io5'
 import {
   DndContext, DragOverlay, PointerSensor, useSensor, useSensors, closestCenter,
 } from '@dnd-kit/core'
@@ -10,8 +10,10 @@ import { CSS } from '@dnd-kit/utilities'
 import TopBar from './TopBar'
 import EsercizioEditor from './EsercizioEditor'
 import ConfirmModal from './ConfirmModal'
+import ReorderIcon from './ui/ReorderIcon'
 import { useLang } from '../context/LanguageContext'
 import useLongPress from '../hooks/useLongPress'
+import { editorRows } from '../data/exerciseSets'
 import { titleCase } from '../utils/text'
 
 function newId() {
@@ -22,7 +24,8 @@ const SLOP = 8            // px oltre i quali il gesto è uno scroll (annulla pr
 const TAP_WINDOW = 280    // ms per contare doppio/triplo tap
 const LONG_PRESS_MS = 400 // ms di pressione per entrare in modalità modifica (stile iPhone)
 const RED = '#ef4444'
-const BLUE = '#3b82f6'
+const BLUE = '#3b82f6'  // primary (pulsante Organizza, come Salva/Modifica)
+const GREEN = '#22c55e' // success (pulsante Play)
 const STATO_DONE = '#22c55e' // bordo verde: esercizio svolto (doppio tap)
 const STATO_SKIP = '#ef4444' // bordo rosso: esercizio saltato (triplo tap)
 
@@ -33,6 +36,34 @@ const EDIT_BTN = 'absolute z-20 w-6 h-6 rounded-full flex items-center justify-c
 // Bordo colorato solo se c'è uno stato (verde/rosso); altrimenti bordo neutro sottile.
 const resolveBorder = ex =>
   ex.stato === 'done' ? STATO_DONE : ex.stato === 'skip' ? STATO_SKIP : null
+
+// Info serie/rip/peso della card (solo layout: i dati arrivano dal modello).
+// - Split OFF → una riga sola: "Serie 3 • Rip 8 • 30 kg".
+// - Split ON  → una riga per serie con SOLO rip e peso (il numero di righe è già il
+//   numero di serie). Le righe vengono da editorRows(), quindi restano sempre
+//   sincronizzate col valore della select senza duplicare la logica dello split.
+function ExerciseInfo({ ex }) {
+  const { t } = useLang()
+  const cls = 'text-[color:var(--text-muted)] text-xs tabular-nums'
+
+  if (!ex.split) {
+    return (
+      <p className={cls}>
+        {t('esercizio.serie')} {ex.serie} • {t('esercizio.reps')} {ex.reps} • {ex.kg} kg
+      </p>
+    )
+  }
+  return (
+    <div className="flex flex-col gap-0.5">
+      {editorRows(ex).map((r, i) => (
+        <p key={i} className={`${cls} grid grid-cols-2 gap-2 max-w-[9rem]`}>
+          <span>{t('esercizio.reps')} {r.reps}</span>
+          <span>{r.kg} kg</span>
+        </p>
+      ))}
+    </div>
+  )
+}
 
 // Contenuto visivo della card (riusato da lista e DragOverlay). La maniglia a destra
 // è il punto di trascinamento per il riordino (handleProps = ref/listeners di @dnd-kit).
@@ -52,11 +83,16 @@ function CardVisual({ ex, borderColor, handleProps, style, className = '' }) {
           <IoBarbellOutline className="text-2xl text-[color:var(--text-dim)]" />
         )}
       </div>
-      <div className="min-w-0 flex-1">
-        <p className="font-semibold text-sm truncate">{ex.titolo}</p>
-        <p className="text-[color:var(--text-muted)] text-xs mt-0.5 tabular-nums">
-          {ex.serie} {t('esercizio.serie')} · {ex.reps} {t('esercizio.reps')} · {ex.kg} kg
-        </p>
+      {/* Colonna testo: titolo in contenitore dedicato + info serie sotto.
+          `self-stretch` fa arrivare la colonna all'altezza della card (data dall'immagine),
+          così la riga info può centrarsi verticalmente nell'area sotto il titolo. */}
+      <div className="min-w-0 flex-1 self-stretch flex flex-col">
+        <div className="min-w-0">
+          <p className="font-semibold text-sm truncate">{ex.titolo}</p>
+        </div>
+        <div className="flex-1 flex flex-col justify-center mt-1">
+          <ExerciseInfo ex={ex} />
+        </div>
       </div>
       <button
         {...(handleProps || {})}
@@ -283,6 +319,24 @@ function SchedaView({ scheda, restLabel, onRename, onExercisesChange, onBack }) 
               nameError ? 'border-red-400' : 'border-transparent focus:border-[color:var(--border-3)]'
             }`}
           />
+          {/* Play (success) e Organizza (primary): per ora SOLO grafica, nessuna azione */}
+          <button
+            type="button"
+            aria-label={t('palestra.play')}
+            className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+            style={{ backgroundColor: GREEN, color: '#fff' }}
+          >
+            <IoPlay className="text-lg" />
+          </button>
+          <button
+            type="button"
+            aria-label={t('palestra.organize')}
+            className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+            style={{ backgroundColor: BLUE, color: '#fff' }}
+          >
+            <ReorderIcon className="text-lg" />
+          </button>
+
           <span className="flex items-center gap-1 rounded-full bg-[var(--fill-1)] border border-[color:var(--border-2)] px-2.5 py-1 shrink-0">
             <IoStopwatchOutline className="text-sm" style={{ color: 'var(--accent)' }} />
             <span className="text-sm font-semibold tabular-nums">{restLabel}</span>
