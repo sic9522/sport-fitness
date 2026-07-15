@@ -147,6 +147,7 @@ export const translations = {
     'move.empty': 'Nessuna altra giornata disponibile',
     'move.topLevel': 'Personalizzate (sezione principale)',
     'confirm.deleteScheda': 'Eliminare la scheda «{name}»?',
+    'confirm.deleteEsercizio': 'Eliminare l\'esercizio «{name}»?',
     'confirm.deleteGiornata': 'Eliminare la giornata «{name}»?',
 
     // Stato giornata (swipe: completato/saltato)
@@ -474,6 +475,7 @@ export const translations = {
     'move.empty': 'No other day available',
     'move.topLevel': 'Custom (main section)',
     'confirm.deleteScheda': 'Delete plan “{name}”?',
+    'confirm.deleteEsercizio': 'Delete exercise “{name}”?',
     'confirm.deleteGiornata': 'Delete the day “{name}”?',
 
     // Day status (swipe: completed/skipped)
@@ -794,6 +796,7 @@ export const translations = {
     'move.empty': 'No hay otro día disponible',
     'move.topLevel': 'Personalizadas (sección principal)',
     'confirm.deleteScheda': '¿Eliminar la rutina «{name}»?',
+    'confirm.deleteEsercizio': '¿Eliminar el ejercicio «{name}»?',
     'confirm.deleteGiornata': '¿Eliminar el día «{name}»?',
 
     // Estado del día (swipe: completado/saltado)
@@ -1114,6 +1117,7 @@ export const translations = {
     'move.empty': 'Aucun autre jour disponible',
     'move.topLevel': 'Personnalisés (section principale)',
     'confirm.deleteScheda': 'Supprimer le programme « {name} » ?',
+    'confirm.deleteEsercizio': 'Supprimer l\'exercice « {name} » ?',
     'confirm.deleteGiornata': 'Supprimer le jour « {name} » ?',
 
     // État du jour (swipe : terminé/sauté)
@@ -1434,6 +1438,7 @@ export const translations = {
     'move.empty': '没有其他可用的训练日',
     'move.topLevel': '自定义（主区域）',
     'confirm.deleteScheda': '删除计划“{name}”？',
+    'confirm.deleteEsercizio': '删除动作“{name}”？',
     'confirm.deleteGiornata': '删除训练日“{name}”？',
 
     // 训练日状态（滑动：已完成/已跳过）

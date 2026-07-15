@@ -70,9 +70,12 @@ Da NON dare per scontato:
   bianca su cerchio blu in alto a DESTRA (modifica); sporgono ~50% del diametro
   dal bordo (`-top-3/-left-3/-right-3`, rimosso `overflow-hidden` dal wrapper).
 - Invariati (non correlati): doppio/triplo tap stati done/skip, riordino a maniglia.
-- ⚠️ **Uscita dalla modalità NON implementata** (da specifica): una volta attiva
-  resta finché non si lascia la scheda. Da definire con Simone.
-- ✅ lint + test + build ok.
+- **Uscita dalla modalità** (aggiunta subito dopo): click su MODIFICA (apre l'editor
+  ed esce) o tocco FUORI dalle card (listener document su `[data-ex-card]`). La X
+  apre una conferma (`ConfirmModal` + nuova chiave `confirm.deleteEsercizio`, stesso
+  pattern di `GiornataView`) e NON esce dalla modalità né su Elimina né su Annulla:
+  il listener "tocco fuori" è disattivato mentre la conferma è aperta.
+- ✅ lint + test + build + parità i18n ok.
 
 ### 2026-07-13 - Claude (Alimentazione: rifiniture tab/data/grassi)
 

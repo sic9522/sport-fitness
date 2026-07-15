@@ -9,6 +9,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import TopBar from './TopBar'
 import EsercizioEditor from './EsercizioEditor'
+import ConfirmModal from './ConfirmModal'
 import { useLang } from '../context/LanguageContext'
 import useLongPress from '../hooks/useLongPress'
 import { titleCase } from '../utils/text'
@@ -142,6 +143,7 @@ function EsercizioCard({ ex, editMode, onEnterEdit, onDelete, onEdit, onToggleSt
     <div
       ref={setNodeRef}
       style={wrapStyle}
+      data-ex-card=""
       className="relative rounded-xl"
       onPointerDownCapture={onPointerDown}
       onPointerMoveCapture={onPointerMove}
@@ -193,6 +195,18 @@ function SchedaView({ scheda, restLabel, onRename, onExercisesChange, onBack }) 
   // Modalità modifica (stile iPhone): attiva per TUTTE le card insieme.
   // Stato tenuto qui (proprietario della lista) così è estendibile a future azioni.
   const [editMode, setEditMode] = useState(false)
+  const [deleteExId, setDeleteExId] = useState(null) // esercizio in attesa di conferma eliminazione
+
+  // Uscita dalla modalità modifica: tocco FUORI dalle card. Disattivata mentre la
+  // conferma di eliminazione è aperta (confermare o annullare non fa uscire).
+  useEffect(() => {
+    if (!editMode || deleteExId) return undefined
+    function onDocDown(e) {
+      if (!e.target.closest('[data-ex-card]')) setEditMode(false)
+    }
+    document.addEventListener('pointerdown', onDocDown)
+    return () => document.removeEventListener('pointerdown', onDocDown)
+  }, [editMode, deleteExId])
   const [nameError, setNameError] = useState(false) // nome scheda mancante al click su +
   const nameRef = useRef(null)
 
@@ -220,6 +234,11 @@ function SchedaView({ scheda, restLabel, onRename, onExercisesChange, onBack }) 
     onExercisesChange(esercizi.filter(e => e.id !== id))
     if (editingId === id) setEditingId(null)
   }
+  // Pulsante modifica: apre l'editor ED esce dalla modalità modifica.
+  function openEsercizio(id) {
+    setEditingId(id)
+    setEditMode(false)
+  }
   // Doppio/triplo tap: attiva o disattiva lo stato "svolto"/"skip"
   function toggleStato(id, target) {
     onExercisesChange(esercizi.map(e => (e.id === id ? { ...e, stato: e.stato === target ? undefined : target } : e)))
@@ -242,6 +261,7 @@ function SchedaView({ scheda, restLabel, onRename, onExercisesChange, onBack }) 
       : null
 
   const activeEx = esercizi.find(e => e.id === activeId)
+  const deletingEx = esercizi.find(e => e.id === deleteExId)
 
   return (
     <div className="flex flex-col min-h-screen pb-24">
@@ -301,8 +321,8 @@ function SchedaView({ scheda, restLabel, onRename, onExercisesChange, onBack }) 
                     ex={ex}
                     editMode={editMode}
                     onEnterEdit={() => setEditMode(true)}
-                    onDelete={deleteEsercizio}
-                    onEdit={setEditingId}
+                    onDelete={setDeleteExId}
+                    onEdit={openEsercizio}
                     onToggleStato={toggleStato}
                   />
                 ))}
@@ -319,6 +339,19 @@ function SchedaView({ scheda, restLabel, onRename, onExercisesChange, onBack }) 
       </div>
 
       {editorProps && <EsercizioEditor key={editorProps.esercizio.id} {...editorProps} />}
+
+      {/* Conferma eliminazione: sia Elimina che Annulla NON escono dalla modalità modifica */}
+      {deletingEx && (
+        <ConfirmModal
+          title={t('confirm.deleteEsercizio', { name: deletingEx.titolo })}
+          message={t('confirm.irreversible')}
+          confirmLabel={t('menu.delete')}
+          cancelLabel={t('common.cancel')}
+          danger
+          onConfirm={() => { deleteEsercizio(deletingEx.id); setDeleteExId(null) }}
+          onCancel={() => setDeleteExId(null)}
+        />
+      )}
     </div>
   )
 }

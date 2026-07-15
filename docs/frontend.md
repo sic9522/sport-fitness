@@ -180,8 +180,11 @@ Palestra: `GiornataView`, `SchedaView`, `GiornataCard`, `EsercizioCard`
 (MODALITÀ MODIFICA stile iPhone: pressione prolungata ~400ms (`hooks/useLongPress`)
 → tutte le card tremano (`.jiggle`) e mostrano i pulsanti elimina (X rossa, alto sx)
 e modifica (matita blu, alto dx) a cavallo del bordo; richiamano le stesse azioni di
-prima. Lo stato `editMode` sta in `SchedaView`. NB: l'uscita dalla modalità non è
-ancora implementata. Restano doppio/triplo tap stati + riordino via maniglia @dnd-kit),
+prima. Lo stato `editMode` sta in `SchedaView`. USCITA: click su modifica (apre
+l'editor) oppure tocco fuori dalle card (listener su `[data-ex-card]`). La X apre
+invece una conferma (`ConfirmModal`, `confirm.deleteEsercizio`) e NON fa uscire dalla
+modalità, né confermando né annullando (il listener è disattivo mentre è aperta).
+Restano doppio/triplo tap stati + riordino via maniglia @dnd-kit),
 `EsercizioEditor` (modale, tutti i campi obbligatori; il campo Nome ha
 autocomplete sul catalogo `public.catalog_exercises` via
 `services/catalogs.searchCatalogExercises`, che chiama la RPC
