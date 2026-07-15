@@ -28,6 +28,15 @@ export function editorRows(ex) {
   return [{ reps: String(ex?.reps ?? ''), kg: String(ex?.kg ?? '') }]
 }
 
+// Peso da MOSTRARE: via gli zeri superflui dopo il separatore ("0.50" → "0.5",
+// "30.00" → "30") e l'eventuale punto rimasto in coda. Solo formattazione: il valore
+// salvato non cambia.
+export function formatKg(v) {
+  const s = String(v ?? '')
+  if (!s.includes('.')) return s // "100" non va toccato
+  return s.replace(/\.?0+$/, '').replace(/\.$/, '')
+}
+
 // true se tutte le righe hanno reps e kg compilati (e ce n'è almeno una).
 export const rowsValid = rows =>
   rows.length > 0 && rows.every(r => String(r.reps).trim() !== '' && String(r.kg).trim() !== '')

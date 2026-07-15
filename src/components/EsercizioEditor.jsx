@@ -8,18 +8,62 @@ import { searchCatalogExercises } from '../services/catalogs'
 import { serieCount, editorRows, rowsValid, buildExercise, SERIE_MAX } from '../data/exerciseSets'
 import ExerciseImageField from './ExerciseImageField'
 
+const NAME_MAX = 40       // caratteri massimi del nome esercizio
+const REPS_MAX_DIGITS = 2 // cifre massime delle ripetizioni
+const KG_MAX_DIGITS = 4   // cifre massime del peso (più un separatore decimale)
+const ERROR_MS = 3000     // durata del messaggio d'errore sul campo
+
+// Spaziatura etichetta → input dei campi dell'editor (4px + 20%).
+const FIELD_GAP = 'gap-[4.8px]'
+const LABEL_CLS = 'text-xs uppercase tracking-wider text-[color:var(--text-dim)]'
+const INPUT_CLS = 'w-full bg-[var(--surface-2)] rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 placeholder:text-[color:var(--text-faint)]'
+// Rosso persistente quando il campo è in errore, altrimenti anello accento al focus.
+const inputCls = error => `${INPUT_CLS} ${error ? 'ring-1 ring-red-400 focus:ring-red-400' : 'focus:ring-[var(--accent)]'}`
+
+// Solo cifre, al massimo REPS_MAX_DIGITS (le altre vengono scartate).
+const sanitizeReps = v => v.replace(/\D/g, '').slice(0, REPS_MAX_DIGITS)
+
+// Peso: max KG_MAX_DIGITS cifre + UN solo separatore decimale. La virgola diventa punto.
+function sanitizeKg(v) {
+  let out = ''
+  let digits = 0
+  let dotUsed = false
+  for (const ch of v.replace(',', '.')) {
+    if (ch >= '0' && ch <= '9') {
+      if (digits >= KG_MAX_DIGITS) continue
+      digits++
+      out += ch
+    } else if (ch === '.' && !dotUsed) {
+      dotUsed = true
+      out += ch
+    }
+  }
+  return out
+}
+
+// Il separatore senza cifre non si salva: "12." → "12", "." → "" (nessun errore).
+const cleanKg = v => v.replace(/\.$/, '')
+
 // Campo etichettato dell'editor esercizio (numerici). La label è opzionale:
 // nelle righe multiple (split) l'intestazione è unica sopra, non per riga.
-function Field({ label, value, onChange, inputMode, placeholder }) {
+// `error` colora il campo di rosso e mostra il messaggio in OVERLAY sopra il campo,
+// così non sposta nulla nel layout.
+function Field({ label, value, onChange, onBlur, inputMode, placeholder, error }) {
   return (
-    <label className="flex flex-col gap-1">
-      {label && <span className="text-xs uppercase tracking-wider text-[color:var(--text-dim)]">{label}</span>}
+    <label className={`relative flex flex-col ${FIELD_GAP}`}>
+      {label && <span className={LABEL_CLS}>{label}</span>}
+      {error && (
+        <span className="absolute bottom-full left-0 z-30 mb-1 rounded-md bg-red-500 px-2 py-1 text-[10px] font-semibold text-white whitespace-nowrap shadow-lg">
+          {error}
+        </span>
+      )}
       <input
         value={value}
         onChange={e => onChange(e.target.value)}
+        onBlur={onBlur}
         inputMode={inputMode}
         placeholder={placeholder}
-        className="w-full bg-[var(--surface-2)] rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)] placeholder:text-[color:var(--text-faint)]"
+        className={inputCls(error)}
       />
     </label>
   )
@@ -138,10 +182,15 @@ function NameField({ label, value, placeholder, onChange, onPick }) {
 
   return (
     <div className="relative" ref={boxRef}>
-      <label className="flex flex-col gap-1">
-        <span className="text-xs uppercase tracking-wider text-[color:var(--text-dim)]">{label}</span>
+      <label className={`flex flex-col ${FIELD_GAP}`}>
+        {/* Contatore caratteri accanto all'etichetta, aggiornato in tempo reale */}
+        <span className={`flex items-center justify-between gap-2 ${LABEL_CLS}`}>
+          <span>{label}</span>
+          <span className="tabular-nums">{value.length}/{NAME_MAX}</span>
+        </span>
         <input
           value={value}
+          maxLength={NAME_MAX}
           onChange={e => {
             const v = e.target.value
             setTouched(true)
@@ -152,7 +201,7 @@ function NameField({ label, value, placeholder, onChange, onPick }) {
           onFocus={() => { if (results.length) setOpen(true) }}
           placeholder={placeholder}
           autoComplete="off"
-          className="w-full bg-[var(--surface-2)] rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)] placeholder:text-[color:var(--text-faint)]"
+          className={inputCls(false)}
         />
       </label>
 
@@ -232,11 +281,59 @@ function EsercizioEditor({ esercizio, onSave, onCancel }) {
 
   const setRow = (i, patch) => setRows(rs => rs.map((r, idx) => (idx === i ? { ...r, ...patch } : r)))
 
-  const valid = form.titolo.trim() !== '' && rowsValid(rows)
+  // Errore transitorio su un campo: { row, field }. Ne esiste UNO solo alla volta (si
+  // digita in un campo per volta). Sparisce dopo ERROR_MS, al cambio campo (blur) o
+  // toccando altrove.
+  const [fieldError, setFieldError] = useState(null)
+  const errorTimer = useRef(null)
+  useEffect(() => () => clearTimeout(errorTimer.current), [])
+
+  function clearError() {
+    clearTimeout(errorTimer.current)
+    setFieldError(null)
+  }
+  function flashError(row, field) {
+    clearTimeout(errorTimer.current)
+    setFieldError({ row, field })
+    errorTimer.current = setTimeout(() => setFieldError(null), ERROR_MS)
+  }
+  const errorFor = (row, field, key) =>
+    (fieldError && fieldError.row === row && fieldError.field === field ? t(key) : '')
+
+  // Tocco altrove → via il messaggio.
+  useEffect(() => {
+    if (!fieldError) return undefined
+    function onDown() {
+      clearTimeout(errorTimer.current)
+      setFieldError(null)
+    }
+    document.addEventListener('pointerdown', onDown)
+    return () => document.removeEventListener('pointerdown', onDown)
+  }, [fieldError])
+
+  // Ripetizioni: max 2 cifre. Il terzo numero NON entra e segnala l'errore.
+  function changeReps(i, raw) {
+    const digits = raw.replace(/\D/g, '')
+    if (digits.length > REPS_MAX_DIGITS) flashError(i, 'reps')
+    else clearError()
+    setRow(i, { reps: sanitizeReps(raw) })
+  }
+
+  // Peso: max 4 cifre (+ un separatore). Oltre il limite le cifre non entrano.
+  function changeKg(i, raw) {
+    const digits = raw.replace(/\D/g, '')
+    if (digits.length > KG_MAX_DIGITS) flashError(i, 'kg')
+    else clearError()
+    setRow(i, { kg: sanitizeKg(raw) })
+  }
+
+  // Righe come verranno salvate: il separatore senza cifre viene scartato ("12." → "12").
+  const cleanedRows = rows.map(r => ({ ...r, kg: cleanKg(r.kg) }))
+  const valid = form.titolo.trim() !== '' && rowsValid(cleanedRows)
 
   function save() {
     if (!valid) return
-    const ex = buildExercise(form, { serie, split, rows })
+    const ex = buildExercise(form, { serie, split, rows: cleanedRows })
     onSave({ ...ex, titolo: titleCase(form.titolo.trim()) })
   }
 
@@ -284,8 +381,22 @@ function EsercizioEditor({ esercizio, onSave, onCancel }) {
               <div className="flex-1 flex flex-col gap-2">
                 {rows.map((r, i) => (
                   <div key={i} className="grid grid-cols-2 gap-2">
-                    <Field value={r.reps} onChange={v => setRow(i, { reps: v })} inputMode="numeric" placeholder="8" />
-                    <Field value={r.kg} onChange={v => setRow(i, { kg: v })} inputMode="numeric" placeholder="20" />
+                    <Field
+                      value={r.reps}
+                      onChange={v => changeReps(i, v)}
+                      onBlur={clearError}
+                      error={errorFor(i, 'reps', 'esercizio.repsMax')}
+                      inputMode="numeric"
+                      placeholder="8"
+                    />
+                    <Field
+                      value={r.kg}
+                      onChange={v => changeKg(i, v)}
+                      onBlur={clearError}
+                      error={errorFor(i, 'kg', 'esercizio.kgMax')}
+                      inputMode="decimal"
+                      placeholder="20"
+                    />
                   </div>
                 ))}
               </div>
