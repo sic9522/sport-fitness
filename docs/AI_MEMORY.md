@@ -56,6 +56,39 @@ Da NON dare per scontato:
 
 ## Log
 
+### 2026-07-13 - Claude (Palestra: limiti editor, header scheda, recupero per-scheda)
+
+- **Limiti input nell'`EsercizioEditor`**: Nome max 40 + contatore live "n/40" accanto
+  all'etichetta; Rip solo cifre, max 2 (la 3ª NON entra); kg max 4 cifre + un
+  separatore (`,`→`.`). Oltre il limite: campo rosso + messaggio in OVERLAY sopra il
+  campo (`absolute bottom-full`, niente shift del layout), che sparisce dopo 3s, al
+  blur o toccando altrove (un solo `fieldError` per volta). Il separatore senza cifre
+  non si salva (`cleanKg`: "12."→"12") e la card mostra il peso senza zeri superflui
+  (`formatKg`: "0.50"→"0.5"). Nuove chiavi `esercizio.repsMax`/`kgMax`.
+- **Nome scheda**: si sceglie ORA alla creazione (`PromptModal` riusato in
+  `GiornataView`, chiavi i18n già esistenti); dentro la scheda è in SOLA LETTURA.
+  Rimossi da `SchedaView` l'input, `nameError`/`nameRef` e il controllo "Nome
+  obbligatorio" sul "+" (diventato irraggiungibile e senza input sarebbe stato un
+  vicolo cieco); rimosso `renameScheda` da `GiornataView` (codice morto). Il rename
+  tornerà da un'altra sezione (scelta di Simone).
+- **Header scheda**: Play/recupero/"+" stessa altezza (`HEADER_BTN` `h-9`), Play e
+  recupero stessa larghezza (`w-20`), titolo grande solo quanto il contenuto,
+  distribuzione uniforme con `justify-between`. Pulsante **Organizza rimosso**
+  dall'UI (`ui/ReorderIcon` conservato).
+- **Recupero PER SCHEDA**: il badge è un `RestPicker` funzionante che imposta
+  `scheda.rest` (indipendente per scheda; fallback al recupero globale finché non
+  impostato). `RestPicker` esteso con props OPZIONALI `value`/`onChange`/`className`:
+  senza props resta il globale → **Palestra invariata**. Timer globale/navbar NON
+  toccati (Simone li rimuoverà più avanti, per evitare conflitti ora).
+  ⚠️ `scheda.rest` NON è mappato sul cloud (manca la colonna su `workout_cards`).
+- **TimerWheel**: scrollbar sottile custom (`.thin-scrollbar`, tema-aware) al posto di
+  `no-scrollbar` → su desktop si raggiungono i valori fuori vista; righe cliccabili
+  (`<button>`): il click scorre, seleziona, salva e chiude via nuova prop `onPick`
+  (lo scroll da solo non chiude). Vale anche per il picker in Palestra.
+- **Card esercizio** (misure finali tarate a vista): `h-[120px]`, `p-2`, immagine
+  74px, maniglia 30px, gap fra card 18px, contenitori 45%/55%.
+- ✅ lint + test + build + parità i18n ok.
+
 ### 2026-07-13 - Claude (Palestra: header scheda + restyling card esercizio)
 
 - **Solo grafica**, nessuna logica toccata. Header scheda: due pulsanti accanto al
@@ -72,12 +105,14 @@ Da NON dare per scontato:
 - **Rifinitura layout (subito dopo, confermata da Simone)**: header con
   `justify-between` e campo nome largo quanto il testo (`size`) → titolo/Play/
   Organizza/badge/"+" equidistanti (prima il nome era `flex-1` e ammassava i pulsanti
-  a destra). Card: con split ON due contenitori affiancati — titolo **~60%**
-  (`basis-[60%]`, va a capo su più righe: niente `truncate`) e righe **~40%**
-  (`basis-[40%]`, allargato da 35% per non spezzare la riga), ogni riga
-  "Rip 8 - 30 kg" con due span e separatore
-  spazio-trattino-spazio. Con split OFF **layout invariato** (scelta ribadita da
-  Simone: "split off non lo toccare", il numero di serie resta nella riga unica).
+  a destra). Card esercizio (misure tarate a vista con Simone): altezza fissa
+  **120px**, `p-2`, immagine **74px**, maniglia **30px**, gap fra card **18px**.
+  Struttura UNICA in entrambe le modalità: contenitore 1 **~45%** (`basis-[45%]`,
+  titolo che va a capo, niente `truncate`) + contenitore 2 **~55%** (`basis-[55%]`,
+  dati centrati verticalmente). Cambia SOLO il contenuto del secondo:
+  Split OFF = "Serie 3" + "Rip. 8 - 30 kg" (`ExerciseInfoLine`);
+  Split ON = una riga "Rip. 8 - 30 kg" per serie (`ExerciseSetRows`, da `editorRows`).
+  Separatore spazio-trattino-spazio fra rip e kg.
 - ✅ lint + test + build + parità i18n ok.
 
 ### 2026-07-13 - Claude (Palestra: swipe → modalità modifica stile iPhone)

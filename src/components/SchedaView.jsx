@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { IoAdd, IoPlay, IoStopwatchOutline, IoBarbellOutline, IoClose, IoPencil, IoReorderTwoOutline } from 'react-icons/io5'
+import { IoAdd, IoPlay, IoBarbellOutline, IoClose, IoPencil, IoReorderTwoOutline } from 'react-icons/io5'
 import {
   DndContext, DragOverlay, PointerSensor, useSensor, useSensors, closestCenter,
 } from '@dnd-kit/core'
@@ -10,11 +10,10 @@ import { CSS } from '@dnd-kit/utilities'
 import TopBar from './TopBar'
 import EsercizioEditor from './EsercizioEditor'
 import ConfirmModal from './ConfirmModal'
-import ReorderIcon from './ui/ReorderIcon'
+import RestPicker from './RestPicker'
 import { useLang } from '../context/LanguageContext'
 import useLongPress from '../hooks/useLongPress'
-import { editorRows } from '../data/exerciseSets'
-import { titleCase } from '../utils/text'
+import { editorRows, formatKg } from '../data/exerciseSets'
 
 function newId() {
   return (crypto?.randomUUID && crypto.randomUUID()) || String(Date.now())
@@ -24,7 +23,7 @@ const SLOP = 8            // px oltre i quali il gesto è uno scroll (annulla pr
 const TAP_WINDOW = 280    // ms per contare doppio/triplo tap
 const LONG_PRESS_MS = 400 // ms di pressione per entrare in modalità modifica (stile iPhone)
 const RED = '#ef4444'
-const BLUE = '#3b82f6'  // primary (pulsante Organizza, come Salva/Modifica)
+const BLUE = '#3b82f6'  // primary (pulsante Modifica in modalità modifica)
 const GREEN = '#22c55e' // success (pulsante Play)
 const STATO_DONE = '#22c55e' // bordo verde: esercizio svolto (doppio tap)
 const STATO_SKIP = '#ef4444' // bordo rosso: esercizio saltato (triplo tap)
@@ -33,19 +32,27 @@ const STATO_SKIP = '#ef4444' // bordo rosso: esercizio saltato (triplo tap)
 // (le classi -top-3/-left-3/-right-3 li fanno sporgere ~50% del diametro, come su iPhone).
 const EDIT_BTN = 'absolute z-20 w-6 h-6 rounded-full flex items-center justify-center shadow-md'
 
+// Elementi dell'header della scheda: stessa altezza per un allineamento perfetto
+// (la larghezza la decide ognuno: Play e recupero uguali, "+" resta come prima).
+const HEADER_BTN = 'h-9 rounded-full flex items-center justify-center shrink-0'
+
 // Bordo colorato solo se c'è uno stato (verde/rosso); altrimenti bordo neutro sottile.
 const resolveBorder = ex =>
   ex.stato === 'done' ? STATO_DONE : ex.stato === 'skip' ? STATO_SKIP : null
 
 const INFO_CLS = 'text-[color:var(--text-muted)] text-xs tabular-nums'
 
-// Split OFF: riga unica "Serie 3 • Rip. 8 • 30 kg" (layout invariato).
+// Split OFF: numero di serie e, sotto, "Rip 8 - 30 kg" nello stesso formato delle
+// righe dello split.
 function ExerciseInfoLine({ ex }) {
   const { t } = useLang()
   return (
-    <p className={INFO_CLS}>
-      {t('esercizio.serie')} {ex.serie} • {t('esercizio.reps')} {ex.reps} • {ex.kg} kg
-    </p>
+    <div className="flex flex-col gap-0.5">
+      <p className={INFO_CLS}>{t('esercizio.serie')} {ex.serie}</p>
+      <p className={INFO_CLS}>
+        <span>{t('esercizio.reps')} {ex.reps}</span> - <span>{formatKg(ex.kg)} kg</span>
+      </p>
+    </div>
   )
 }
 
@@ -59,7 +66,7 @@ function ExerciseSetRows({ ex }) {
     <div className="flex flex-col gap-0.5">
       {editorRows(ex).map((r, i) => (
         <p key={i} className={INFO_CLS}>
-          <span>{t('esercizio.reps')} {r.reps}</span> - <span>{r.kg} kg</span>
+          <span>{t('esercizio.reps')} {r.reps}</span> - <span>{formatKg(r.kg)} kg</span>
         </p>
       ))}
     </div>
@@ -70,53 +77,39 @@ function ExerciseSetRows({ ex }) {
 // è il punto di trascinamento per il riordino (handleProps = ref/listeners di @dnd-kit).
 function CardVisual({ ex, borderColor, handleProps, style, className = '' }) {
   const { t } = useLang()
-  // Base comune del titolo: nel layout split va a capo, in quello base resta su una riga.
-  const titleCls = 'font-semibold text-sm'
   return (
     <div
       style={{ borderColor: borderColor || undefined, ...style }}
-      className={`bg-[var(--surface)] rounded-xl p-3 flex items-center gap-3 select-none ${
+      className={`h-[120px] bg-[var(--surface)] rounded-xl p-2 flex items-center gap-3 select-none ${
         borderColor ? 'border-2' : 'border border-[color:var(--border-1)]'
       } ${className}`}
     >
-      <div className="w-14 h-14 rounded-lg bg-[var(--fill-1)] flex items-center justify-center shrink-0 overflow-hidden">
+      <div className="w-[74px] h-[74px] rounded-lg bg-[var(--fill-1)] flex items-center justify-center shrink-0 overflow-hidden">
         {ex.foto ? (
           <img src={ex.foto} alt="" loading="lazy" className="w-full h-full object-cover" />
         ) : (
           <IoBarbellOutline className="text-2xl text-[color:var(--text-dim)]" />
         )}
       </div>
-      {/* Area centrale (fra immagine e maniglia, entrambe invariate).
-          - Split ON  → due contenitori affiancati: titolo ~60% / righe serie ~40%.
-          - Split OFF → layout invariato: titolo sopra + riga info centrata sotto.
-          `self-stretch` porta la colonna all'altezza della card (data dall'immagine). */}
-      {ex.split ? (
-        <div className="min-w-0 flex-1 self-stretch flex items-center gap-2">
-          {/* Contenitore 1 (~60%): titolo, va a capo e riempie tutta la larghezza */}
-          <div className="min-w-0 basis-[60%] flex flex-col justify-center">
-            <p className={`${titleCls} break-words`}>{ex.titolo}</p>
-          </div>
-          {/* Contenitore 2 (~40%): righe generate, centrate verticalmente */}
-          <div className="min-w-0 basis-[40%] flex flex-col justify-center">
-            <ExerciseSetRows ex={ex} />
-          </div>
+      {/* Area centrale (fra immagine e maniglia): stessi due contenitori con Split ON e OFF
+          (titolo ~45% / dati ~55%). Cambia SOLO il contenuto del secondo contenitore.
+          `self-stretch` porta la colonna all'altezza della card. */}
+      <div className="min-w-0 flex-1 self-stretch flex items-center gap-2">
+        {/* Contenitore 1 (~45%): titolo, va a capo e riempie tutta la larghezza */}
+        <div className="min-w-0 basis-[45%] flex flex-col justify-center">
+          <p className="font-semibold text-sm break-words">{ex.titolo}</p>
         </div>
-      ) : (
-        <div className="min-w-0 flex-1 self-stretch flex flex-col">
-          <div className="min-w-0">
-            <p className={`${titleCls} truncate`}>{ex.titolo}</p>
-          </div>
-          <div className="flex-1 flex flex-col justify-center mt-1">
-            <ExerciseInfoLine ex={ex} />
-          </div>
+        {/* Contenitore 2 (~55%): dati esercizio, centrati verticalmente */}
+        <div className="min-w-0 basis-[55%] flex flex-col justify-center">
+          {ex.split ? <ExerciseSetRows ex={ex} /> : <ExerciseInfoLine ex={ex} />}
         </div>
-      )}
+      </div>
       <button
         {...(handleProps || {})}
         aria-label={t('esercizio.reorder')}
         className="shrink-0 text-[color:var(--text-dim)] hover:text-[color:var(--text)] cursor-grab active:cursor-grabbing p-1"
       >
-        <IoReorderTwoOutline className="text-xl" />
+        <IoReorderTwoOutline className="text-[30px]" />
       </button>
     </div>
   )
@@ -239,7 +232,7 @@ function EsercizioCard({ ex, editMode, onEnterEdit, onDelete, onEdit, onToggleSt
 }
 
 // Pagina interna (NON una rotta) del dettaglio scheda.
-function SchedaView({ scheda, restLabel, onRename, onExercisesChange, onBack }) {
+function SchedaView({ scheda, onExercisesChange, onRestChange, onBack }) {
   const { t } = useLang()
   const esercizi = scheda.esercizi
   const [editingId, setEditingId] = useState(null)
@@ -260,19 +253,10 @@ function SchedaView({ scheda, restLabel, onRename, onExercisesChange, onBack }) 
     document.addEventListener('pointerdown', onDocDown)
     return () => document.removeEventListener('pointerdown', onDocDown)
   }, [editMode, deleteExId])
-  const [nameError, setNameError] = useState(false) // nome scheda mancante al click su +
-  const nameRef = useRef(null)
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
   function openNew() {
-    // Nome scheda OBBLIGATORIO prima di aggiungere un esercizio: se vuoto non si va
-    // avanti (evita che la scheda venga poi auto-nominata "Nuova scheda").
-    if (!scheda.nome.trim()) {
-      setNameError(true)
-      nameRef.current?.focus()
-      return
-    }
     // Nome esercizio vuoto (placeholder nell'editor); serie/rip/kg con valori di default
     setNewDraft({ id: newId(), titolo: '', serie: '3', reps: '8', kg: '20', split: false, foto: null })
   }
@@ -315,65 +299,44 @@ function SchedaView({ scheda, restLabel, onRename, onExercisesChange, onBack }) 
 
   const activeEx = esercizi.find(e => e.id === activeId)
   const deletingEx = esercizi.find(e => e.id === deleteExId)
-  // Larghezza del campo nome ≈ lunghezza del testo (a vuoto: quanto basta al placeholder).
-  const nameSize = Math.max(6, scheda.nome.length || 12)
 
   return (
     <div className="flex flex-col min-h-screen pb-24">
       <TopBar onBack={onBack} title={(scheda.nome || '').toUpperCase()} />
 
-      {/* Header: nome modificabile + badge recupero + aggiungi */}
-      <div className="px-5 pt-3">
-        {/* `justify-between`: lo spazio libero si distribuisce in parti uguali tra titolo,
-            Play, Organizza, badge e "+". Il campo nome è largo quanto il testo (`size`)
-            invece di prendersi tutto lo spazio, altrimenti i pulsanti restano ammassati. */}
-        <div className="flex items-center justify-between gap-2">
-          <input
-            ref={nameRef}
-            value={scheda.nome}
-            size={nameSize}
-            onChange={e => {
-              onRename(scheda.id, e.target.value)
-              if (nameError && e.target.value.trim()) setNameError(false)
-            }}
-            onBlur={e => onRename(scheda.id, titleCase(e.target.value.trim()))}
-            placeholder={t('palestra.schedaPlaceholder')}
-            className={`min-w-0 bg-transparent text-2xl font-extrabold outline-none border-b pb-1 placeholder:text-[color:var(--text-faint)] ${
-              nameError ? 'border-red-400' : 'border-transparent focus:border-[color:var(--border-3)]'
-            }`}
-          />
-          {/* Play (success) e Organizza (primary): per ora SOLO grafica, nessuna azione */}
-          <button
-            type="button"
-            aria-label={t('palestra.play')}
-            className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-            style={{ backgroundColor: GREEN, color: '#fff' }}
-          >
-            <IoPlay className="text-lg" />
-          </button>
-          <button
-            type="button"
-            aria-label={t('palestra.organize')}
-            className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-            style={{ backgroundColor: BLUE, color: '#fff' }}
-          >
-            <ReorderIcon className="text-lg" />
-          </button>
+      {/* Header: titolo (sola lettura) + Play + recupero della scheda + aggiungi.
+          `justify-between` distribuisce lo spazio libero in parti uguali fra i quattro
+          elementi; il titolo occupa solo lo spazio del proprio contenuto. */}
+      <div className="px-5 pt-3 flex items-center justify-between gap-2">
+        {/* Il nome si sceglie alla creazione della scheda: qui è in sola lettura */}
+        <h2 className="min-w-0 truncate text-2xl font-extrabold">{scheda.nome}</h2>
 
-          <span className="flex items-center gap-1 rounded-full bg-[var(--fill-1)] border border-[color:var(--border-2)] px-2.5 py-1 shrink-0">
-            <IoStopwatchOutline className="text-sm" style={{ color: 'var(--accent)' }} />
-            <span className="text-sm font-semibold tabular-nums">{restLabel}</span>
-          </span>
-          <button
-            onClick={openNew}
-            aria-label={t('palestra.addExercise')}
-            className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-            style={{ backgroundColor: 'var(--accent)', color: 'var(--on-accent)' }}
-          >
-            <IoAdd className="text-xl" />
-          </button>
-        </div>
-        {nameError && <p className="text-xs text-red-400 mt-1">{t('palestra.schedaNameRequired')}</p>}
+        {/* Play (success): per ora SOLO grafica, nessuna azione */}
+        <button
+          type="button"
+          aria-label={t('palestra.play')}
+          className={`${HEADER_BTN} w-20`}
+          style={{ backgroundColor: GREEN, color: '#fff' }}
+        >
+          <IoPlay className="text-lg" />
+        </button>
+
+        {/* Recupero della SCHEDA: indipendente per ogni scheda (fallback al globale
+            finché non viene impostato). Stessa altezza e larghezza del Play. */}
+        <RestPicker
+          value={scheda.rest}
+          onChange={onRestChange}
+          className={`${HEADER_BTN} w-20 gap-1 bg-[var(--fill-1)] border border-[color:var(--border-2)] hover:bg-[var(--surface-3)] transition-colors`}
+        />
+
+        <button
+          onClick={openNew}
+          aria-label={t('palestra.addExercise')}
+          className={`${HEADER_BTN} w-9`}
+          style={{ backgroundColor: 'var(--accent)', color: 'var(--on-accent)' }}
+        >
+          <IoAdd className="text-xl" />
+        </button>
       </div>
 
       {/* Lista esercizi (1 per riga) */}
@@ -391,7 +354,7 @@ function SchedaView({ scheda, restLabel, onRename, onExercisesChange, onBack }) 
             onDragCancel={() => setActiveId(null)}
           >
             <SortableContext items={esercizi.map(e => e.id)} strategy={verticalListSortingStrategy}>
-              <div className="flex flex-col gap-3 pb-2">
+              <div className="flex flex-col gap-[18px] pb-2">
                 {esercizi.map(ex => (
                   <EsercizioCard
                     key={ex.id}

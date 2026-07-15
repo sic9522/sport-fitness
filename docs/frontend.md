@@ -51,7 +51,11 @@ Questa e' la struttura che, alla Fase 5 della roadmap, migrera' su Supabase.
   Ha `day` (giorno settimana) OPPURE `nome` (libero: "Scheda A" o
   personalizzato). `custom:true` solo se creata via "Nome personalizzato".
   `stato` = `done`/`skip` (dallo swipe).
-  - Scheda = `{ id, nome, esercizi:[], custom? }`.
+  - Scheda = `{ id, nome, esercizi:[], custom?, rest? }`. Il `nome` si sceglie alla
+    CREAZIONE (`PromptModal` in `GiornataView`) e dentro la scheda è in sola lettura.
+    `rest` = secondi di recupero della singola scheda (indipendente; se assente si usa
+    il recupero globale del `TimerContext`). NB: `rest` NON è ancora mappato sul cloud
+    (`public.workout_cards` non ha la colonna): con la sync attiva andrebbe perso.
   - Esercizio = `{ id, titolo, serie, reps, kg, foto, stato?, split?, sets? }`
     (serie 1-5. Con `split:true` ogni serie ha la sua riga reps/kg in
     `sets:[{reps,kg}]`; `reps`/`kg` rispecchiano la 1ª serie per card/cloud.
@@ -185,16 +189,27 @@ l'editor) oppure tocco fuori dalle card (listener su `[data-ex-card]`). La X apr
 invece una conferma (`ConfirmModal`, `confirm.deleteEsercizio`) e NON fa uscire dalla
 modalità, né confermando né annullando (il listener è disattivo mentre è aperta).
 Restano doppio/triplo tap stati + riordino via maniglia @dnd-kit.
-LAYOUT card: split OFF = layout base INVARIATO, titolo (su una riga) + riga unica
-"Serie 3 • Rip. 8 • 30 kg" centrata verticalmente sotto (`ExerciseInfoLine`);
-split ON = due contenitori affiancati, titolo ~60% (`basis-[60%]`, va a capo su più
-righe e riempie il contenitore) e righe serie ~40% (`basis-[40%]`, `ExerciseSetRows`:
-una riga per serie "Rip 8 - 30 kg" con due span, righe da `editorRows` → sempre
-sincronizzate con la select). Immagine e maniglia invariate in entrambi i casi.
-Header scheda: titolo (largo quanto il testo via `size`) + Play (verde, success) +
-Organizza (blu, primary, icona custom `ui/ReorderIcon`) + badge + "+", distribuiti
-uniformemente con `justify-between`. Play e Organizza sono per ora SOLO grafica),
-`EsercizioEditor` (modale, tutti i campi obbligatori; il campo Nome ha
+LAYOUT card: altezza fissa `h-[120px]` per tutte, `p-2`, immagine 74px, maniglia 30px,
+gap fra le card `gap-[18px]`. Struttura UNICA con Split ON e OFF: contenitore 1 ~45%
+(`basis-[45%]`, titolo che va a capo — niente `truncate`) + contenitore 2 ~55%
+(`basis-[55%]`, dati centrati verticalmente). Cambia solo il contenuto del secondo:
+Split OFF → `ExerciseInfoLine` ("Serie 3" e sotto "Rip. 8 - 30 kg");
+Split ON → `ExerciseSetRows` (una riga "Rip. 8 - 30 kg" per serie, righe da
+`editorRows` → sempre sincronizzate con la select).
+Header scheda: titolo in SOLA LETTURA (il nome si sceglie alla creazione, vedi
+`GiornataView`) + Play + recupero + "+", distribuiti con `justify-between`; stessa
+altezza (`HEADER_BTN` = `h-9`), Play e recupero stessa larghezza (`w-20`), il "+"
+resta `w-9`. Play è per ora SOLO grafica. Il badge recupero è un `RestPicker` e
+imposta il recupero DELLA SCHEDA (`scheda.rest`, indipendente; fallback al globale
+finché non impostato) — il timer globale/navbar NON è toccato. Il pulsante Organizza
+è stato rimosso dall'UI (l'icona `ui/ReorderIcon` resta, riusabile)),
+`EsercizioEditor` (modale, tutti i campi obbligatori. LIMITI input: Nome max 40 con
+contatore live "n/40" accanto all'etichetta; Rip solo cifre max 2 (la 3ª non entra);
+kg max 4 cifre + UN separatore (`,`→`.`); oltre il limite il campo diventa rosso e
+mostra il messaggio in OVERLAY sopra il campo (niente shift del layout), che sparisce
+dopo 3s, al blur o toccando altrove. Il separatore senza cifre non viene salvato
+("12."→"12") e la card mostra il peso senza zeri superflui (`formatKg`: "0.50"→"0.5").
+Il campo Nome ha
 autocomplete sul catalogo `public.catalog_exercises` via
 `services/catalogs.searchCatalogExercises`, che chiama la RPC
 `search_catalog_exercises(search, p_locale, max_results)`: ricerca fuzzy e

@@ -3,21 +3,15 @@ import { IoAdd, IoEllipsisVertical, IoCreateOutline, IoTrashOutline, IoCopyOutli
 import TopBar from './TopBar'
 import SchedaView from './SchedaView'
 import ConfirmModal from './ConfirmModal'
+import PromptModal from './PromptModal'
 import GiornataPickerModal from './GiornataPickerModal'
 import { useLang } from '../context/LanguageContext'
-import { useTimer } from '../context/TimerContext'
 import { giornataName, newId, schedaNameTaken } from '../data/giornateDefaults'
-
-function mmss(total) {
-  const m = Math.floor(total / 60)
-  const s = total % 60
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-}
+import { titleCase } from '../utils/text'
 
 // Pagina interna (NON una rotta) di una giornata: elenca le sue schede e apre SchedaView.
 function GiornataView({ giornata, allGiornate, onSchedeChange, onBack, onSchedaCopyTo, onSchedaMoveTo, onSchedaToTopLevel }) {
   const { t } = useLang()
-  const { restDuration } = useTimer()
   const schede = giornata.schede
 
   // Scheda (esercizi) aperta, persistita: al refresh/cambio pagina si resta sul dettaglio.
@@ -26,6 +20,7 @@ function GiornataView({ giornata, allGiornate, onSchedeChange, onBack, onSchedaC
   const [deleteId, setDeleteId] = useState(null) // conferma eliminazione
   const [schedaMC, setSchedaMC] = useState(null) // { scheda, mode:'copy'|'move' } → selettore destinazione
   const [schedaOverwrite, setSchedaOverwrite] = useState(null) // { scheda, mode, targetId } → conferma sovrascrittura
+  const [creating, setCreating] = useState(false) // modale "nuova scheda": chiede il nome
 
   const openScheda = schede.find(s => s.id === openId)
 
@@ -47,17 +42,19 @@ function GiornataView({ giornata, allGiornate, onSchedeChange, onBack, onSchedaC
     return () => window.removeEventListener('fitpulse-navreset', onReset)
   }, [])
 
-  function createScheda() {
-    // Nasce SENZA nome: l'input in SchedaView mostra il placeholder e invita a nominarla.
-    const nuova = { id: newId(), nome: '', esercizi: [] }
+  // Il nome si sceglie QUI, alla creazione (modale): dentro la scheda aperta è in sola lettura.
+  function confirmCreate(nome) {
+    const nuova = { id: newId(), nome: titleCase(nome), esercizi: [] }
     onSchedeChange([...schede, nuova])
+    setCreating(false)
     setOpenId(nuova.id)
-  }
-  function renameScheda(id, nome) {
-    onSchedeChange(schede.map(s => (s.id === id ? { ...s, nome } : s)))
   }
   function setEsercizi(id, esercizi) {
     onSchedeChange(schede.map(s => (s.id === id ? { ...s, esercizi } : s)))
+  }
+  // Recupero indipendente per scheda (stesso pattern di setEsercizi).
+  function setRest(id, rest) {
+    onSchedeChange(schede.map(s => (s.id === id ? { ...s, rest } : s)))
   }
   function confirmDelete() {
     onSchedeChange(schede.filter(s => s.id !== deleteId))
@@ -84,9 +81,8 @@ function GiornataView({ giornata, allGiornate, onSchedeChange, onBack, onSchedaC
     return (
       <SchedaView
         scheda={openScheda}
-        restLabel={mmss(restDuration)}
-        onRename={renameScheda}
         onExercisesChange={arr => setEsercizi(openScheda.id, arr)}
+        onRestChange={rest => setRest(openScheda.id, rest)}
         onBack={closeScheda}
       />
     )
@@ -174,7 +170,7 @@ function GiornataView({ giornata, allGiornate, onSchedeChange, onBack, onSchedaC
       {/* Crea nuova scheda */}
       <div className="px-5 mt-3">
         <button
-          onClick={createScheda}
+          onClick={() => setCreating(true)}
           className="w-full rounded-xl py-4 flex items-center justify-center gap-2 font-bold tracking-widest uppercase text-sm"
           style={{ backgroundColor: 'var(--accent)', color: 'var(--on-accent)' }}
         >
@@ -182,6 +178,18 @@ function GiornataView({ giornata, allGiornate, onSchedeChange, onBack, onSchedaC
           {t('palestra.newCard')}
         </button>
       </div>
+
+      {/* Nuova scheda: il nome si sceglie qui (dentro la scheda è in sola lettura) */}
+      {creating && (
+        <PromptModal
+          title={t('palestra.newCard')}
+          placeholder={t('palestra.schedaPlaceholder')}
+          confirmLabel={t('common.create')}
+          cancelLabel={t('common.cancel')}
+          onConfirm={confirmCreate}
+          onCancel={() => setCreating(false)}
+        />
+      )}
 
       {/* Backdrop: un tap fuori chiude il menu tre-puntini */}
       {menuId && <div className="fixed inset-0 z-20" onClick={() => setMenuId(null)} />}
