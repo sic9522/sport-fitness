@@ -11,9 +11,12 @@ function mmss(totalSeconds) {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
-function TimerWheel({ value, onChange, max = 180, step = 5 }) {
+// `onPick` (opzionale) viene chiamato quando si CLICCA una riga: il valore è scelto
+// e confermato (chi lo usa può chiudere il picker). Lo scroll da solo non lo chiama.
+function TimerWheel({ value, onChange, onPick, max = 180, step = 5 }) {
   const scrollRef = useRef(null)
   const settleRef = useRef(null)
+  useEffect(() => () => clearTimeout(settleRef.current), [])
 
   const options = useMemo(() => {
     const arr = []
@@ -40,6 +43,14 @@ function TimerWheel({ value, onChange, max = 180, step = 5 }) {
     }, 120)
   }
 
+  // Click su una riga (anche non centrata): ci scorre sopra, la seleziona e conferma.
+  function pick(idx) {
+    const el = scrollRef.current
+    if (el) el.scrollTo({ top: idx * ITEM_H, behavior: 'smooth' })
+    if (options[idx] !== value) onChange(options[idx])
+    onPick?.(options[idx])
+  }
+
   return (
     <div className="relative shrink-0" style={{ width: 76, height: ITEM_H * VISIBLE }}>
       {/* Banda che evidenzia la riga selezionata al centro */}
@@ -50,18 +61,20 @@ function TimerWheel({ value, onChange, max = 180, step = 5 }) {
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="h-full overflow-y-scroll snap-y snap-mandatory no-scrollbar"
+        className="h-full overflow-y-scroll snap-y snap-mandatory thin-scrollbar"
       >
         {/* Spaziatore: permette alla prima/ultima riga di arrivare al centro */}
         <div style={{ height: ITEM_H }} />
-        {options.map(s => (
-          <div
+        {options.map((s, i) => (
+          <button
             key={s}
-            className="flex items-center justify-center tabular-nums font-semibold text-[color:var(--text)] snap-center"
+            type="button"
+            onClick={() => pick(i)}
+            className="w-full flex items-center justify-center tabular-nums font-semibold text-[color:var(--text)] snap-center"
             style={{ height: ITEM_H }}
           >
             {mmss(s)}
-          </div>
+          </button>
         ))}
         <div style={{ height: ITEM_H }} />
       </div>
