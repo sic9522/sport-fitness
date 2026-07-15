@@ -177,7 +177,11 @@ utenti sullo stesso browser). Da verificare end-to-end su un Supabase reale.
 (bottom-nav 5 voci), `RingChart`/`GoalCard`, `ThemePicker`/`LanguagePicker`,
 `User`. Timer: `TimerWheel` (wheel picker), `RestPicker`, `TimerPill`.
 Palestra: `GiornataView`, `SchedaView`, `GiornataCard`, `EsercizioCard`
-(swipe 2 stadi + doppio/triplo tap stati + riordino via maniglia @dnd-kit),
+(MODALITÀ MODIFICA stile iPhone: pressione prolungata ~400ms (`hooks/useLongPress`)
+→ tutte le card tremano (`.jiggle`) e mostrano i pulsanti elimina (X rossa, alto sx)
+e modifica (matita blu, alto dx) a cavallo del bordo; richiamano le stesse azioni di
+prima. Lo stato `editMode` sta in `SchedaView`. NB: l'uscita dalla modalità non è
+ancora implementata. Restano doppio/triplo tap stati + riordino via maniglia @dnd-kit),
 `EsercizioEditor` (modale, tutti i campi obbligatori; il campo Nome ha
 autocomplete sul catalogo `public.catalog_exercises` via
 `services/catalogs.searchCatalogExercises`, che chiama la RPC

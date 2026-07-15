@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { IoAdd, IoStopwatchOutline, IoBarbellOutline, IoTrashOutline, IoCreateOutline, IoReorderTwoOutline } from 'react-icons/io5'
+import { IoAdd, IoStopwatchOutline, IoBarbellOutline, IoClose, IoPencil, IoReorderTwoOutline } from 'react-icons/io5'
 import {
   DndContext, DragOverlay, PointerSensor, useSensor, useSensors, closestCenter,
 } from '@dnd-kit/core'
@@ -10,21 +10,24 @@ import { CSS } from '@dnd-kit/utilities'
 import TopBar from './TopBar'
 import EsercizioEditor from './EsercizioEditor'
 import { useLang } from '../context/LanguageContext'
+import useLongPress from '../hooks/useLongPress'
 import { titleCase } from '../utils/text'
 
 function newId() {
   return (crypto?.randomUUID && crypto.randomUUID()) || String(Date.now())
 }
 
-const SLOP = 8         // px minimi per distinguere il gesto (swipe vs scroll)
-const DETENT = 44      // px: qui lo swipe "si ferma" e mostra SOLO l'icona
-const RESIST = 0.5     // resistenza oltre il detent (fa "frenare" la card)
-const TAP_WINDOW = 280 // ms per contare doppio/triplo tap
+const SLOP = 8            // px oltre i quali il gesto è uno scroll (annulla pressione e tap)
+const TAP_WINDOW = 280    // ms per contare doppio/triplo tap
+const LONG_PRESS_MS = 400 // ms di pressione per entrare in modalità modifica (stile iPhone)
 const RED = '#ef4444'
 const BLUE = '#3b82f6'
 const STATO_DONE = '#22c55e' // bordo verde: esercizio svolto (doppio tap)
 const STATO_SKIP = '#ef4444' // bordo rosso: esercizio saltato (triplo tap)
-const confirmPx = w => Math.max(150, w * 0.45)
+
+// Pulsanti della modalità modifica: cerchietti a cavallo del bordo della card
+// (le classi -top-3/-left-3/-right-3 li fanno sporgere ~50% del diametro, come su iPhone).
+const EDIT_BTN = 'absolute z-20 w-6 h-6 rounded-full flex items-center justify-center shadow-md'
 
 // Bordo colorato solo se c'è uno stato (verde/rosso); altrimenti bordo neutro sottile.
 const resolveBorder = ex =>
@@ -66,97 +69,64 @@ function CardVisual({ ex, borderColor, handleProps, style, className = '' }) {
 }
 
 // Card esercizio (una per riga).
-// - Swipe orizzontale a 2 stadi: elimina (destra) / modifica (sinistra).
+// - Pressione prolungata (~400ms) → attiva la MODALITÀ MODIFICA (su tutte le card).
+//   In modalità modifica la card trema e mostra i pulsanti elimina (X, alto sx) e
+//   modifica (matita, alto dx), che richiamano le STESSE funzioni di prima.
 // - Doppio tap → verde (svolto); triplo tap → rosso (skip); ripetendo torna normale.
 // - Riordino: trascinando la MANIGLIA a destra (DragOverlay + segnaposto).
-function EsercizioCard({ ex, onDelete, onEdit, onToggleStato }) {
+function EsercizioCard({ ex, editMode, onEnterEdit, onDelete, onEdit, onToggleStato }) {
   const { t } = useLang()
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
     useSortable({ id: ex.id })
 
-  const [swipeX, setSwipeX] = useState(0)
-  const [swiping, setSwiping] = useState(false)
-  const [revealed, setRevealed] = useState(false)
-  const [confirmReady, setConfirmReady] = useState(false)
-
+  const longPress = useLongPress(onEnterEdit, LONG_PRESS_MS)
   const startRef = useRef(null)
-  const modeRef = useRef(null)
-  const rawRef = useRef(0)
-  const widthRef = useRef(0)
+  const movedRef = useRef(false) // puntatore mosso → è uno scroll: né pressione né tap
   const tapCountRef = useRef(0)
   const tapTimerRef = useRef(null)
   useEffect(() => () => clearTimeout(tapTimerRef.current), [])
 
-  function resetSwipe() {
-    setSwipeX(0); setSwiping(false); setRevealed(false); setConfirmReady(false)
-    startRef.current = null; modeRef.current = null; rawRef.current = 0
-  }
-
-  function onSwipeDown(e) {
-    if (e.target.closest('[data-handle]')) return // sulla maniglia → riordino, non swipe
+  function onPointerDown(e) {
+    // Maniglia (riordino) e pulsanti modifica gestiscono il proprio gesto.
+    if (e.target.closest('[data-handle], [data-edit-btn]')) return
     startRef.current = { x: e.clientX, y: e.clientY }
-    modeRef.current = null
-    rawRef.current = 0
-    widthRef.current = e.currentTarget?.offsetWidth || 320
+    movedRef.current = false
+    longPress.start()
   }
-  function onSwipeMove(e) {
-    if (!startRef.current) return
+  function onPointerMove(e) {
+    if (!startRef.current || movedRef.current) return
     const dx = e.clientX - startRef.current.x
     const dy = e.clientY - startRef.current.y
-    if (modeRef.current === null && Math.max(Math.abs(dx), Math.abs(dy)) > SLOP) {
-      if (Math.abs(dx) > Math.abs(dy)) {
-        modeRef.current = 'swipe'
-        setSwiping(true)
-        e.currentTarget.setPointerCapture?.(e.pointerId)
-      } else {
-        modeRef.current = 'scroll'
-      }
-    }
-    if (modeRef.current === 'swipe') {
-      rawRef.current = dx
-      const a = Math.abs(dx), s = Math.sign(dx)
-      setSwipeX(a <= DETENT ? dx : s * (DETENT + (a - DETENT) * RESIST))
-      const past = a >= DETENT
-      const ready = a >= confirmPx(widthRef.current)
-      setRevealed(prev => {
-        if (past && !prev && navigator.vibrate) navigator.vibrate(6)
-        return past
-      })
-      setConfirmReady(prev => {
-        if (ready && !prev && navigator.vibrate) navigator.vibrate(12)
-        return ready
-      })
+    if (Math.max(Math.abs(dx), Math.abs(dy)) > SLOP) {
+      movedRef.current = true
+      longPress.cancel()
     }
   }
-  function onSwipeUp() {
-    if (!startRef.current) return // era sulla maniglia o nessun tracking
-    const wasTap = modeRef.current === null
-    if (modeRef.current === 'swipe') {
-      const confirm = confirmPx(widthRef.current)
-      if (rawRef.current >= confirm) onDelete(ex.id)
-      else if (rawRef.current <= -confirm) onEdit(ex.id)
-    }
-    if (wasTap) {
-      tapCountRef.current += 1
-      clearTimeout(tapTimerRef.current)
-      tapTimerRef.current = setTimeout(() => {
-        const n = tapCountRef.current
-        tapCountRef.current = 0
-        if (n >= 3) onToggleStato(ex.id, 'skip')       // triplo tap = skip (rosso)
-        else if (n === 2) onToggleStato(ex.id, 'done')  // doppio tap = svolto (verde)
-      }, TAP_WINDOW)
-    }
-    resetSwipe()
+  function onPointerUp() {
+    if (!startRef.current) return // nessun tracking (maniglia o pulsante)
+    const wasLongPress = longPress.fired.current
+    const moved = movedRef.current
+    startRef.current = null
+    longPress.cancel()
+    if (wasLongPress || moved) return // pressione prolungata o scroll → non è un tap
+
+    tapCountRef.current += 1
+    clearTimeout(tapTimerRef.current)
+    tapTimerRef.current = setTimeout(() => {
+      const n = tapCountRef.current
+      tapCountRef.current = 0
+      if (n >= 3) onToggleStato(ex.id, 'skip')       // triplo tap = skip (rosso)
+      else if (n === 2) onToggleStato(ex.id, 'done')  // doppio tap = svolto (verde)
+    }, TAP_WINDOW)
   }
-  function onSwipeCancel() {
-    resetSwipe()
+  function onPointerCancel() {
+    startRef.current = null
+    longPress.cancel()
   }
 
-  const base = CSS.Transform.toString(transform)
   const wrapStyle = {
-    transform: base,
+    transform: CSS.Transform.toString(transform),
     transition,
-    touchAction: 'pan-y',
     zIndex: isDragging ? 20 : undefined,
   }
 
@@ -168,49 +138,47 @@ function EsercizioCard({ ex, onDelete, onEdit, onToggleStato }) {
     style: { touchAction: 'none' },
   }
 
-  const showRed = swipeX > 0
-  const actionColor = showRed ? RED : BLUE
-
   return (
     <div
       ref={setNodeRef}
       style={wrapStyle}
-      className="relative rounded-xl overflow-hidden"
-      onPointerDownCapture={onSwipeDown}
-      onPointerMoveCapture={onSwipeMove}
-      onPointerUpCapture={onSwipeUp}
-      onPointerCancelCapture={onSwipeCancel}
+      className="relative rounded-xl"
+      onPointerDownCapture={onPointerDown}
+      onPointerMoveCapture={onPointerMove}
+      onPointerUpCapture={onPointerUp}
+      onPointerCancelCapture={onPointerCancel}
     >
-      {/* Sfondo azione rivelato dallo swipe (icona subito, parola solo in conferma) */}
-      {swipeX !== 0 && (
-        <div
-          className="absolute inset-0 flex items-center px-5"
-          style={{ backgroundColor: actionColor, justifyContent: showRed ? 'flex-start' : 'flex-end' }}
-        >
-          <span className="flex items-center gap-2 text-white font-semibold text-sm">
-            {showRed ? (
-              <>
-                {revealed && <IoTrashOutline className="text-lg" />}
-                {confirmReady && <span>{t('menu.delete')}</span>}
-              </>
-            ) : (
-              <>
-                {confirmReady && <span>{t('menu.edit')}</span>}
-                {revealed && <IoCreateOutline className="text-lg" />}
-              </>
-            )}
-          </span>
-        </div>
-      )}
-
-      {/* Card in primo piano (segnaposto sbiadito mentre la trascini) */}
+      {/* Card (trema in modalità modifica; segnaposto sbiadito mentre la trascini) */}
       <CardVisual
         ex={ex}
         borderColor={resolveBorder(ex)}
         handleProps={handleProps}
-        style={{ transform: `translateX(${swipeX}px)`, transition: swiping ? 'none' : 'transform 0.2s ease' }}
-        className={`relative ${isDragging ? 'opacity-40' : ''}`}
+        className={`${editMode ? 'jiggle' : ''} ${isDragging ? 'opacity-40' : ''}`}
       />
+
+      {/* Pulsanti modalità modifica: stesse azioni di prima (elimina / modifica) */}
+      {editMode && (
+        <>
+          <button
+            data-edit-btn=""
+            onClick={() => onDelete(ex.id)}
+            aria-label={t('menu.delete')}
+            className={`${EDIT_BTN} -top-3 -left-3`}
+            style={{ backgroundColor: RED }}
+          >
+            <IoClose className="text-base text-white" />
+          </button>
+          <button
+            data-edit-btn=""
+            onClick={() => onEdit(ex.id)}
+            aria-label={t('menu.edit')}
+            className={`${EDIT_BTN} -top-3 -right-3`}
+            style={{ backgroundColor: BLUE }}
+          >
+            <IoPencil className="text-xs text-white" />
+          </button>
+        </>
+      )}
     </div>
   )
 }
@@ -222,6 +190,9 @@ function SchedaView({ scheda, restLabel, onRename, onExercisesChange, onBack }) 
   const [editingId, setEditingId] = useState(null)
   const [newDraft, setNewDraft] = useState(null)
   const [activeId, setActiveId] = useState(null) // card trascinata (per il DragOverlay)
+  // Modalità modifica (stile iPhone): attiva per TUTTE le card insieme.
+  // Stato tenuto qui (proprietario della lista) così è estendibile a future azioni.
+  const [editMode, setEditMode] = useState(false)
   const [nameError, setNameError] = useState(false) // nome scheda mancante al click su +
   const nameRef = useRef(null)
 
@@ -328,6 +299,8 @@ function SchedaView({ scheda, restLabel, onRename, onExercisesChange, onBack }) 
                   <EsercizioCard
                     key={ex.id}
                     ex={ex}
+                    editMode={editMode}
+                    onEnterEdit={() => setEditMode(true)}
                     onDelete={deleteEsercizio}
                     onEdit={setEditingId}
                     onToggleStato={toggleStato}

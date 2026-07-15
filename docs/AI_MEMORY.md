@@ -56,6 +56,24 @@ Da NON dare per scontato:
 
 ## Log
 
+### 2026-07-13 - Claude (Palestra: swipe → modalità modifica stile iPhone)
+
+- **Swipe RIMOSSO** dalle card esercizio (sinistra/destra + animazioni e logica
+  collegata: DETENT/RESIST/confirmPx/translateX/sfondo azione). Le funzioni di
+  elimina/modifica NON sono state riscritte: sono richiamate dai nuovi pulsanti.
+- **Modalità modifica**: pressione prolungata ~400ms su una card → TUTTE le card
+  entrano in modalità e tremano (riusata la classe `.jiggle` già in `index.css`,
+  finora non collegata). Nuovo hook riusabile `hooks/useLongPress.js` (solo il
+  timer; la geometria del gesto resta nella card). Stato `editMode` in `SchedaView`
+  (proprietario della lista) → estendibile a future azioni.
+- **Pulsanti**: X bianca su cerchio rosso in alto a SINISTRA (elimina), matita
+  bianca su cerchio blu in alto a DESTRA (modifica); sporgono ~50% del diametro
+  dal bordo (`-top-3/-left-3/-right-3`, rimosso `overflow-hidden` dal wrapper).
+- Invariati (non correlati): doppio/triplo tap stati done/skip, riordino a maniglia.
+- ⚠️ **Uscita dalla modalità NON implementata** (da specifica): una volta attiva
+  resta finché non si lascia la scheda. Da definire con Simone.
+- ✅ lint + test + build ok.
+
 ### 2026-07-13 - Claude (Alimentazione: rifiniture tab/data/grassi)
 
 - **Grassi unico**: rimossi saturi/insaturi, torna `fat` singolo (macro totali = 5:
