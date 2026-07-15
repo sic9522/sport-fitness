@@ -87,17 +87,17 @@ function CardVisual({ ex, borderColor, handleProps, style, className = '' }) {
         )}
       </div>
       {/* Area centrale (fra immagine e maniglia, entrambe invariate).
-          - Split ON  → due contenitori affiancati: titolo ~65% / righe serie ~35%.
+          - Split ON  → due contenitori affiancati: titolo ~60% / righe serie ~40%.
           - Split OFF → layout invariato: titolo sopra + riga info centrata sotto.
           `self-stretch` porta la colonna all'altezza della card (data dall'immagine). */}
       {ex.split ? (
         <div className="min-w-0 flex-1 self-stretch flex items-center gap-2">
-          {/* Contenitore 1 (~65%): titolo, va a capo e riempie tutta la larghezza */}
-          <div className="min-w-0 basis-[65%] flex flex-col justify-center">
+          {/* Contenitore 1 (~60%): titolo, va a capo e riempie tutta la larghezza */}
+          <div className="min-w-0 basis-[60%] flex flex-col justify-center">
             <p className={`${titleCls} break-words`}>{ex.titolo}</p>
           </div>
-          {/* Contenitore 2 (~35%): righe generate, centrate verticalmente */}
-          <div className="min-w-0 basis-[35%] flex flex-col justify-center">
+          {/* Contenitore 2 (~40%): righe generate, centrate verticalmente */}
+          <div className="min-w-0 basis-[40%] flex flex-col justify-center">
             <ExerciseSetRows ex={ex} />
           </div>
         </div>

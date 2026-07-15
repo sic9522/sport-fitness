@@ -72,9 +72,10 @@ Da NON dare per scontato:
 - **Rifinitura layout (subito dopo, confermata da Simone)**: header con
   `justify-between` e campo nome largo quanto il testo (`size`) → titolo/Play/
   Organizza/badge/"+" equidistanti (prima il nome era `flex-1` e ammassava i pulsanti
-  a destra). Card: con split ON due contenitori affiancati — titolo **~65%**
-  (`basis-[65%]`, va a capo su più righe: niente `truncate`) e righe **~35%**
-  (`basis-[35%]`), ogni riga "Rip 8 - 30 kg" con due span e separatore
+  a destra). Card: con split ON due contenitori affiancati — titolo **~60%**
+  (`basis-[60%]`, va a capo su più righe: niente `truncate`) e righe **~40%**
+  (`basis-[40%]`, allargato da 35% per non spezzare la riga), ogni riga
+  "Rip 8 - 30 kg" con due span e separatore
   spazio-trattino-spazio. Con split OFF **layout invariato** (scelta ribadita da
   Simone: "split off non lo toccare", il numero di serie resta nella riga unica).
 - ✅ lint + test + build + parità i18n ok.

@@ -187,8 +187,8 @@ modalità, né confermando né annullando (il listener è disattivo mentre è ap
 Restano doppio/triplo tap stati + riordino via maniglia @dnd-kit.
 LAYOUT card: split OFF = layout base INVARIATO, titolo (su una riga) + riga unica
 "Serie 3 • Rip. 8 • 30 kg" centrata verticalmente sotto (`ExerciseInfoLine`);
-split ON = due contenitori affiancati, titolo ~65% (`basis-[65%]`, va a capo su più
-righe e riempie il contenitore) e righe serie ~35% (`basis-[35%]`, `ExerciseSetRows`:
+split ON = due contenitori affiancati, titolo ~60% (`basis-[60%]`, va a capo su più
+righe e riempie il contenitore) e righe serie ~40% (`basis-[40%]`, `ExerciseSetRows`:
 una riga per serie "Rip 8 - 30 kg" con due span, righe da `editorRows` → sempre
 sincronizzate con la select). Immagine e maniglia invariate in entrambi i casi.
 Header scheda: titolo (largo quanto il testo via `size`) + Play (verde, success) +
