@@ -9,7 +9,7 @@ import NutritionGoalsEditor from '../components/NutritionGoalsEditor'
 import ConfirmModal from '../components/ConfirmModal'
 import { useLang } from '../context/LanguageContext'
 import {
-  MEALS, MACROS, MACRO_KEYS, todayDate, addDays, dateKey, todayKey, newFoodId,
+  MEALS, MACROS, todayDate, addDays, dateKey, todayKey, newFoodId,
   loadDiario, saveDiario, dayMeals, dayTotals, sumNutrients,
   rangeTotals, weekDateKeys, monthDateKeys, monthWeeks, dailyDeficitSeries, clippedWeek, weekOfMonth,
   loadNutritionGoals, saveNutritionGoals,
@@ -41,10 +41,9 @@ function MacroBar({ label, value, target, color }) {
   )
 }
 
-// Accordion delle barre macro (vs obiettivo del periodo). Riusato per il singolo
-// "Macro-nutrienti" (giorno/settimana) e per gli accordion per-settimana (mese).
-function MacroAccordion({ title, subtitle, open, onToggle, totals, goals, mult }) {
-  const { t } = useLang()
+// Guscio di un accordion: intestazione cliccabile + contenuto. Il contenuto lo decide
+// chi lo usa: le barre macro (MacroAccordion) o altri accordion (le settimane del mese).
+function Accordion({ title, subtitle, open, onToggle, children }) {
   return (
     <div className="mt-3 border-t border-[color:var(--border-1)] pt-3">
       <button onClick={onToggle} className="w-full flex items-center justify-between gap-2">
@@ -54,25 +53,42 @@ function MacroAccordion({ title, subtitle, open, onToggle, totals, goals, mult }
         </span>
         <IoChevronDown className={`shrink-0 text-[color:var(--text-dim)] transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
-      {open && (
-        <div className="flex flex-col gap-3 mt-3">
-          {MACROS.map(m => (
-            <MacroBar
-              key={m.key}
-              label={t(m.shortKey)}
-              value={Math.round(totals[m.key])}
-              target={Math.round((goals[m.key] || 0) * mult)}
-              color={m.color}
-            />
-          ))}
-        </div>
-      )}
+      {open && children}
     </div>
   )
 }
 
-// Bozza di un nuovo alimento (id generato in handler, non in render).
-const newFood = () => ({ id: newFoodId(), nome: '', grammi: '', kcal: '', ...Object.fromEntries(MACRO_KEYS.map(k => [k, ''])) })
+// Accordion delle barre macro (vs obiettivo del periodo). Riusato per il singolo
+// "Macro-nutrienti" (giorno/settimana) e per gli accordion per-settimana (mese).
+function MacroAccordion({ title, subtitle, open, onToggle, totals, goals, mult }) {
+  const { t } = useLang()
+  return (
+    <Accordion title={title} subtitle={subtitle} open={open} onToggle={onToggle}>
+      <div className="flex flex-col gap-3 mt-3">
+        {MACROS.map(m => (
+          <MacroBar
+            key={m.key}
+            label={t(m.shortKey)}
+            value={Math.round(totals[m.key])}
+            target={Math.round((goals[m.key] || 0) * mult)}
+            color={m.color}
+          />
+        ))}
+      </div>
+    </Accordion>
+  )
+}
+
+// Bozza di un nuovo alimento (id generato in handler, non in render). Niente macro:
+// non si inseriscono più a mano, verranno intercettati.
+const newFood = () => ({ id: newFoodId(), nome: '', grammi: '', kcal: '' })
+
+// Chiave-giorno "YYYY-MM-DD" → Date locale (a mezzanotte). Helper a livello di modulo
+// per tenere `new Date` fuori dal corpo del componente (come addDays/newFoodId).
+function keyToDate(k) {
+  const [y, m, d] = k.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
 
 function Alimentazione() {
   const { t, lang } = useLang()
@@ -85,7 +101,9 @@ function Alimentazione() {
   const [editGoals, setEditGoals] = useState(false)
   const [period, setPeriod] = useState('daily')     // tab attivo: daily | weekly | monthly
   const [macrosOpen, setMacrosOpen] = useState(false) // accordion Macro-nutrienti (giorno/settimana)
+  const [weekMacrosOpen, setWeekMacrosOpen] = useState(false) // accordion che raggruppa le settimane (mese)
   const [openWeek, setOpenWeek] = useState(null)      // indice settimana aperta nel mese (una alla volta)
+  const [openMeal, setOpenMeal] = useState(null)      // pasto aperto (accordion, uno alla volta)
   const [chartZoom, setChartZoom] = useState(false)   // grafico deficit ingrandito (doppio tap/click)
 
   // Ponte local-first: da loggato rispecchia diario e obiettivi su Supabase (no-op se non configurato).
@@ -116,12 +134,26 @@ function Alimentazione() {
     saveDiario(next)
   }
 
-  function saveFood(meal, food) {
-    const list = meals[meal]
-    const exists = list.some(f => f.id === food.id)
-    const nextList = exists ? list.map(f => (f.id === food.id ? food : f)) : [...list, food]
-    commitDiario({ ...diario, [key]: { ...meals, [meal]: nextList } })
+  // Salva un alimento nel giorno + pasto scelti nella modale. Se giorno o pasto sono
+  // cambiati (solo in modifica), l'alimento viene SPOSTATO: tolto dall'origine e aggiunto
+  // alla destinazione. `fromKey` null = nuovo alimento (niente da rimuovere).
+  function saveFood(fromKey, fromMeal, toKey, toMeal, food) {
+    const next = { ...diario }
+    if (fromKey && (fromKey !== toKey || fromMeal !== toMeal)) {
+      const src = dayMeals(next, fromKey)
+      next[fromKey] = { ...src, [fromMeal]: src[fromMeal].filter(f => f.id !== food.id) }
+    }
+    const dst = dayMeals(next, toKey)
+    const list = dst[toMeal]
+    next[toKey] = {
+      ...dst,
+      [toMeal]: list.some(f => f.id === food.id)
+        ? list.map(f => (f.id === food.id ? food : f))
+        : [...list, food],
+    }
+    commitDiario(next)
     setEditing(null)
+    setSelDate(keyToDate(toKey)) // porta la vista sul giorno scelto, così l'alimento è visibile
   }
 
   function removeFood(meal, id) {
@@ -139,6 +171,7 @@ function Alimentazione() {
   function changePeriod(p) {
     setPeriod(p)
     setMacrosOpen(false)
+    setWeekMacrosOpen(false)
     setOpenWeek(null)
     setSelDate(todayDate())
   }
@@ -193,6 +226,21 @@ function Alimentazione() {
   const monthLabel = selDate.toLocaleDateString(lang, { month: 'long', year: 'numeric' })
   // Animazione di cambio periodo: direzionale su freccia/swipe, fade sul cambio tab.
   const animClass = litDir === 'prev' ? 'nut-in-left' : litDir === 'next' ? 'nut-in-right' : 'nut-fade'
+
+  // Opzioni della select "al giorno:" nella modale: i giorni del mese CORRENTE (oggi),
+  // con etichetta compatta. In modifica, se l'alimento sta in un mese diverso, includo
+  // anche la sua data così resta selezionabile. Calcolate solo quando la modale è aperta.
+  let editorDate = null
+  let editorDayOptions = null
+  if (editing) {
+    editorDate = editing.isNew ? todayKey() : key
+    const keys = monthDateKeys(now)
+    const allKeys = keys.includes(editorDate) ? keys : [editorDate, ...keys]
+    editorDayOptions = allKeys.map(k => ({
+      key: k,
+      label: keyToDate(k).toLocaleDateString(lang, { day: 'numeric', month: 'short' }),
+    }))
+  }
 
   return (
     <div className="flex flex-col pb-28">
@@ -292,23 +340,30 @@ function Alimentazione() {
           </div>
         </div>
 
-        {/* Accordion: singolo Macro-nutrienti (giorno/settimana) o uno per settimana (mese) */}
+        {/* Accordion: singolo Macro-nutrienti (giorno/settimana) oppure, nel mese, un
+            accordion che raggruppa quelli per-settimana (che restano uno alla volta). */}
         {period === 'monthly' ? (
-          monthWeeks(selDate).map((w, i) => {
-            const keys = weekDateKeys(w.start)
-            return (
-              <MacroAccordion
-                key={i}
-                title={t('nutrition.weekShort', { n: i + 1 })}
-                subtitle={t('nutrition.weekRange', { from: w.start.getDate(), to: w.end.getDate() })}
-                open={openWeek === i}
-                onToggle={() => setOpenWeek(cur => (cur === i ? null : i))}
-                totals={rangeTotals(diario, keys)}
-                goals={goals}
-                mult={keys.length}
-              />
-            )
-          })
+          <Accordion
+            title={t('nutrition.weekMacros')}
+            open={weekMacrosOpen}
+            onToggle={() => setWeekMacrosOpen(o => !o)}
+          >
+            {monthWeeks(selDate).map((w, i) => {
+              const keys = weekDateKeys(w.start)
+              return (
+                <MacroAccordion
+                  key={i}
+                  title={t('nutrition.weekShort', { n: i + 1 })}
+                  subtitle={t('nutrition.weekRange', { from: w.start.getDate(), to: w.end.getDate() })}
+                  open={openWeek === i}
+                  onToggle={() => setOpenWeek(cur => (cur === i ? null : i))}
+                  totals={rangeTotals(diario, keys)}
+                  goals={goals}
+                  mult={keys.length}
+                />
+              )
+            })}
+          </Accordion>
         ) : (
           <MacroAccordion
             title={t('nutrition.macros')}
@@ -321,52 +376,64 @@ function Alimentazione() {
         )}
       </div>
 
-      {/* Pasti del giorno */}
+      {/* Aggiungi pasto: FUORI dalla scheda, sotto il grafico. È l'unico modo per
+          aggiungere un pasto a una data (scelta nella modale, punto 4-7). */}
+      <div className="px-5 mt-4">
+        <button
+          onClick={() => setEditing({ meal: MEALS[0].key, food: newFood(), isNew: true })}
+          className="w-full flex items-center justify-between gap-2 rounded-xl bg-[var(--surface)] border border-[color:var(--border-2)] px-4 py-3 text-sm font-semibold hover:bg-[var(--surface-3)] transition-colors"
+        >
+          {t('nutrition.addMeal')}
+          <IoAdd className="text-xl shrink-0" style={{ color: 'var(--accent)' }} />
+        </button>
+      </div>
+
+      {/* Pasti del giorno: ogni pasto è un accordion (solo visualizzazione), aperto uno
+          alla volta come le settimane. Si apre/chiude toccando l'intestazione. */}
       <div className="px-5 mt-5 flex flex-col gap-4">
         {MEALS.map(meal => {
           const list = meals[meal.key]
           const mealKcal = sumNutrients(list).kcal
+          const open = openMeal === meal.key
           return (
             <section key={meal.key}>
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-baseline gap-2">
+              <button
+                onClick={() => setOpenMeal(cur => (cur === meal.key ? null : meal.key))}
+                className="w-full flex items-center justify-between gap-2"
+              >
+                <span className="flex items-baseline gap-2 min-w-0">
                   <h3 className="font-bold">{t(meal.labelKey)}</h3>
                   <span className="text-xs text-[color:var(--text-dim)] tabular-nums">{mealKcal} {t('nutrition.kcal')}</span>
-                </div>
-                <button
-                  onClick={() => setEditing({ meal: meal.key, food: newFood() })}
-                  aria-label={t('nutrition.addFood')}
-                  className="w-8 h-8 flex items-center justify-center rounded-full"
-                  style={{ backgroundColor: 'var(--accent)', color: 'var(--on-accent)' }}
-                >
-                  <IoAdd className="text-xl" />
-                </button>
-              </div>
+                </span>
+                <IoChevronDown className={`shrink-0 text-[color:var(--text-dim)] transition-transform ${open ? 'rotate-180' : ''}`} />
+              </button>
 
-              {list.length === 0 ? (
-                <p className="text-[color:var(--text-faint)] text-sm py-1">{t('nutrition.noFoods')}</p>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  {list.map(food => (
-                    <div key={food.id} className="flex items-center gap-3 rounded-xl bg-[var(--surface)] border border-[color:var(--border-1)] px-3 py-2.5">
-                      <button onClick={() => setEditing({ meal: meal.key, food })} className="flex-1 min-w-0 text-left">
-                        <p className="text-sm font-medium truncate">{food.nome}</p>
-                        {food.grammi ? <p className="text-xs text-[color:var(--text-dim)]">{food.grammi} g</p> : null}
-                      </button>
-                      <span className="text-sm font-bold tabular-nums shrink-0">
-                        {Number(food.kcal) || 0}
-                        <span className="text-[color:var(--text-dim)] font-normal text-xs"> {t('nutrition.kcal')}</span>
-                      </span>
-                      <button
-                        onClick={() => setDeleting({ meal: meal.key, food })}
-                        aria-label={t('nutrition.deleteFood')}
-                        className="text-[color:var(--text-faint)] hover:text-red-400 transition-colors shrink-0"
-                      >
-                        <IoTrashOutline className="text-lg" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
+              {open && (
+                list.length === 0 ? (
+                  <p className="text-[color:var(--text-faint)] text-sm py-1 mt-2">{t('nutrition.noFoods')}</p>
+                ) : (
+                  <div className="flex flex-col gap-2 mt-2">
+                    {list.map(food => (
+                      <div key={food.id} className="flex items-center gap-3 rounded-xl bg-[var(--surface)] border border-[color:var(--border-1)] px-3 py-2.5">
+                        <button onClick={() => setEditing({ meal: meal.key, food })} className="flex-1 min-w-0 text-left">
+                          <p className="text-sm font-medium truncate">{food.nome}</p>
+                          {food.grammi ? <p className="text-xs text-[color:var(--text-dim)]">{food.grammi} g</p> : null}
+                        </button>
+                        <span className="text-sm font-bold tabular-nums shrink-0">
+                          {Number(food.kcal) || 0}
+                          <span className="text-[color:var(--text-dim)] font-normal text-xs"> {t('nutrition.kcal')}</span>
+                        </span>
+                        <button
+                          onClick={() => setDeleting({ meal: meal.key, food })}
+                          aria-label={t('nutrition.deleteFood')}
+                          className="text-[color:var(--text-faint)] hover:text-red-400 transition-colors shrink-0"
+                        >
+                          <IoTrashOutline className="text-lg" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )
               )}
             </section>
           )
@@ -377,7 +444,10 @@ function Alimentazione() {
         <FoodEditor
           key={editing.food.id}
           food={editing.food}
-          onSave={food => saveFood(editing.meal, food)}
+          meal={editing.meal}
+          date={editorDate}
+          dayOptions={editorDayOptions}
+          onSave={(toKey, toMeal, food) => saveFood(editing.isNew ? null : key, editing.meal, toKey, toMeal, food)}
           onCancel={() => setEditing(null)}
         />
       )}
