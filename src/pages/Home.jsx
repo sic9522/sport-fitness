@@ -1,11 +1,16 @@
 import { useState, useRef } from 'react'
-import { IoFlash } from 'react-icons/io5'
+import { Link } from 'react-router-dom'
+import { IoFlash, IoBarbell, IoRestaurant } from 'react-icons/io5'
 import TopBar from '../components/TopBar'
 import RingChart from '../components/RingChart'
 import GoalCard from '../components/GoalCard'
 import { loadRings } from '../data/ringDefaults'
 import { DEFAULT_GOALS } from '../data/goalDefaults'
 import { useLang } from '../context/LanguageContext'
+import { todayKey } from '../utils/date'
+import { loadDiario, dayMeals, dayTotals, loadNutritionGoals } from '../data/nutritionDefaults'
+import { loadHydration, loadHydrationGoal, dayMl } from '../data/hydrationDefaults'
+import { loadWorkoutLog, minutesOn } from '../data/workoutLog'
 
 const CATEGORIES = [
   { key: 'daily',   labelKey: 'period.daily'   },
@@ -25,8 +30,27 @@ function loadGoals() {
   return parsed
 }
 
+// Anelli con i valori REALI di oggi. I default (colore, etichetta, obiettivo) restano,
+// ma `current` non è più un numero demo: viene dal diario, dal tracker idratazione e
+// dal registro allenamenti. L'obiettivo di calorie/acqua segue quello impostato.
+function ringsWithToday(base) {
+  const key = todayKey()
+  const kcal = dayTotals(dayMeals(loadDiario(), key)).kcal
+  const liters = dayMl(loadHydration(), key) / 1000
+  const minutes = minutesOn(loadWorkoutLog(), key)
+  const kcalTarget = loadNutritionGoals().kcal
+  const waterTarget = loadHydrationGoal() / 1000
+
+  return base.map(r => {
+    if (r.id === 'ring1') return { ...r, current: Math.round(kcal), target: kcalTarget || r.target }
+    if (r.id === 'ring2') return { ...r, current: Math.round(liters * 10) / 10, target: waterTarget || r.target }
+    if (r.id === 'ring3') return { ...r, current: minutes }
+    return r
+  })
+}
+
 function Home() {
-  const [rings] = useState(loadRings)
+  const [rings] = useState(() => ringsWithToday(loadRings()))
 
   const [goals] = useState(loadGoals)
   const [activeCategory, setActiveCategory] = useState('daily')
@@ -81,6 +105,24 @@ function Home() {
         </div>
       </div>
 
+      {/* Quick Actions (dal mockup Home): le due azioni più frequenti a portata di tap. */}
+      <div className="px-5 mt-6 grid grid-cols-2 gap-3">
+        <Link
+          to="/palestra"
+          className="rounded-2xl bg-[var(--surface)] border border-[color:var(--border-1)] p-4 hover:bg-[var(--surface-3)] transition-colors"
+        >
+          <IoBarbell className="text-2xl mb-2" style={{ color: 'var(--accent)' }} />
+          <p className="font-bold text-sm leading-tight">{t('home.startWorkout')}</p>
+        </Link>
+        <Link
+          to="/alimentazione"
+          className="rounded-2xl bg-[var(--surface)] border border-[color:var(--border-1)] p-4 hover:bg-[var(--surface-3)] transition-colors"
+        >
+          <IoRestaurant className="text-2xl mb-2" style={{ color: 'var(--accent)' }} />
+          <p className="font-bold text-sm leading-tight">{t('home.logMeal')}</p>
+        </Link>
+      </div>
+
       {/* Carousel obiettivi */}
       <div className="px-5 mt-6">
         <p className="text-xs font-bold uppercase tracking-widest text-[color:var(--text-dim)] mb-3">
@@ -88,12 +130,12 @@ function Home() {
         </p>
 
         {/* Tab selector */}
-        <div className="grid grid-cols-3 gap-1 bg-[var(--surface)] rounded-xl p-1 mb-4">
+        <div className="grid grid-cols-3 gap-1 bg-[var(--surface)] rounded-full p-1 mb-4">
           {CATEGORIES.map(cat => (
             <button
               key={cat.key}
               onClick={() => setActiveCategory(cat.key)}
-              className="py-2 rounded-lg text-xs font-semibold transition-all duration-200"
+              className="py-2 rounded-full text-xs font-semibold transition-all duration-200"
               style={
                 activeCategory === cat.key
                   ? { backgroundColor: 'var(--accent)', color: 'var(--on-accent)' }

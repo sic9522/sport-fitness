@@ -113,6 +113,8 @@ export const translations = {
     'home.greeting': 'Buongiorno 👋',
     'home.subtitle': 'Ecco il tuo giorno',
     'home.yourGoals': 'I tuoi obiettivi',
+    'home.startWorkout': 'Inizia allenamento',
+    'home.logMeal': 'Registra pasto',
     'home.noGoals': 'Nessun obiettivo — aggiungine uno nelle Impostazioni',
 
     // Pagina 404
@@ -484,6 +486,8 @@ export const translations = {
     'home.greeting': 'Good morning 👋',
     'home.subtitle': 'Here\'s your day',
     'home.yourGoals': 'Your goals',
+    'home.startWorkout': 'Start workout',
+    'home.logMeal': 'Log meal',
     'home.noGoals': 'No goals — add one in Settings',
 
     // 404 page
@@ -846,6 +850,8 @@ export const translations = {
     'home.greeting': 'Buenos días 👋',
     'home.subtitle': 'Aquí está tu día',
     'home.yourGoals': 'Tus objetivos',
+    'home.startWorkout': 'Empezar entrenamiento',
+    'home.logMeal': 'Registrar comida',
     'home.noGoals': 'Sin objetivos — añade uno en Ajustes',
 
     // Página 404
@@ -1208,6 +1214,8 @@ export const translations = {
     'home.greeting': 'Bonjour 👋',
     'home.subtitle': 'Voici ta journée',
     'home.yourGoals': 'Tes objectifs',
+    'home.startWorkout': 'Commencer la séance',
+    'home.logMeal': 'Enregistrer un repas',
     'home.noGoals': 'Aucun objectif — ajoutes-en un dans les Réglages',
 
     // Page 404
@@ -1570,6 +1578,8 @@ export const translations = {
     'home.greeting': '早上好 👋',
     'home.subtitle': '这是你的一天',
     'home.yourGoals': '你的目标',
+    'home.startWorkout': '开始训练',
+    'home.logMeal': '记录饮食',
     'home.noGoals': '暂无目标 — 在设置中添加一个',
 
     // 404 页面
