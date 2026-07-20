@@ -3,18 +3,22 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import {
   IoHomeOutline, IoHome,
   IoRestaurantOutline, IoRestaurant,
-  IoStopwatchOutline, IoStopwatch,
   IoBarbell,
-  IoSettingsOutline, IoSettings,
+  IoStatsChartOutline, IoStatsChart,
+  IoPersonOutline, IoPerson,
 } from 'react-icons/io5'
 import { useLang } from '../context/LanguageContext'
 
+// Ordine del design Stitch: Home, Workouts, Nutrition, Insights, Profile.
+// Timer e Impostazioni non sono più in barra: il Timer si raggiunge da Palestra
+// (oltre alla TimerPill, che però compare solo a timer avviato) e le Impostazioni
+// stanno dentro Profilo, come nel mockup.
 const navItems = [
+  { labelKey: 'nav.home',          icon: IoHomeOutline,       activeIcon: IoHome,        path: '/',             end: true },
   { labelKey: 'nav.palestra',      icon: IoBarbell,           activeIcon: IoBarbell,     path: '/palestra' },
   { labelKey: 'nav.alimentazione', icon: IoRestaurantOutline, activeIcon: IoRestaurant,  path: '/alimentazione' },
-  { labelKey: 'nav.home',          icon: IoHomeOutline,       activeIcon: IoHome,        path: '/',             end: true },
-  { labelKey: 'nav.timer',         icon: IoStopwatchOutline,  activeIcon: IoStopwatch,   path: '/timer' },
-  { labelKey: 'nav.impostazioni',  icon: IoSettingsOutline,   activeIcon: IoSettings,    path: '/impostazioni' },
+  { labelKey: 'nav.insights',      icon: IoStatsChartOutline, activeIcon: IoStatsChart,  path: '/insights' },
+  { labelKey: 'nav.profilo',       icon: IoPersonOutline,     activeIcon: IoPerson,      path: '/profilo' },
 ]
 
 const DOUBLE_MS = 350 // finestra per il doppio tap sulla stessa voce

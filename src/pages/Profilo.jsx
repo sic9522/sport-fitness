@@ -1,10 +1,46 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { IoPersonCircleOutline, IoScaleOutline, IoBodyOutline, IoChevronForward } from 'react-icons/io5'
+import {
+  IoPersonCircleOutline, IoScaleOutline, IoBodyOutline, IoChevronForward,
+  IoColorPaletteOutline, IoFlagOutline, IoLanguageOutline, IoArchiveOutline,
+  IoStopwatchOutline, IoLogOutOutline,
+} from 'react-icons/io5'
 import TopBar from '../components/TopBar'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { supabase } from '../lib/supabaseClient'
 import { FEATURES } from '../config/features'
+
+// Riga di menu (icona in pastiglia + titolo/descrizione + chevron), come nel mockup Settings.
+function Row({ to, icon: Icon, title, desc }) {
+  return (
+    <Link
+      to={to}
+      className="bg-[var(--surface)] p-4 flex items-center gap-4 w-full text-left hover:bg-[var(--surface-3)] transition-colors"
+    >
+      <div className="w-10 h-10 rounded-xl bg-[var(--fill-1)] flex items-center justify-center shrink-0">
+        <Icon className="text-xl" style={{ color: 'var(--accent)' }} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-semibold text-sm">{title}</p>
+        {desc && <p className="text-[color:var(--text-dim)] text-xs mt-0.5">{desc}</p>}
+      </div>
+      <IoChevronForward className="text-[color:var(--text-faint)] shrink-0" />
+    </Link>
+  )
+}
+
+// Gruppo di righe sotto un'etichetta maiuscola: le righe sono contigue e il gruppo
+// è arrotondato agli estremi (divide-y per i separatori), come nel mockup.
+function Section({ title, children }) {
+  return (
+    <section className="mt-6">
+      <h2 className="text-xs uppercase tracking-wider text-[color:var(--text-dim)] mb-2 px-1">{title}</h2>
+      <div className="rounded-2xl overflow-hidden border border-[color:var(--border-1)] divide-y divide-[color:var(--border-1)]">
+        {children}
+      </div>
+    </section>
+  )
+}
 
 function Profilo() {
   const { t } = useLang()
@@ -17,75 +53,73 @@ function Profilo() {
   }
 
   return (
-    <div className="flex flex-col pb-24">
+    <div className="flex flex-col pb-28">
       <TopBar title={t('page.profilo')} />
 
-      <div className="px-5 pt-6">
-        <div className="flex items-center gap-4 mb-6">
-          <IoPersonCircleOutline className="text-6xl text-[color:var(--text-muted)]" />
+      <div className="px-5 pt-5">
+        {/* Intestazione profilo: avatar + identità dell'account (niente "Pro Member":
+            l'app non ha piani a pagamento, sarebbe un'etichetta inventata). */}
+        <div className="flex items-center gap-4 rounded-2xl bg-[var(--surface)] border border-[color:var(--border-1)] p-4">
+          <IoPersonCircleOutline className="text-5xl text-[color:var(--text-muted)] shrink-0" />
           <div className="min-w-0">
-            <h1 className="text-2xl font-extrabold">{t('page.profilo')}</h1>
-            <p className="text-sm text-[color:var(--text-muted)] truncate">
-              {loading ? 'Caricamento...' : user?.email || 'Account non collegato'}
+            <p className="font-bold truncate">{t('page.profilo')}</p>
+            <p className="text-xs text-[color:var(--text-muted)] truncate">
+              {loading ? t('common.loading') : user?.email || t('profilo.noAccount')}
             </p>
           </div>
         </div>
 
-        <Link
-          to="/peso"
-          className="bg-[var(--surface)] rounded-xl p-4 flex items-center gap-4 w-full text-left hover:bg-[var(--surface-3)] transition-colors mb-6"
-        >
-          <div className="w-10 h-10 rounded-xl bg-[var(--fill-1)] flex items-center justify-center shrink-0">
-            <IoScaleOutline className="text-xl" style={{ color: 'var(--accent)' }} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-sm">{t('profilo.weightCard')}</p>
-            <p className="text-[color:var(--text-dim)] text-xs mt-0.5">{t('profilo.weightCardDesc')}</p>
-          </div>
-          <IoChevronForward className="text-[color:var(--text-faint)] shrink-0" />
-        </Link>
+        <Section title={t('profilo.sectionApp')}>
+          <Row to="/impostazioni/colori" icon={IoColorPaletteOutline} title={t('settings.colors.title')} desc={t('settings.colors.desc')} />
+          <Row to="/impostazioni/lingua" icon={IoLanguageOutline} title={t('settings.language.title')} desc={t('settings.language.desc')} />
+        </Section>
 
-        {/* Misure corporee: sezione pronta ma nascosta finché FEATURES.bodyMeasures è false. */}
-        {FEATURES.bodyMeasures && (
-          <Link
-            to="/misure"
-            className="bg-[var(--surface)] rounded-xl p-4 flex items-center gap-4 w-full text-left hover:bg-[var(--surface-3)] transition-colors mb-6"
-          >
-            <div className="w-10 h-10 rounded-xl bg-[var(--fill-1)] flex items-center justify-center shrink-0">
-              <IoBodyOutline className="text-xl" style={{ color: 'var(--accent)' }} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-sm">{t('profilo.bodyCard')}</p>
-              <p className="text-[color:var(--text-dim)] text-xs mt-0.5">{t('profilo.bodyCardDesc')}</p>
-            </div>
-            <IoChevronForward className="text-[color:var(--text-faint)] shrink-0" />
-          </Link>
-        )}
+        <Section title={t('profilo.sectionHealth')}>
+          <Row to="/peso" icon={IoScaleOutline} title={t('profilo.weightCard')} desc={t('profilo.weightCardDesc')} />
+          <Row to="/impostazioni/obiettivi" icon={IoFlagOutline} title={t('settings.goals.title')} desc={t('settings.goals.desc')} />
+          {/* Il Timer non è più nella navbar (design Stitch): resta raggiungibile da qui. */}
+          <Row to="/timer" icon={IoStopwatchOutline} title={t('nav.timer')} desc={t('profilo.timerDesc')} />
+          {/* Misure corporee: pronta ma nascosta finché FEATURES.bodyMeasures è false. */}
+          {FEATURES.bodyMeasures && (
+            <Row to="/misure" icon={IoBodyOutline} title={t('profilo.bodyCard')} desc={t('profilo.bodyCardDesc')} />
+          )}
+        </Section>
 
-        {!isConfigured ? (
-          <div className="rounded-xl border border-[color:var(--border-2)] bg-[var(--surface)] p-4 text-sm text-[color:var(--text-muted)]">
-            Supabase non e ancora configurato. Aggiungi le variabili in `.env.local` per usare login e sincronizzazione.
-          </div>
-        ) : user ? (
-          <button
-            onClick={logout}
-            className="w-full rounded-xl py-3 font-bold text-white"
-            style={{ backgroundColor: '#ef4444' }}
-          >
-            Esci
-          </button>
-        ) : (
-          <div className="flex flex-col gap-3">
-            <p className="text-sm text-[color:var(--text-muted)]">{t('auth.loginRequired')}</p>
-            <Link
-              to="/registrazione"
-              className="rounded-xl py-3 text-center font-bold"
-              style={{ backgroundColor: 'var(--accent)', color: 'var(--on-accent)' }}
+        <Section title={t('profilo.sectionData')}>
+          <Row to="/impostazioni/backup" icon={IoArchiveOutline} title={t('settings.backup.title')} desc={t('settings.backup.desc')} />
+        </Section>
+
+        <section className="mt-6">
+          <h2 className="text-xs uppercase tracking-wider text-[color:var(--text-dim)] mb-2 px-1">
+            {t('profilo.sectionAccount')}
+          </h2>
+          {!isConfigured ? (
+            <div className="rounded-2xl border border-[color:var(--border-1)] bg-[var(--surface)] p-4 text-sm text-[color:var(--text-muted)]">
+              {t('profilo.supabaseOff')}
+            </div>
+          ) : user ? (
+            <button
+              onClick={logout}
+              className="w-full flex items-center gap-4 rounded-2xl border border-[color:var(--border-1)] bg-[var(--surface)] p-4 text-left hover:bg-[var(--surface-3)] transition-colors"
             >
-              {t('page.registrazione')}
-            </Link>
-          </div>
-        )}
+              <div className="w-10 h-10 rounded-xl bg-[var(--fill-1)] flex items-center justify-center shrink-0">
+                <IoLogOutOutline className="text-xl text-red-400" />
+              </div>
+              <span className="font-semibold text-sm text-red-400">{t('profilo.signOut')}</span>
+            </button>
+          ) : (
+            <div className="flex flex-col gap-3">
+              <p className="text-sm text-[color:var(--text-muted)]">{t('auth.loginRequired')}</p>
+              <Link
+                to="/registrazione"
+                className="rounded-full py-3 text-center font-bold"
+                style={{ backgroundColor: 'var(--accent)', color: 'var(--on-accent)' }}
+              >
+                {t('page.registrazione')}
+              </Link>
+            </div>
+          )}
+        </section>
       </div>
     </div>
   )
