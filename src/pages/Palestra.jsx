@@ -9,7 +9,6 @@ import ConfirmModal from '../components/ConfirmModal'
 import PromptModal from '../components/PromptModal'
 import GiornataPickerModal from '../components/GiornataPickerModal'
 import { useLang } from '../context/LanguageContext'
-import { useTimer } from '../context/TimerContext'
 import { loadGiornate, saveGiornate, DAYS, dayIndex, newId, loadWeeklyGoal, giornataName, schedaNameTaken } from '../data/giornateDefaults'
 import { useWorkoutSync } from '../hooks/useWorkoutSync'
 import { titleCase } from '../utils/text'
@@ -25,12 +24,6 @@ function mergeSchede(existing, incoming) {
     else result.push(inc)
   }
   return result
-}
-
-function mmss(total) {
-  const m = Math.floor(total / 60)
-  const s = total % 60
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
 // Barra di progresso singola (etichetta + percentuale + riempimento colorato).
@@ -51,7 +44,6 @@ function ProgressBar({ label, value, total, color }) {
 
 function Palestra() {
   const { t } = useLang()
-  const { restDuration } = useTimer()
 
   const [giornate, setGiornate] = useState(loadGiornate)
   // Giornata aperta persistita: al refresh/cambio pagina si resta sul dettaglio aperto.
@@ -115,12 +107,15 @@ function Palestra() {
       ? { ...g, nome, schede: g.schede.map((s, i) => (i === 0 ? { ...s, nome } : s)) }
       : g)))
   }
-  // Aggiorna gli esercizi della scheda implicita di una giornata personalizzata.
-  function setCustomExercises(giornataId, esercizi) {
+  // Aggiorna la scheda implicita di una giornata personalizzata (creandola se manca).
+  // `patch` sono i soli campi da cambiare: esercizi, recupero, ...
+  function patchCustomScheda(giornataId, patch) {
     commit(giornate.map(g => {
       if (g.id !== giornataId) return g
       const first = g.schede[0]
-      const scheda = first ? { ...first, esercizi } : { id: newId(), nome: g.nome || '', esercizi }
+      const scheda = first
+        ? { ...first, ...patch }
+        : { id: newId(), nome: g.nome || '', esercizi: [], ...patch }
       return { ...g, schede: [scheda, ...g.schede.slice(1)] }
     }))
   }
@@ -222,9 +217,9 @@ function Palestra() {
       return (
         <SchedaView
           scheda={scheda}
-          restLabel={mmss(restDuration)}
           onRename={(_id, nome) => renameGiornata(openGiornata.id, nome)}
-          onExercisesChange={arr => setCustomExercises(openGiornata.id, arr)}
+          onExercisesChange={esercizi => patchCustomScheda(openGiornata.id, { esercizi })}
+          onRestChange={rest => patchCustomScheda(openGiornata.id, { rest })}
           onBack={() => setOpenId(null)}
         />
       )
