@@ -1,12 +1,16 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import basicSsl from '@vitejs/plugin-basic-ssl'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    // Certificato self-signed per servire in HTTPS: la fotocamera (getUserMedia,
+    // usata dallo scanner barcode) richiede un secure context anche sulla LAN.
+    basicSsl(),
     VitePWA({
       registerType: 'autoUpdate', // il SW si aggiorna da solo al deploy successivo
       injectRegister: 'auto',
