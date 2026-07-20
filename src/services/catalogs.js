@@ -20,16 +20,18 @@ export async function searchCatalogExercises(query, { limit = 20, locale = 'it' 
   return data || []
 }
 
-export async function searchFoodItems(query, { limit = 20 } = {}) {
+// `region` (opzionale) filtra per mercato: 'eu' | 'us' | 'cn' (select della pagina Prodotti).
+export async function searchFoodItems(query, { limit = 20, region } = {}) {
   const client = requireSupabase()
   let request = client
     .from('food_items')
-    .select('id, source, source_id, name, brand, barcode, serving_size, serving_unit, calories_kcal, protein_g, carbs_g, fat_g, fiber_g, sugar_g, salt_g')
+    .select('id, source, source_id, name, brand, barcode, serving_size, serving_unit, calories_kcal, protein_g, carbs_g, fat_g, fiber_g, sugar_g, salt_g, regions')
     .order('name', { ascending: true })
     .limit(limit)
 
   const q = query?.trim()
   if (q) request = request.ilike('name', `%${q}%`)
+  if (region) request = request.contains('regions', [region])
 
   const { data, error } = await request
   if (error) throw error
@@ -40,7 +42,7 @@ export async function getFoodItemByBarcode(barcode) {
   const client = requireSupabase()
   const { data, error } = await client
     .from('food_items')
-    .select('id, source, source_id, name, brand, barcode, serving_size, serving_unit, calories_kcal, protein_g, carbs_g, fat_g, fiber_g, sugar_g, salt_g')
+    .select('id, source, source_id, name, brand, barcode, serving_size, serving_unit, calories_kcal, protein_g, carbs_g, fat_g, fiber_g, sugar_g, salt_g, regions')
     .eq('barcode', barcode)
     .maybeSingle()
 

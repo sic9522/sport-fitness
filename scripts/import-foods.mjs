@@ -1,0 +1,182 @@
+import { createClient } from '@supabase/supabase-js'
+import { createReadStream, existsSync } from 'node:fs'
+import { readFile } from 'node:fs/promises'
+import { createInterface } from 'node:readline'
+import { createGunzip } from 'node:zlib'
+import path from 'node:path'
+import { normalizeOff, normalizeFdc, hasNutrition } from './food-normalize.mjs'
+
+// Import in blocco del catalogo alimenti unificato (public.food_items) dai dump di
+// Open Food Facts e FoodData Central. Local-first: l'app poi legge SOLO dal tuo DB,
+// senza dipendere dalle API a runtime.
+//
+// Formati accettati per ogni file:
+//   - JSONL / JSONL.gz (un record per riga): lo streaming regge file da molti GB e il .gz
+//     si legge senza scompattarlo. È il formato del dump OFF (openfoodfacts-products.jsonl.gz)
+//     e quello consigliato per FDC "Branded" (grande): jq -c '.BrandedFoods[]' ... > x.jsonl
+//   - JSON (.json): file letto INTERO in memoria, con auto-rilevamento dell'array
+//     (FoundationFoods / SRLegacyFoods / SurveyFoods / products…). Comodo per i dataset FDC
+//     PICCOLI (Foundation, SR Legacy, Survey/FNDDS) senza passare da jq. NON usarlo per il
+//     Branded (troppo grande per la memoria).
+//
+// --off e --fdc si possono ripetere per importare più file in un colpo.
+// Uso:
+//   npm run import:foods -- --fdc data/fdc-foundation.json --fdc data/fdc-survey.json
+//   npm run import:foods -- --off data/openfoodfacts-products.jsonl.gz --require-region
+
+const BATCH_SIZE = 500
+
+function parseArgs(argv) {
+  const args = { off: [], fdc: [], dryRun: false, limit: Infinity, requireRegion: false, onlyRegion: null }
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i]
+    if (arg === '--off') args.off.push(argv[++i])
+    else if (arg === '--fdc') args.fdc.push(argv[++i])
+    else if (arg === '--dry-run') args.dryRun = true
+    else if (arg === '--limit') args.limit = Number(argv[++i])
+    else if (arg === '--require-region') args.requireRegion = true
+    else if (arg === '--only-region') args.onlyRegion = argv[++i]
+    else if (arg === '--help') { printHelp(); process.exit(0) }
+  }
+  return args
+}
+
+function printHelp() {
+  console.log(`
+Import del catalogo alimenti (food_items) da Open Food Facts e FoodData Central.
+
+Uso:
+  npm run import:foods -- --fdc <file> [--fdc <file> ...] [--off <file> ...] [opzioni]
+
+Opzioni:
+  --off <path>       Sorgente Open Food Facts (.jsonl, .jsonl.gz o .json). Ripetibile.
+  --fdc <path>       Sorgente FoodData Central (.jsonl, .jsonl.gz o .json). Ripetibile.
+  --dry-run          Normalizza e conta senza scrivere su Supabase (nessuna credenziale).
+  --limit N          Ferma OGNI file dopo N righe (utile per provare).
+  --require-region   Scarta anche i prodotti senza regione (EU/US/CN): DB ancora più snello.
+  --only-region <r>  Tiene SOLO i prodotti di quel mercato, es. --only-region eu
+                     (europei + brand americani venduti in Europa). Per contenere lo spazio.
+
+Di default scarta i prodotti "solo titolo" senza kcal e macronutrienti.
+`)
+}
+
+async function loadEnvFile(filePath) {
+  if (!existsSync(filePath)) return
+  const raw = await readFile(filePath, 'utf8')
+  for (const line of raw.split(/\r?\n/)) {
+    const trimmed = line.trim()
+    if (!trimmed || trimmed.startsWith('#')) continue
+    const idx = trimmed.indexOf('=')
+    if (idx < 0) continue
+    const key = trimmed.slice(0, idx).trim()
+    const value = trimmed.slice(idx + 1).trim()
+    if (!process.env[key]) process.env[key] = value
+  }
+}
+
+function requireEnv(name) {
+  const value = process.env[name]
+  if (!value) throw new Error(`Missing environment variable: ${name}`)
+  return value
+}
+
+// Itera i record di una sorgente.
+// - .json: file INTERO in memoria; usa l'array se è già un array, altrimenti la prima
+//   proprietà array trovata (FoundationFoods / SRLegacyFoods / SurveyFoods / products…).
+// - altrimenti JSONL riga per riga (memory-safe per file da molti GB); .gz decompresso
+//   in streaming (sul disco basta il .gz, niente JSONL scompattato).
+async function* readRecords(filePath) {
+  if (filePath.endsWith('.json')) {
+    const parsed = JSON.parse(await readFile(filePath, 'utf8'))
+    const arr = Array.isArray(parsed) ? parsed : Object.values(parsed).find(Array.isArray)
+    for (const r of arr || []) yield r
+    return
+  }
+  const input = filePath.endsWith('.gz')
+    ? createReadStream(filePath).pipe(createGunzip())
+    : createReadStream(filePath, 'utf8')
+  const rl = createInterface({ input, crlfDelay: Infinity })
+  for await (const line of rl) {
+    const trimmed = line.trim()
+    if (!trimmed) continue
+    try {
+      yield JSON.parse(trimmed)
+    } catch {
+      // riga malformata nel dump → salta
+    }
+  }
+}
+
+// Scorre una sorgente, normalizza, accumula in batch e li scrive (o li conta in dry-run).
+async function importSource({ label, filePath, normalize, client, args, counters }) {
+  if (!existsSync(filePath)) throw new Error(`File non trovato (${label}): ${filePath}`)
+  console.log(`\n[${label}] import da ${filePath}${args.dryRun ? ' (dry-run)' : ''}`)
+
+  let seen = 0
+  let batch = []
+  const sample = []
+
+  async function flush() {
+    if (!batch.length) return
+    if (!args.dryRun) {
+      const { error } = await client.from('food_items').upsert(batch, { onConflict: 'source,source_id' })
+      if (error) throw error
+    }
+    counters.written += batch.length
+    batch = []
+  }
+
+  for await (const raw of readRecords(filePath)) {
+    if (seen >= args.limit) break
+    seen += 1
+    counters.seen += 1
+    const row = normalize(raw)
+    if (!row) { counters.skipped += 1; continue }
+    if (!hasNutrition(row)) { counters.skippedNoNutrition += 1; continue } // solo titolo, senza dati
+    if (args.onlyRegion && !row.regions.includes(args.onlyRegion)) { counters.skippedNoRegion += 1; continue }
+    else if (args.requireRegion && row.regions.length === 0) { counters.skippedNoRegion += 1; continue }
+    if (sample.length < 2) sample.push(row)
+    batch.push(row)
+    if (batch.length >= BATCH_SIZE) await flush()
+    if (counters.seen % 50000 === 0) console.log(`  … ${counters.seen} righe lette, ${counters.written} scritte`)
+  }
+  await flush()
+
+  if (args.dryRun && sample.length) {
+    console.log(`[${label}] esempio righe normalizzate:`)
+    for (const r of sample) console.log('  ' + JSON.stringify(r))
+  }
+}
+
+async function main() {
+  const args = parseArgs(process.argv.slice(2))
+  if (!args.off.length && !args.fdc.length) {
+    printHelp()
+    throw new Error('Serve almeno --off o --fdc')
+  }
+
+  let client = null
+  if (!args.dryRun) {
+    await loadEnvFile(path.resolve('.env.local'))
+    client = createClient(requireEnv('VITE_SUPABASE_URL'), requireEnv('SUPABASE_SERVICE_ROLE_KEY'), {
+      auth: { persistSession: false },
+    })
+  }
+
+  const counters = { seen: 0, written: 0, skipped: 0, skippedNoNutrition: 0, skippedNoRegion: 0 }
+
+  for (const p of args.fdc) {
+    await importSource({ label: 'FDC', filePath: path.resolve(p), normalize: normalizeFdc, client, args, counters })
+  }
+  for (const p of args.off) {
+    await importSource({ label: 'OFF', filePath: path.resolve(p), normalize: normalizeOff, client, args, counters })
+  }
+
+  console.log('\nImport finito:', counters)
+}
+
+main().catch(error => {
+  console.error(error)
+  process.exit(1)
+})

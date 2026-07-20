@@ -12,6 +12,20 @@ dist
 dist-ssr
 *.local
 
+# Config MCP locale (contiene chiavi API: mai nel repo)
+.mcp.json
+
+# Dump alimenti per `npm run import:foods` (grandi: restano locali, mai nel repo).
+# Il dataset esercizi (data/exercises.json) invece è tracciato: non combacia con questi.
+data/*.jsonl
+data/*.jsonl.gz
+data/*.gz
+data/FoodData_Central_*.json
+data/surveyDownload.json
+
+# Script di esplorazione one-off dei dump (prefisso _): scratch locale, non nel repo
+scripts/_*.mjs
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
