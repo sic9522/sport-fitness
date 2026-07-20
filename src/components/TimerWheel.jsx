@@ -2,8 +2,11 @@ import { useRef, useEffect, useMemo } from 'react'
 
 // Wheel picker stile iPhone: colonna scrollabile con scroll-snap, la riga
 // centrale è quella selezionata. Formato mm:ss, step configurabile.
-const ITEM_H = 34   // altezza di ogni riga (px)
-const VISIBLE = 3   // righe visibili (dispari: la centrale è selezionata)
+const ITEM_H = 46      // altezza di ogni riga (px)
+const VISIBLE = 3      // righe visibili (dispari: la centrale è selezionata)
+const WIDTH = 103      // larghezza della colonna (px)
+const SCROLLBAR_W = 10 // px: unica fonte: passata al CSS via --wheel-sb e usata per
+                       // rientrare la banda, così la scrollbar resta tutta a destra
 
 function mmss(totalSeconds) {
   const m = Math.floor(totalSeconds / 60)
@@ -52,11 +55,14 @@ function TimerWheel({ value, onChange, onPick, max = 180, step = 5 }) {
   }
 
   return (
-    <div className="relative shrink-0" style={{ width: 76, height: ITEM_H * VISIBLE }}>
-      {/* Banda che evidenzia la riga selezionata al centro */}
+    <div
+      className="relative shrink-0"
+      style={{ width: WIDTH, height: ITEM_H * VISIBLE, '--wheel-sb': `${SCROLLBAR_W}px` }}
+    >
+      {/* Banda della riga selezionata: si ferma PRIMA della scrollbar (non le passa sotto) */}
       <div
-        className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 rounded-lg bg-[var(--fill-1)] border-y border-[color:var(--border-2)]"
-        style={{ height: ITEM_H }}
+        className="pointer-events-none absolute left-0 top-1/2 -translate-y-1/2 rounded-lg bg-[var(--fill-1)] border-y border-[color:var(--border-2)]"
+        style={{ height: ITEM_H, right: SCROLLBAR_W }}
       />
       <div
         ref={scrollRef}

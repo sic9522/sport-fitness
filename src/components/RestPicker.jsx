@@ -45,7 +45,7 @@ function RestPicker({ value, onChange, className }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 z-30 rounded-xl p-2 bg-[var(--surface)] border border-[color:var(--border-2)] shadow-xl">
+        <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-30 rounded-xl p-2 bg-[var(--surface)] border border-[color:var(--border-2)] shadow-xl">
           {/* Il click su un numero lo salva e chiude; lo scroll invece lascia aperto. */}
           <TimerWheel value={duration} onChange={setDuration} onPick={() => setOpen(false)} max={180} step={5} />
         </div>

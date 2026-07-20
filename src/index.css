@@ -94,24 +94,30 @@ input[type='number']::-webkit-inner-spin-button { -webkit-appearance: none; marg
   display: none;                  /* Chrome/Safari */
 }
 
-/* Scrollbar sottile e discreta (wheel del timer): su desktop serve per raggiungere
-   i valori fuori dalle righe visibili, ma senza la barra di sistema larga e bianca. */
-.thin-scrollbar {
-  scrollbar-width: thin;                              /* Firefox */
-  scrollbar-color: var(--border-4) transparent;
-}
+/* Scrollbar sottile ma VISIBILE (wheel del timer): su desktop serve per raggiungere
+   i valori fuori dalle righe visibili, senza la barra di sistema larga e bianca.
+   NB: Chrome/Edge IGNORANO ::-webkit-scrollbar se sull'elemento è impostato anche
+   `scrollbar-width`/`scrollbar-color`. Perciò lo stile custom sta nel pseudo-elemento
+   e le proprietà standard si applicano solo dove quel pseudo-elemento non esiste
+   (Firefox), tramite @supports. */
 .thin-scrollbar::-webkit-scrollbar {
-  width: 4px;
+  width: var(--wheel-sb, 8px); /* la misura la decide il componente (TimerWheel) */
 }
 .thin-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
 .thin-scrollbar::-webkit-scrollbar-thumb {
-  background-color: var(--border-4);
+  background-color: var(--text-dim);
   border-radius: 9999px;
 }
 .thin-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: var(--border-solid);
+  background-color: var(--text-muted);
+}
+@supports not selector(::-webkit-scrollbar) {
+  .thin-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--text-dim) transparent;
+  }
 }
 
 /* Jiggle della card esercizio in "modalità modifica" (stile iPhone) */
