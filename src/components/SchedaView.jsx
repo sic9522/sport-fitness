@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { IoAdd, IoPlay, IoBarbellOutline, IoClose, IoPencil, IoReorderTwoOutline } from 'react-icons/io5'
+import { IoAdd, IoPlay, IoStop, IoBarbellOutline, IoClose, IoPencil, IoReorderTwoOutline } from 'react-icons/io5'
 import {
   DndContext, DragOverlay, PointerSensor, useSensor, useSensors, closestCenter,
 } from '@dnd-kit/core'
@@ -14,6 +14,10 @@ import RestPicker from './RestPicker'
 import { useLang } from '../context/LanguageContext'
 import useLongPress from '../hooks/useLongPress'
 import { editorRows, formatKg } from '../data/exerciseSets'
+import {
+  loadActiveWorkout, saveActiveWorkout, clearActiveWorkout, elapsedSec, formatElapsed,
+  loadWorkoutLog, saveWorkoutLog, addSession, sessionFromScheda,
+} from '../data/workoutLog'
 
 function newId() {
   return (crypto?.randomUUID && crypto.randomUUID()) || String(Date.now())
@@ -243,6 +247,38 @@ function SchedaView({ scheda, onExercisesChange, onRestChange, onBack }) {
   const [editMode, setEditMode] = useState(false)
   const [deleteExId, setDeleteExId] = useState(null) // esercizio in attesa di conferma eliminazione
 
+  // Allenamento in corso: si salva l'istante di INIZIO (così sopravvive a refresh e
+  // cambio pagina) e la durata si MISURA alla fine, senza chiederla a mano.
+  // `elapsed` è solo il cronometro a schermo, aggiornato ogni secondo.
+  const [active, setActive] = useState(loadActiveWorkout)
+  const [elapsed, setElapsed] = useState(() => {
+    const a = loadActiveWorkout() // sessione ripresa dopo un refresh: riparte dal reale
+    return a ? elapsedSec(a.startedAt) : 0
+  })
+
+  useEffect(() => {
+    if (!active) return undefined
+    const id = setInterval(() => setElapsed(elapsedSec(active.startedAt)), 1000)
+    return () => clearInterval(id)
+  }, [active])
+
+  // Avvia: registra l'inizio. Termina: calcola i minuti reali e scrive la sessione nel
+  // registro (fonte di activity trend e kcal stimate in Statistiche).
+  function toggleWorkout() {
+    if (active) {
+      const min = Math.round(elapsedSec(active.startedAt) / 60)
+      saveWorkoutLog(addSession(loadWorkoutLog(), sessionFromScheda(scheda, min)))
+      clearActiveWorkout()
+      setActive(null)
+      setElapsed(0)
+    } else {
+      const next = { schedaId: scheda.id, nome: scheda.nome || '', startedAt: Date.now() }
+      saveActiveWorkout(next)
+      setActive(next)
+      setElapsed(0)
+    }
+  }
+
   // Uscita dalla modalità modifica: tocco FUORI dalle card. Disattivata mentre la
   // conferma di eliminazione è aperta (confermare o annullare non fa uscire).
   useEffect(() => {
@@ -311,14 +347,23 @@ function SchedaView({ scheda, onExercisesChange, onRestChange, onBack }) {
         {/* Il nome si sceglie alla creazione della scheda: qui è in sola lettura */}
         <h2 className="min-w-0 truncate text-2xl font-extrabold">{scheda.nome}</h2>
 
-        {/* Play (success): per ora SOLO grafica, nessuna azione */}
+        {/* Avvia/termina l'allenamento: a sessione attiva mostra il cronometro e alla
+            fine scrive la durata reale nel registro (alimenta Statistiche). */}
         <button
           type="button"
-          aria-label={t('palestra.play')}
-          className={`${HEADER_BTN} w-20`}
-          style={{ backgroundColor: GREEN, color: '#fff' }}
+          onClick={toggleWorkout}
+          aria-label={active ? t('palestra.stopWorkout') : t('palestra.play')}
+          className={`${HEADER_BTN} w-20 gap-1`}
+          style={active ? { backgroundColor: '#ef4444', color: '#fff' } : { backgroundColor: GREEN, color: '#fff' }}
         >
-          <IoPlay className="text-lg" />
+          {active ? (
+            <>
+              <IoStop className="text-sm shrink-0" />
+              <span className="text-xs font-bold tabular-nums">{formatElapsed(elapsed)}</span>
+            </>
+          ) : (
+            <IoPlay className="text-lg" />
+          )}
         </button>
 
         {/* Recupero della SCHEDA: indipendente per ogni scheda (fallback al globale

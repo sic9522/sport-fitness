@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   sortSessions, addSession, removeSession, sessionsOn, minutesOn,
   estimateKcal, burnedOn, activitySeries, workoutLogHasData, STRENGTH_MET,
+  elapsedSec, formatElapsed,
 } from './workoutLog'
 
 const s = (id, date, durationMin = 60) => ({ id, date, nome: 'Gambe', durationMin, exercises: 5 })
@@ -89,6 +90,27 @@ describe('activitySeries', () => {
       { key: 'd1', minutes: 0, sessions: 0 },
       { key: 'd2', minutes: 40, sessions: 1 },
     ])
+  })
+})
+
+describe('elapsedSec / formatElapsed', () => {
+  it('conta i secondi trascorsi dall’inizio', () => {
+    expect(elapsedSec(1000, 91_000)).toBe(90)
+  })
+
+  it('orologio spostato indietro → 0, mai negativo', () => {
+    expect(elapsedSec(90_000, 1000)).toBe(0)
+  })
+
+  it('inizio mancante → 0', () => {
+    expect(elapsedSec(null, 5000)).toBe(5) // epoch 0 + 5s
+    expect(elapsedSec(undefined, 0)).toBe(0)
+  })
+
+  it('formatta in mm:ss con lo zero iniziale', () => {
+    expect(formatElapsed(0)).toBe('00:00')
+    expect(formatElapsed(90)).toBe('01:30')
+    expect(formatElapsed(3725)).toBe('62:05')
   })
 })
 

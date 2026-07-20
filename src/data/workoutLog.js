@@ -101,3 +101,39 @@ export function sessionFromScheda(scheda, durationMin, date = dayKey()) {
 export function workoutLogHasData(log) {
   return Array.isArray(log) && log.length > 0
 }
+
+// --- Allenamento IN CORSO ---
+// Persistito a parte perché sopravvive al refresh e al cambio pagina: si salva
+// l'istante di inizio e la durata si MISURA alla fine, invece di chiederla a mano.
+const ACTIVE_KEY = 'fitpulse-active-workout'
+
+export function loadActiveWorkout() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(ACTIVE_KEY) || 'null')
+    if (saved && Number(saved.startedAt) > 0) return saved
+  } catch {
+    // dato corrotto → nessun allenamento in corso
+  }
+  return null
+}
+
+export function saveActiveWorkout(active) {
+  localStorage.setItem(ACTIVE_KEY, JSON.stringify(active))
+}
+
+export function clearActiveWorkout() {
+  localStorage.removeItem(ACTIVE_KEY)
+}
+
+// Secondi trascorsi dall'inizio. Mai negativo (orologio spostato indietro → 0).
+export function elapsedSec(startedAt, now = Date.now()) {
+  const sec = Math.floor((now - Number(startedAt || 0)) / 1000)
+  return sec > 0 ? sec : 0
+}
+
+// mm:ss per il pulsante dell'allenamento in corso.
+export function formatElapsed(sec) {
+  const m = Math.floor(sec / 60)
+  const s = Math.floor(sec % 60)
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
