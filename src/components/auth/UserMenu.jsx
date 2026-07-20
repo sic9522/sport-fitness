@@ -51,7 +51,7 @@ function UserMenu() {
       {menuOpen && user && (
         <div className="absolute right-0 mt-2 w-44 rounded-xl bg-[var(--surface)] border border-[color:var(--border-2)] shadow-xl py-1 z-30">
           <MenuItem onClick={() => go('/profilo')}>{t('auth.menuProfile')}</MenuItem>
-          <MenuItem onClick={() => go('/impostazioni')}>{t('auth.menuSettings')}</MenuItem>
+          <MenuItem onClick={() => go('/profilo')}>{t('auth.menuSettings')}</MenuItem>
           <div className="my-1 h-px bg-[var(--border-1)]" />
           <MenuItem onClick={logout} danger>{t('auth.menuLogout')}</MenuItem>
         </div>

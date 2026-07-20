@@ -56,7 +56,7 @@ function ImpostazioniBackup() {
 
   return (
     <div className="flex flex-col pb-28">
-      <TopBar title={t('title.backup')} onBack={() => navigate('/impostazioni')} />
+      <TopBar title={t('title.backup')} onBack={() => navigate('/profilo')} />
 
       <div className="px-5 pt-5">
         <h2 className="text-2xl font-extrabold mb-1">{t('settings.backup.title')}</h2>

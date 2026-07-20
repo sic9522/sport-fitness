@@ -89,7 +89,6 @@ export const translations = {
     'nutrition.deleteFood': 'Eliminare alimento?',
 
     // Titoli TopBar (maiuscolo)
-    'title.settings': 'IMPOSTAZIONI',
     'title.colors': 'COLORI',
     'title.goals': 'OBIETTIVI',
     'title.language': 'LINGUA',
@@ -250,8 +249,6 @@ export const translations = {
     'valid.positive': 'Inserisci un valore maggiore di 0',
 
     // Impostazioni
-    'settings.h2': 'Impostazioni',
-    'settings.subtitle': 'Personalizza la tua esperienza',
     'settings.colors.title': 'Colori',
     'settings.colors.desc': 'Tema, palette e personalizzazione',
     'settings.goals.title': 'Obiettivi',
@@ -465,7 +462,6 @@ export const translations = {
     'nutrition.foodNamePlaceholder': 'e.g. Tomato pasta',
     'nutrition.deleteFood': 'Delete food?',
 
-    'title.settings': 'SETTINGS',
     'title.colors': 'COLORS',
     'title.goals': 'GOALS',
     'title.language': 'LANGUAGE',
@@ -619,8 +615,6 @@ export const translations = {
     'valid.birthDate': 'Invalid date',
     'valid.positive': 'Enter a value greater than 0',
 
-    'settings.h2': 'Settings',
-    'settings.subtitle': 'Customize your experience',
     'settings.colors.title': 'Colors',
     'settings.colors.desc': 'Theme, palette and personalization',
     'settings.goals.title': 'Goals',
@@ -829,7 +823,6 @@ export const translations = {
     'nutrition.foodNamePlaceholder': 'ej: Pasta con tomate',
     'nutrition.deleteFood': '¿Eliminar alimento?',
 
-    'title.settings': 'AJUSTES',
     'title.colors': 'COLORES',
     'title.goals': 'OBJETIVOS',
     'title.language': 'IDIOMA',
@@ -983,8 +976,6 @@ export const translations = {
     'valid.birthDate': 'Fecha no válida',
     'valid.positive': 'Introduce un valor mayor que 0',
 
-    'settings.h2': 'Ajustes',
-    'settings.subtitle': 'Personaliza tu experiencia',
     'settings.colors.title': 'Colores',
     'settings.colors.desc': 'Tema, paleta y personalización',
     'settings.goals.title': 'Objetivos',
@@ -1193,7 +1184,6 @@ export const translations = {
     'nutrition.foodNamePlaceholder': 'ex : Pâtes à la tomate',
     'nutrition.deleteFood': "Supprimer l'aliment ?",
 
-    'title.settings': 'RÉGLAGES',
     'title.colors': 'COULEURS',
     'title.goals': 'OBJECTIFS',
     'title.language': 'LANGUE',
@@ -1347,8 +1337,6 @@ export const translations = {
     'valid.birthDate': 'Date invalide',
     'valid.positive': 'Saisissez une valeur supérieure à 0',
 
-    'settings.h2': 'Réglages',
-    'settings.subtitle': 'Personnalise ton expérience',
     'settings.colors.title': 'Couleurs',
     'settings.colors.desc': 'Thème, palette et personnalisation',
     'settings.goals.title': 'Objectifs',
@@ -1557,7 +1545,6 @@ export const translations = {
     'nutrition.foodNamePlaceholder': '例：番茄意面',
     'nutrition.deleteFood': '删除食物？',
 
-    'title.settings': '设置',
     'title.colors': '颜色',
     'title.goals': '目标',
     'title.language': '语言',
@@ -1711,8 +1698,6 @@ export const translations = {
     'valid.birthDate': '日期无效',
     'valid.positive': '请输入大于 0 的值',
 
-    'settings.h2': '设置',
-    'settings.subtitle': '个性化你的体验',
     'settings.colors.title': '颜色',
     'settings.colors.desc': '主题、调色板和个性化',
     'settings.goals.title': '目标',
