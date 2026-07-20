@@ -282,12 +282,12 @@ function Alimentazione() {
         className="mx-5 mt-4 rounded-2xl bg-[var(--surface)] border border-[color:var(--border-1)] p-4"
       >
         {/* Tab periodo a larghezza piena (il tasto obiettivi è stato rimosso: andrà in Impostazioni) */}
-        <div className="grid grid-cols-3 gap-1 bg-[var(--surface-2)] rounded-xl p-1 mb-3">
+        <div className="grid grid-cols-3 gap-1 bg-[var(--surface-2)] rounded-full p-1 mb-3">
           {PERIODS.map(p => (
             <button
               key={p.key}
               onClick={() => changePeriod(p.key)}
-              className="py-1.5 rounded-lg text-xs font-semibold transition-all"
+              className="py-1.5 rounded-full text-xs font-semibold transition-all"
               style={period === p.key ? { backgroundColor: 'var(--accent)', color: 'var(--on-accent)' } : { color: 'var(--text-dim)' }}
             >
               {t(p.labelKey)}
@@ -381,10 +381,11 @@ function Alimentazione() {
       <div className="px-5 mt-4">
         <button
           onClick={() => setEditing({ meal: MEALS[0].key, food: newFood(), isNew: true })}
-          className="w-full flex items-center justify-between gap-2 rounded-xl bg-[var(--surface)] border border-[color:var(--border-2)] px-4 py-3 text-sm font-semibold hover:bg-[var(--surface-3)] transition-colors"
+          className="w-full flex items-center justify-center gap-2 rounded-full px-4 py-3.5 text-sm font-bold hover:opacity-90 transition-opacity"
+          style={{ backgroundColor: 'var(--accent)', color: 'var(--on-accent)' }}
         >
+          <IoAdd className="text-xl shrink-0" />
           {t('nutrition.addMeal')}
-          <IoAdd className="text-xl shrink-0" style={{ color: 'var(--accent)' }} />
         </button>
       </div>
 

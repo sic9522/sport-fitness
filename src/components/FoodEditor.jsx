@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { IoClose, IoChevronDown, IoCameraOutline } from 'react-icons/io5'
+import { IoClose, IoChevronDown, IoCameraOutline, IoSearch, IoSaveOutline } from 'react-icons/io5'
 import { useLang } from '../context/LanguageContext'
 import useScrollLock from '../hooks/useScrollLock'
 import { titleCase } from '../utils/text'
@@ -193,16 +193,15 @@ function FoodEditor({ food, meal, date, dayOptions, onSave, onCancel }) {
         </div>
 
         <div className="flex flex-col gap-3">
-          <select
-            value={sel}
-            onChange={e => setSel(e.target.value)}
-            aria-label={t('nutrition.meal')}
-            className={SELECT_CLS}
-          >
-            {MEALS.map(m => (
-              <option key={m.key} value={m.key}>{t(m.labelKey)}</option>
-            ))}
-          </select>
+          {/* Micro-label sopra la select, come i campi (Field) e come il mockup. */}
+          <label className="flex flex-col gap-1">
+            <span className="text-xs uppercase tracking-wider text-[color:var(--text-dim)]">{t('nutrition.meal')}</span>
+            <select value={sel} onChange={e => setSel(e.target.value)} className={SELECT_CLS}>
+              {MEALS.map(m => (
+                <option key={m.key} value={m.key}>{t(m.labelKey)}</option>
+              ))}
+            </select>
+          </label>
 
           {/* Nome = ricerca sul catalogo: digita → tendina risultati → scegli e riempi.
               A destra il pulsante fotocamera (scansione barcode, in arrivo). */}
@@ -210,19 +209,21 @@ function FoodEditor({ food, meal, date, dayOptions, onSave, onCancel }) {
             <label className="flex flex-col gap-1">
               <span className="text-xs uppercase tracking-wider text-[color:var(--text-dim)]">{t('goals.name')}</span>
               <div className="relative">
+                {/* Lente a sinistra: il campo si legge come una ricerca (come nel mockup). */}
+                <IoSearch className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-base text-[color:var(--text-faint)]" />
                 <input
                   value={form.nome}
                   onChange={e => onName(e.target.value)}
                   onFocus={() => { if (results.length) setShowResults(true) }}
                   placeholder={t('nutrition.searchPlaceholder')}
                   autoComplete="off"
-                  className="w-full bg-[var(--surface)] border border-[color:var(--border-2)] rounded-xl pl-4 pr-12 py-3 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)] placeholder:text-[color:var(--text-faint)]"
+                  className="w-full bg-[var(--surface)] border border-[color:var(--border-2)] rounded-xl pl-10 pr-12 py-3 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)] placeholder:text-[color:var(--text-faint)]"
                 />
                 <button
                   type="button"
                   aria-label={t('nutrition.scan')}
                   onClick={() => setScanOpen(true)}
-                  className="absolute inset-y-0 right-0 m-3 flex items-center text-white"
+                  className="absolute inset-y-0 right-0 m-3 flex items-center text-[color:var(--accent)]"
                 >
                   <IoCameraOutline className="text-xl" />
                 </button>
@@ -259,24 +260,34 @@ function FoodEditor({ food, meal, date, dayOptions, onSave, onCancel }) {
           <div className="grid grid-cols-2 gap-2">
             <Field label={t('nutrition.grams')} value={form.grammi} onChange={e => onGrammi(e.target.value)} inputMode="numeric" placeholder="100" />
             {/* Se l'alimento viene dal catalogo, le kcal sono derivate dai grammi → sola lettura. */}
-            <Field label={t('nutrition.kcal')} value={form.kcal} onChange={e => onKcal(e.target.value)} inputMode="numeric" placeholder="0" readOnly={!!base} className={base ? 'opacity-70' : ''} />
+            {/* Le kcal totali sono il dato in evidenza della modale → colore d'accento. */}
+            <Field
+              label={t('nutrition.kcal')}
+              value={form.kcal}
+              onChange={e => onKcal(e.target.value)}
+              inputMode="numeric"
+              placeholder="0"
+              readOnly={!!base}
+              className={base ? 'opacity-70' : ''}
+              style={{ color: 'var(--accent)', fontWeight: 700 }}
+            />
           </div>
         </div>
 
         <div className="flex gap-2 mt-6">
           <button
             onClick={onCancel}
-            className="flex-1 rounded-xl py-3 font-semibold text-white hover:opacity-90 transition-opacity"
-            style={{ backgroundColor: '#ef4444' }}
+            className="flex-1 rounded-full py-3 font-semibold border border-[color:var(--border-2)] text-[color:var(--text)] hover:bg-[var(--surface-3)] transition-colors"
           >
             {t('common.cancel')}
           </button>
           <button
             onClick={save}
             disabled={!valid}
-            className="flex-1 rounded-xl py-3 font-semibold text-white transition-opacity disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90"
-            style={{ backgroundColor: '#3b82f6' }}
+            className="flex-1 flex items-center justify-center gap-2 rounded-full py-3 font-semibold transition-opacity disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90"
+            style={{ backgroundColor: 'var(--accent)', color: 'var(--on-accent)' }}
           >
+            <IoSaveOutline className="text-lg" />
             {t('common.save')}
           </button>
         </div>
