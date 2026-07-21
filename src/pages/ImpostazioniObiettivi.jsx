@@ -7,7 +7,8 @@ import TopBar from '../components/TopBar'
 import { useLang } from '../context/LanguageContext'
 import {
   loadGoals, saveGoals, newGoalId, capitalizeFirst, numericOnly,
-  loadCustomEmojis, saveCustomEmojis, addCustomEmoji, isEmoji, firstGrapheme,
+  loadCustomEmojis, saveCustomEmojis, addCustomEmoji, removeCustomEmoji, customEmojisFull,
+  isEmoji, firstGrapheme, MAX_CUSTOM_EMOJIS,
   GOAL_EMOJIS, GOAL_UNITS, MAX_GOALS,
 } from '../data/goalDefaults'
 import { loadWeeklyGoal, saveWeeklyGoal } from '../data/giornateDefaults'
@@ -35,11 +36,23 @@ function EmojiField({ value, onChange }) {
       setError(t('goals.emojiOnly'))
       return
     }
+    if (customEmojisFull(custom)) {
+      setError(t('goals.emojiFull', { max: MAX_CUSTOM_EMOJIS }))
+      return
+    }
     const next = addCustomEmoji(custom, value)
     setCustom(next)
     saveCustomEmojis(next)
     onChange(next[0] ?? firstGrapheme(value)) // seleziona subito, anche se era già presente
     setDraft('')
+    setError('')
+  }
+
+  function drop(emoji) {
+    const next = removeCustomEmoji(custom, emoji)
+    setCustom(next)
+    saveCustomEmojis(next)
+    if (value === emoji) onChange(GOAL_EMOJIS[0]) // non lasciare selezionata una emoji rimossa
     setError('')
   }
 
@@ -79,9 +92,20 @@ function EmojiField({ value, onChange }) {
           {custom.length > 0 ? (
             <div className="flex items-center gap-2 flex-wrap mb-3">
               {custom.map(e => (
-                <button key={e} type="button" onClick={() => onChange(e)} className={cell} style={styleFor(e)}>
-                  {e}
-                </button>
+                <span key={e} className="relative">
+                  <button type="button" onClick={() => onChange(e)} className={cell} style={styleFor(e)}>
+                    {e}
+                  </button>
+                  {/* Senza rimozione il limite diventerebbe un vicolo cieco. */}
+                  <button
+                    type="button"
+                    onClick={() => drop(e)}
+                    aria-label={t('goals.removeEmoji')}
+                    className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-[var(--surface-3)] border border-[color:var(--border-2)] flex items-center justify-center text-[10px] text-[color:var(--text-muted)] hover:text-red-400 transition-colors"
+                  >
+                    <IoClose />
+                  </button>
+                </span>
               ))}
             </div>
           ) : (
@@ -106,7 +130,9 @@ function EmojiField({ value, onChange }) {
               {t('goals.addEmoji')}
             </button>
           </div>
-          {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
+          {error
+            ? <p className="mt-2 text-xs text-red-400">{error}</p>
+            : <p className="mt-2 text-xs text-[color:var(--text-faint)]">{t('goals.emojiCount', { n: custom.length, max: MAX_CUSTOM_EMOJIS })}</p>}
         </div>
       )}
     </div>

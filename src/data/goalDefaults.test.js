@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   capitalizeFirst, numericOnly, weeksInMonth, scaleGoal, goalsForPeriod,
-  addCustomEmoji, MAX_CUSTOM_EMOJIS, isEmoji,
+  addCustomEmoji, removeCustomEmoji, customEmojisFull, MAX_CUSTOM_EMOJIS, isEmoji,
 } from './goalDefaults'
 
 describe('capitalizeFirst', () => {
@@ -135,6 +135,16 @@ describe('addCustomEmoji', () => {
     for (let i = 0; i < 20; i += 1) list = addCustomEmoji(list, String.fromCodePoint(0x1f600 + i))
     expect(list.length).toBe(MAX_CUSTOM_EMOJIS)
   })
+
+  it('a limite raggiunto RIFIUTA invece di scartare la piu vecchia', () => {
+    let list = []
+    for (let i = 0; i < MAX_CUSTOM_EMOJIS; i += 1) list = addCustomEmoji(list, String.fromCodePoint(0x1f600 + i))
+    const primaAggiunta = list[list.length - 1]
+    const dopo = addCustomEmoji(list, '🎯')
+    expect(dopo).toEqual(list)                    // nulla e cambiato
+    expect(dopo).toContain(primaAggiunta)         // la piu vecchia e ancora li
+    expect(dopo).not.toContain('🎯')
+  })
 })
 
 describe('isEmoji', () => {
@@ -187,5 +197,25 @@ describe('addCustomEmoji rifiuta i non-emoji', () => {
 
   it('testo che inizia con lettera viene rifiutato del tutto', () => {
     expect(addCustomEmoji([], 'obiettivo 🎯')).toEqual([])
+  })
+})
+
+describe('removeCustomEmoji / customEmojisFull', () => {
+  it('rimuove solo quella indicata', () => {
+    expect(removeCustomEmoji(['🎯', '🧘'], '🎯')).toEqual(['🧘'])
+  })
+
+  it('rimuovere una assente non cambia nulla', () => {
+    expect(removeCustomEmoji(['🎯'], '🧘')).toEqual(['🎯'])
+    expect(removeCustomEmoji(null, '🧘')).toEqual([])
+  })
+
+  it('dopo una rimozione si torna a poter aggiungere', () => {
+    let list = []
+    for (let i = 0; i < MAX_CUSTOM_EMOJIS; i += 1) list = addCustomEmoji(list, String.fromCodePoint(0x1f600 + i))
+    expect(customEmojisFull(list)).toBe(true)
+    const liberata = removeCustomEmoji(list, list[0])
+    expect(customEmojisFull(liberata)).toBe(false)
+    expect(addCustomEmoji(liberata, '🎯')).toContain('🎯')
   })
 })

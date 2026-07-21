@@ -31,7 +31,7 @@ export const newGoalId = () => (crypto?.randomUUID && crypto.randomUUID()) || St
 // Restano separate dagli obiettivi: una volta aggiunta, l'emoji resta disponibile
 // anche per gli obiettivi futuri, senza doverla ridigitare ogni volta.
 const EMOJI_KEY = 'fitpulse-goal-emojis'
-export const MAX_CUSTOM_EMOJIS = 12
+export const MAX_CUSTOM_EMOJIS = 6
 
 export function loadCustomEmojis() {
   try {
@@ -63,14 +63,23 @@ export function isEmoji(value) {
 
 // Tiene il PRIMO grafema: un'emoji può essere composta da più code point (bandiere,
 // tonalità della pelle), quindi si spezza per grafemi e non per caratteri.
-// Restituisce la lista invariata se il valore non è un'emoji o è già presente.
+// Restituisce la lista invariata se il valore non è un'emoji, è già presente, o la
+// lista è piena: a limite raggiunto si RIFIUTA invece di scartare la più vecchia,
+// che farebbe sparire senza preavviso un'emoji salvata dall'utente.
 export function addCustomEmoji(list, raw) {
   const current = Array.isArray(list) ? list : []
   const emoji = firstGrapheme(String(raw ?? '').trim())
   if (!isEmoji(emoji)) return current
   if (GOAL_EMOJIS.includes(emoji) || current.includes(emoji)) return current
-  return [emoji, ...current].slice(0, MAX_CUSTOM_EMOJIS)
+  if (current.length >= MAX_CUSTOM_EMOJIS) return current
+  return [emoji, ...current]
 }
+
+export function removeCustomEmoji(list, emoji) {
+  return (Array.isArray(list) ? list : []).filter(e => e !== emoji)
+}
+
+export const customEmojisFull = list => (Array.isArray(list) ? list.length : 0) >= MAX_CUSTOM_EMOJIS
 
 // Primo grafema della stringa: usa Intl.Segmenter dove c'è (tutti i browser moderni),
 // altrimenti ripiega sul primo code point.
