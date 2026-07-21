@@ -1,0 +1,126 @@
+import { describe, it, expect } from 'vitest'
+import {
+  buildSteps, exerciseCount, stepLabel, nextIndex, progressAt, elapsedMinutes, formatElapsed,
+} from './workoutPlayer'
+
+// Traduzione finta: restituisce chiave e parametri, così i test verificano la LOGICA
+// dell'etichetta senza dipendere dai testi tradotti.
+const t = (k, p = {}) => `${k}(${Object.values(p).join(',')})`
+
+const exNoSplit = { id: 'a', titolo: 'Panca piana', serie: '3', reps: '10', kg: '80' }
+const exSplit = {
+  id: 'b', titolo: 'Squat', serie: '3', split: true, reps: '12', kg: '60',
+  sets: [{ reps: '12', kg: '60' }, { reps: '10', kg: '70' }, { reps: '8', kg: '80' }],
+}
+
+describe('buildSteps', () => {
+  it('espande ogni esercizio in una serie per passo', () => {
+    const steps = buildSteps({ esercizi: [exNoSplit] })
+    expect(steps).toHaveLength(3)
+    expect(steps.map(s => s.setIndex)).toEqual([0, 1, 2])
+    expect(steps.every(s => s.setCount === 3)).toBe(true)
+  })
+
+  it('senza split tutte le serie condividono carico e ripetizioni', () => {
+    const steps = buildSteps({ esercizi: [exNoSplit] })
+    expect(steps.map(s => s.kg)).toEqual(['80', '80', '80'])
+    expect(steps.map(s => s.reps)).toEqual(['10', '10', '10'])
+  })
+
+  it('con split ogni serie porta i propri valori', () => {
+    const steps = buildSteps({ esercizi: [exSplit] })
+    expect(steps.map(s => s.kg)).toEqual(['60', '70', '80'])
+    expect(steps.map(s => s.reps)).toEqual(['12', '10', '8'])
+    expect(steps.every(s => s.isSplit)).toBe(true)
+  })
+
+  it('concatena piu esercizi nell ordine della scheda', () => {
+    const steps = buildSteps({ esercizi: [exNoSplit, exSplit] })
+    expect(steps).toHaveLength(6)
+    expect(steps[0].nome).toBe('Panca piana')
+    expect(steps[3].nome).toBe('Squat')
+    expect(steps.map(s => s.exerciseIndex)).toEqual([0, 0, 0, 1, 1, 1])
+  })
+
+  it('le chiavi sono uniche: servono a React come identita di riga', () => {
+    const steps = buildSteps({ esercizi: [exNoSplit, exSplit] })
+    expect(new Set(steps.map(s => s.key)).size).toBe(steps.length)
+  })
+
+  it('porta la foto quando c e, altrimenti null per il segnaposto', () => {
+    const steps = buildSteps({ esercizi: [{ ...exNoSplit, foto: 'data:image/png;base64,x' }] })
+    expect(steps[0].foto).toBe('data:image/png;base64,x')
+    expect(buildSteps({ esercizi: [exNoSplit] })[0].foto).toBeNull()
+  })
+
+  it('scheda vuota o assente produce una sequenza vuota, non un errore', () => {
+    expect(buildSteps(null)).toEqual([])
+    expect(buildSteps({})).toEqual([])
+    expect(buildSteps({ esercizi: [] })).toEqual([])
+  })
+})
+
+describe('exerciseCount', () => {
+  it('conta gli esercizi distinti, non le serie', () => {
+    expect(exerciseCount(buildSteps({ esercizi: [exNoSplit, exSplit] }))).toBe(2)
+    expect(exerciseCount([])).toBe(0)
+  })
+})
+
+describe('stepLabel', () => {
+  it('senza split mostra solo la serie', () => {
+    const [s] = buildSteps({ esercizi: [exNoSplit] })
+    expect(stepLabel(s, t)).toBe('player.setOf(1,3)')
+  })
+
+  it('con split indica anche quale split si sta eseguendo', () => {
+    const steps = buildSteps({ esercizi: [exSplit] })
+    expect(stepLabel(steps[1], t)).toBe('player.split(2) · player.setOf(2,3)')
+  })
+
+  it('passo assente non esplode', () => {
+    expect(stepLabel(null, t)).toBe('')
+  })
+})
+
+describe('nextIndex', () => {
+  it('avanza finche ci sono passi', () => {
+    const steps = buildSteps({ esercizi: [exNoSplit] })
+    expect(nextIndex(0, steps)).toBe(1)
+    expect(nextIndex(1, steps)).toBe(2)
+  })
+
+  it('sull ultimo passo restituisce null: e la fine dell allenamento', () => {
+    const steps = buildSteps({ esercizi: [exNoSplit] })
+    expect(nextIndex(2, steps)).toBeNull()
+  })
+})
+
+describe('progressAt', () => {
+  it('va da 0 a 1', () => {
+    const steps = buildSteps({ esercizi: [exNoSplit] })
+    expect(progressAt(0, steps)).toBe(0)
+    expect(progressAt(3, steps)).toBe(1)
+  })
+
+  it('sequenza vuota non divide per zero', () => {
+    expect(progressAt(0, [])).toBe(0)
+  })
+})
+
+describe('elapsedMinutes / formatElapsed', () => {
+  it('arrotonda i minuti trascorsi', () => {
+    expect(elapsedMinutes(0, 90_000)).toBe(2) // 1,5 min → 2
+    expect(elapsedMinutes(0, 60_000)).toBe(1)
+  })
+
+  it('orologio indietro o inizio assente danno 0, mai un negativo', () => {
+    expect(elapsedMinutes(90_000, 0)).toBe(0)
+    expect(elapsedMinutes(null, 0)).toBe(0)
+  })
+
+  it('formatta mm:ss', () => {
+    expect(formatElapsed(0, 0)).toBe('00:00')
+    expect(formatElapsed(0, 95_000)).toBe('01:35')
+  })
+})

@@ -11,6 +11,7 @@ import TopBar from './TopBar'
 import EsercizioEditor from './EsercizioEditor'
 import ConfirmModal from './ConfirmModal'
 import RestPicker from './RestPicker'
+import WorkoutPlayer from './WorkoutPlayer'
 import { useLang } from '../context/LanguageContext'
 import { useAuth } from '../context/AuthContext'
 import { pushSession } from '../services/workoutSessions'
@@ -253,6 +254,7 @@ function SchedaView({ scheda, onExercisesChange, onRestChange, onBack }) {
   // Allenamento in corso: si salva l'istante di INIZIO (così sopravvive a refresh e
   // cambio pagina) e la durata si MISURA alla fine, senza chiederla a mano.
   // `elapsed` è solo il cronometro a schermo, aggiornato ogni secondo.
+  const [playerOpen, setPlayerOpen] = useState(false)
   const [active, setActive] = useState(loadActiveWorkout)
   const [elapsed, setElapsed] = useState(() => {
     const a = loadActiveWorkout() // sessione ripresa dopo un refresh: riparte dal reale
@@ -363,7 +365,7 @@ function SchedaView({ scheda, onExercisesChange, onRestChange, onBack }) {
             fine scrive la durata reale nel registro (alimenta Statistiche). */}
         <button
           type="button"
-          onClick={toggleWorkout}
+          onClick={() => (active ? toggleWorkout() : setPlayerOpen(true))}
           aria-label={active ? t('palestra.stopWorkout') : t('palestra.play')}
           className={`${HEADER_BTN} w-20 gap-1`}
           style={active ? { backgroundColor: '#ef4444', color: '#fff' } : { backgroundColor: GREEN, color: '#fff' }}
@@ -434,6 +436,26 @@ function SchedaView({ scheda, onExercisesChange, onRestChange, onBack }) {
           </DndContext>
         )}
       </div>
+
+      {/* Modalita' di esecuzione a tutto schermo. La sessione si registra SOLO se
+          l'allenamento e' stato completato: uscendo a meta' non e' un allenamento svolto. */}
+      {playerOpen && (
+        <WorkoutPlayer
+          scheda={scheda}
+          onExit={() => setPlayerOpen(false)}
+          onFinish={summary => {
+            const session = {
+              ...sessionFromScheda(scheda, summary.durationMin),
+              exercises: summary.exercises,
+            }
+            saveWorkoutLog(addSession(loadWorkoutLog(), session))
+            if (user) {
+              pushSession(user.id, session).catch(err =>
+                console.error('Invio allenamento fallito (resta salvato in locale):', err))
+            }
+          }}
+        />
+      )}
 
       {editorProps && <EsercizioEditor key={editorProps.esercizio.id} {...editorProps} />}
 
