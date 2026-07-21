@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { IoPulseOutline, IoChevronBack } from 'react-icons/io5'
+import { IoPulseOutline, IoChevronBack, IoCheckmarkCircle } from 'react-icons/io5'
 import { useLang } from '../../context/LanguageContext'
 import { useAuth } from '../../context/AuthContext'
 import StepMethod from './steps/StepMethod'
 import StepAnagrafica from './steps/StepAnagrafica'
 import StepFisico from './steps/StepFisico'
-import { signUpWithEmail, signInWithProvider } from '../../services/auth'
+import {
+  signUpWithEmail, signInWithProvider, signOut,
+  markOAuthSignup, consumeOAuthSignup, isExistingUser,
+} from '../../services/auth'
 import { savePendingProfile, flushPendingProfile, getProfile } from '../../services/profile'
 import { identityFromUser } from '../../utils/greeting'
 import {
@@ -40,9 +43,16 @@ function RegistrationWizard() {
   const [step, setStep] = useState(0)
   const [data, setData] = useState(EMPTY)
 
+  // Il marcatore si legge (e si azzera) UNA volta al montaggio: distingue "sono appena
+  // tornato da Google per registrarmi" da "ero gia' loggato e ho aperto /registrazione".
+  const [fromOAuth] = useState(consumeOAuthSignup)
+
   // Ritorno dal provider: l'utente e' gia' autenticato, quindi niente scelta del metodo
   // e nessuna credenziale da chiedere. Restano solo i dati che il provider non da'.
-  const viaProvider = Boolean(user)
+  const viaProvider = fromOAuth && Boolean(user)
+
+  // Gia' autenticato senza essere passati di qui: l'account esiste, non se ne crea un altro.
+  const alreadyRegistered = Boolean(user) && !fromOAuth
   const steps = viaProvider ? ALL_STEPS.filter(s => s.key !== 'method') : ALL_STEPS
   const TOTAL = steps.length
   const currentKey = steps[Math.min(step, TOTAL - 1)].key
@@ -120,6 +130,7 @@ function RegistrationWizard() {
     if (currentKey === 'method' && data.method && data.method !== 'email') {
       setSubmitting(true)
       setError('')
+      markOAuthSignup() // al ritorno il wizard sapra' che il redirect partiva da qui
       const { error: err } = await signInWithProvider(data.method, '/registrazione')
       if (err) { setError(err.message); setSubmitting(false) }
       return
@@ -151,7 +162,16 @@ function RegistrationWizard() {
       if (data.method === 'email') {
         const displayName = [data.anagrafica.firstName, data.anagrafica.lastName].filter(Boolean).join(' ')
         const { data: res, error: err } = await signUpWithEmail(data.email, data.password, { display_name: displayName })
+        // Con la conferma email disattivata Supabase risponde con un errore esplicito;
+        // con la conferma attiva NON lo fa, per non rivelare quali indirizzi esistono:
+        // in quel caso lo si riconosce dalla lista `identities` vuota.
+        if (err && /already registered|already been registered/i.test(err.message)) {
+          setError(t('auth.alreadyRegisteredEmail')); setSubmitting(false); return
+        }
         if (err) { setError(err.message); setSubmitting(false); return }
+        if (isExistingUser(res)) {
+          setError(t('auth.alreadyRegisteredEmail')); setSubmitting(false); return
+        }
         if (res.session) {
           await flushPendingProfile(res.session.user)
           navigate('/')
@@ -171,6 +191,42 @@ function RegistrationWizard() {
   }
 
   const isLast = step === TOTAL - 1
+
+  // Sessione gia' attiva: non si crea un secondo account. Si dice chi si e' e si offre
+  // di entrare, oppure di uscire per registrarne un altro.
+  if (alreadyRegistered) {
+    return (
+      <main className="min-h-screen bg-[var(--body-bg)] text-[color:var(--text)] max-w-[420px] mx-auto px-5 py-8 flex flex-col">
+        <Link to="/" className="inline-flex items-center gap-2 text-sm font-bold tracking-widest uppercase">
+          <IoPulseOutline className="text-2xl" style={{ color: 'var(--accent)' }} />
+          {t('brand.app')}
+        </Link>
+
+        <div className="mt-10 rounded-2xl bg-[var(--surface)] border border-[color:var(--border-1)] p-5 text-center">
+          <IoCheckmarkCircle className="mx-auto text-4xl" style={{ color: 'var(--accent)' }} />
+          <h1 className="mt-3 text-xl font-extrabold">{t('auth.alreadyRegisteredTitle')}</h1>
+          <p className="mt-2 text-sm text-[color:var(--text-muted)]">
+            {t('auth.alreadyRegisteredBody', { email: user.email || '' })}
+          </p>
+
+          <button
+            onClick={() => navigate('/')}
+            className="mt-5 w-full rounded-full py-3 font-bold"
+            style={{ backgroundColor: 'var(--accent)', color: 'var(--on-accent)' }}
+          >
+            {t('auth.goToApp')}
+          </button>
+
+          <button
+            onClick={async () => { await signOut(); navigate('/registrazione') }}
+            className="mt-2 w-full rounded-full py-3 font-semibold border border-[color:var(--border-2)]"
+          >
+            {t('auth.registerAnother')}
+          </button>
+        </div>
+      </main>
+    )
+  }
 
   return (
     <main className="min-h-screen bg-[var(--body-bg)] text-[color:var(--text)] max-w-[420px] mx-auto px-5 py-8 flex flex-col">
