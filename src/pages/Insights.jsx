@@ -9,6 +9,7 @@ import {
 import { loadWorkoutLog, activitySeries, burnedOn } from '../data/workoutLog'
 import { loadWeights, latestEntry } from '../data/weightDefaults'
 import { loadWeeklyGoal } from '../data/giornateDefaults'
+import { useInsightsSync } from '../hooks/useInsightsSync'
 
 // Iniziali dei giorni per l'asse del grafico: dal locale, così seguono la lingua.
 function dayInitial(key, lang) {
@@ -54,10 +55,15 @@ function StatCard({ icon: Icon, label, value, unit, hint }) {
 function Insights() {
   const { t, lang } = useLang()
   const [hydration, setHydration] = useState(loadHydration)
-  const [goalMl] = useState(loadHydrationGoal)
-  const [log] = useState(loadWorkoutLog)
+  const [goalMl, setGoalMl] = useState(loadHydrationGoal)
+  const [log, setLog] = useState(loadWorkoutLog)
   const [weights] = useState(loadWeights)
   const [weeklyGoal] = useState(loadWeeklyGoal)
+
+  // Ponte local-first: da loggato rispecchia idratazione e allenamenti su Supabase
+  // (no-op se non configurato). Le sessioni registrate da Palestra vengono spinte
+  // subito da SchedaView; qui il mirror completo le riallinea.
+  useInsightsSync(hydration, setHydration, goalMl, setGoalMl, log, setLog)
 
   const today = todayKey()
   const weekKeys = lastDayKeys(7)

@@ -12,6 +12,8 @@ import EsercizioEditor from './EsercizioEditor'
 import ConfirmModal from './ConfirmModal'
 import RestPicker from './RestPicker'
 import { useLang } from '../context/LanguageContext'
+import { useAuth } from '../context/AuthContext'
+import { pushSession } from '../services/workoutSessions'
 import useLongPress from '../hooks/useLongPress'
 import { editorRows, formatKg } from '../data/exerciseSets'
 import {
@@ -238,6 +240,7 @@ function EsercizioCard({ ex, editMode, onEnterEdit, onDelete, onEdit, onToggleSt
 // Pagina interna (NON una rotta) del dettaglio scheda.
 function SchedaView({ scheda, onExercisesChange, onRestChange, onBack }) {
   const { t } = useLang()
+  const { user } = useAuth()
   const esercizi = scheda.esercizi
   const [editingId, setEditingId] = useState(null)
   const [newDraft, setNewDraft] = useState(null)
@@ -267,7 +270,16 @@ function SchedaView({ scheda, onExercisesChange, onRestChange, onBack }) {
   function toggleWorkout() {
     if (active) {
       const min = Math.round(elapsedSec(active.startedAt) / 60)
-      saveWorkoutLog(addSession(loadWorkoutLog(), sessionFromScheda(scheda, min)))
+      const session = sessionFromScheda(scheda, min)
+      saveWorkoutLog(addSession(loadWorkoutLog(), session))
+      // Da loggato la spingo subito sul cloud: il mirror completo vive in Statistiche,
+      // e senza questo una sessione registrata e mai seguita da una visita a quella
+      // pagina resterebbe solo su questo dispositivo. Upsert per id → niente doppioni.
+      // Se fallisce resta comunque salvata in locale: local-first, il cloud è lo specchio.
+      if (user) {
+        pushSession(user.id, session).catch(err =>
+          console.error('Invio allenamento fallito (resta salvato in locale):', err))
+      }
       clearActiveWorkout()
       setActive(null)
       setElapsed(0)
