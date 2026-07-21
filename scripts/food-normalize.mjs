@@ -172,8 +172,12 @@ export function hasNutrition(row) {
 }
 
 // Limiti FISICI dei valori per 100 g. Non sono preferenze: 100 g di prodotto non possono
-// contenere più di 100 g di nutrienti, e nemmeno più energia del grasso puro (~900 kcal).
-const MAX_KCAL_PER_100G = 900
+// contenere più di 100 g di nutrienti, e nemmeno più energia del grasso puro.
+// Il tetto energetico NON è 900: i fattori di Atwater (9 kcal/g per i lipidi) sono
+// arrotondati, e per i grassi puri FoodData Central riporta valori misurati leggermente
+// sopra — olio di pesce, lardo e sego di manzo stanno tutti a 902 kcal/100 g. Con la
+// soglia a 900 venivano scartati alimenti veri e corretti, quindi c'è un margine.
+const MAX_KCAL_PER_100G = 920
 const MAX_MACRO_SUM = 105 // 100 g + 5 g di tolleranza per gli arrotondamenti dichiarati
 
 // Scarta i valori impossibili. Open Food Facts è collaborativo e una quota rilevante dei

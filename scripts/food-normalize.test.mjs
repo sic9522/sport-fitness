@@ -161,10 +161,17 @@ describe('isPlausibleNutrition', () => {
     expect(isPlausibleNutrition(normalizeOff(OFF_NUTELLA))).toBe(true)
   })
 
-  it('scarta più energia del grasso puro (olio reale: 4590 kcal/100 g)', () => {
+  it('scarta l’energia impossibile (casi reali: olio 4590, cacao 4842 kcal/100 g)', () => {
     expect(isPlausibleNutrition({ ...base, calories_kcal: 4590, fat_g: 100 })).toBe(false)
-    expect(isPlausibleNutrition({ ...base, calories_kcal: 901 })).toBe(false)
-    expect(isPlausibleNutrition({ ...base, calories_kcal: 900 })).toBe(true) // limite ammesso
+    expect(isPlausibleNutrition({ ...base, calories_kcal: 4842.86 })).toBe(false)
+    expect(isPlausibleNutrition({ ...base, calories_kcal: 921 })).toBe(false)
+  })
+
+  // Regressione: con il tetto a 900 questi alimenti VERI di FoodData Central venivano
+  // scartati. I grassi puri superano le 900 kcal perché i fattori di Atwater sono
+  // arrotondati: olio di pesce, lardo e sego di manzo sono tutti a 902.
+  it('accetta i grassi puri sopra le 900 kcal (olio di pesce, lardo: 902)', () => {
+    expect(isPlausibleNutrition({ calories_kcal: 902, protein_g: 0, carbs_g: 0, fat_g: 100 })).toBe(true)
   })
 
   it('scarta un singolo macro oltre i 100 g su 100 g (olio reale: 510 g di grassi)', () => {
