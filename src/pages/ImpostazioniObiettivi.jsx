@@ -1,331 +1,194 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { IoAdd, IoRemove, IoTrash, IoPencil, IoCheckmark } from 'react-icons/io5'
+import { IoAdd, IoRemove, IoTrashOutline, IoInformationCircleOutline } from 'react-icons/io5'
 import TopBar from '../components/TopBar'
 import { useLang } from '../context/LanguageContext'
-import { DEFAULT_GOALS } from '../data/goalDefaults'
+import {
+  loadGoals, saveGoals, newGoalId, capitalizeFirst, numericOnly,
+  GOAL_EMOJIS, GOAL_UNITS, MAX_GOALS,
+} from '../data/goalDefaults'
 import { loadWeeklyGoal, saveWeeklyGoal } from '../data/giornateDefaults'
-import { titleCase } from '../utils/text'
 
-const MAX_GOALS = 5
-
-// Unità di misura fisse (simboli universali, non tradotte)
-const UNITS = ['Kcal', 'g', 'l', 'min', 'h']
-
-const SECTIONS = [
-  { key: 'daily',   labelKey: 'goals.daily',   tabKey: 'period.daily'   },
-  { key: 'weekly',  labelKey: 'goals.weekly',  tabKey: 'period.weekly'  },
-  { key: 'monthly', labelKey: 'goals.monthly', tabKey: 'period.monthly' },
-]
-
-function loadGoals() {
-  const saved = localStorage.getItem('fitpulse-goals')
-  if (!saved) return DEFAULT_GOALS
-  const parsed = JSON.parse(saved)
-  if (parsed.longterm && !parsed.monthly) {
-    parsed.monthly = parsed.longterm
-    delete parsed.longterm
-  }
-  return parsed
-}
-
-// ─── Card visualizzazione ─────────────────────────────────────────────────────
-function GoalRow({ goal, onEdit, onDelete }) {
+// Cinque emoji proposte piu' un campo per inserirne una qualsiasi. Il campo tiene un
+// solo carattere: altrimenti ci si ritroverebbe una parola al posto del simbolo.
+function EmojiPicker({ value, onChange }) {
   const { t } = useLang()
   return (
-    <div className="bg-[var(--surface)] rounded-xl px-4 py-3 flex items-center gap-3">
-      <span className="text-xl shrink-0">{goal.emoji}</span>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">{goal.titleKey ? t(goal.titleKey) : goal.title}</p>
-        <p className="text-xs text-[color:var(--text-dim)] mt-0.5">
-          {t('goals.target', { target: goal.target, unit: goal.unit })}
-        </p>
-      </div>
-      <button onClick={onEdit} className="text-[color:var(--text-dim)] hover:text-[color:var(--text)] transition-colors p-1">
-        <IoPencil size={15} />
-      </button>
-      <button onClick={onDelete} className="text-red-400 hover:text-red-300 transition-colors p-1">
-        <IoTrash size={15} />
-      </button>
+    <div className="flex items-center gap-2 flex-wrap">
+      {GOAL_EMOJIS.map(e => (
+        <button
+          key={e}
+          type="button"
+          onClick={() => onChange(e)}
+          className="h-10 w-10 rounded-xl text-lg flex items-center justify-center border transition-colors"
+          style={value === e
+            ? { borderColor: 'var(--accent)', backgroundColor: 'var(--fill-1)' }
+            : { borderColor: 'var(--border-2)' }}
+        >
+          {e}
+        </button>
+      ))}
+      <input
+        value={GOAL_EMOJIS.includes(value) ? '' : value}
+        onChange={e => onChange([...e.target.value].slice(-1)[0] || '')}
+        placeholder={t('goals.customEmoji')}
+        aria-label={t('goals.customEmoji')}
+        className="h-10 w-14 rounded-xl border border-[color:var(--border-2)] bg-[var(--surface-2)] text-center text-lg outline-none focus:ring-1 focus:ring-[var(--accent)]"
+      />
     </div>
   )
 }
 
-// ─── Card modifica ────────────────────────────────────────────────────────────
-function GoalEditRow({ goal, onChange, onDone }) {
-  const { t } = useLang()
-  // Stato locale stringa: permette campo vuoto mentre si digita
-  // senza rimbalzare subito a "0" quando si cancella
-  const [targetStr, setTargetStr] = useState(
-    goal.target > 0 ? String(goal.target) : ''
-  )
-
-  function handleTarget(e) {
-    const raw = e.target.value
-    // Normalizza virgola → punto (iOS italiano usa "," come separatore decimale)
-    const norm = raw.replace(',', '.')
-    // Solo cifre e al massimo un separatore decimale
-    if (!/^(\d*\.?\d*)$/.test(norm)) return
-    // Blocca zero iniziale seguito da cifra: "01", "02" ecc.
-    // Eccezione: "0", "0." e "0," (inizio decimale) sono permessi
-    if (norm.length > 1 && norm[0] === '0' && norm[1] !== '.') return
-    setTargetStr(raw)                          // mostra ciò che l'utente ha scritto
-    const num = parseFloat(norm)               // parsa la versione normalizzata
-    if (!isNaN(num) && num >= 0) onChange('target', num)
-  }
-
-  const inputCls = 'bg-[var(--surface-2)] border border-[color:var(--border-2)] rounded-lg px-2 py-2 text-sm text-[color:var(--text)] outline-none focus:border-[color:var(--border-4)]'
-
-  return (
-    <div className="bg-[var(--surface)] rounded-xl p-4">
-      {/* Riga 1: emoji + nome + conferma */}
-      <div className="flex gap-2 mb-2">
-        <input type="text" value={goal.emoji} maxLength={2}
-          onChange={e => onChange('emoji', e.target.value)}
-          className={`${inputCls} w-10 text-center text-base shrink-0`} />
-        <input type="text" value={goal.titleKey ? t(goal.titleKey) : goal.title} placeholder={t('goals.name')}
-          onChange={e => onChange('title', e.target.value)}
-          onBlur={e => onChange('title', titleCase(e.target.value.trim()))}
-          className={`${inputCls} flex-1 min-w-0`} />
-        <button onClick={onDone}
-          className="w-10 h-9 rounded-lg flex items-center justify-center shrink-0"
-          style={{ backgroundColor: 'var(--accent)', color: 'var(--on-accent)' }}>
-          <IoCheckmark size={16} />
-        </button>
-      </div>
-      {/* Riga 2: obiettivo + unità */}
-      <div className="flex gap-2">
-        <input
-          type="text"
-          inputMode="decimal"
-          value={targetStr}
-          placeholder={t('goals.targetPh')}
-          onChange={handleTarget}
-          className={`${inputCls} flex-1 min-w-0`}
-        />
-        <select value={goal.unit} onChange={e => onChange('unit', e.target.value)}
-          className={`${inputCls} w-20 shrink-0`}>
-          {!UNITS.includes(goal.unit) && goal.unit && <option value={goal.unit}>{goal.unit}</option>}
-          {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
-        </select>
-      </div>
-    </div>
-  )
-}
-
-// ─── Form aggiunta ────────────────────────────────────────────────────────────
-function AddGoalForm({ onAdd, onCancel }) {
-  const { t } = useLang()
-  const [draft, setDraft] = useState({ emoji: '🎯', title: '', target: '', unit: UNITS[0] })
-  const update = (f, v) => setDraft(p => ({ ...p, [f]: v }))
-
-  function submit() {
-    if (!draft.title.trim()) return
-    onAdd({
-      id: `g${Date.now()}`,
-      emoji: draft.emoji || '🎯',
-      title: titleCase(draft.title.trim()),
-      current: 0,
-      target: parseFloat(draft.target) || 0,
-      unit: draft.unit.trim(),
-    })
-  }
-
-  return (
-    <div className="bg-[var(--surface)] rounded-xl p-4 border border-[color:var(--border-2)]">
-      <div className="flex gap-2 mb-3">
-        <input type="text" value={draft.emoji} maxLength={2}
-          onChange={e => update('emoji', e.target.value)}
-          className="w-12 bg-[var(--surface-2)] border border-[color:var(--border-2)] rounded-lg px-2 py-2 text-center text-lg outline-none focus:border-[color:var(--border-4)]" />
-        <input type="text" value={draft.title} placeholder={t('goals.goalName')}
-          onChange={e => update('title', e.target.value)}
-          className="flex-1 bg-[var(--surface-2)] border border-[color:var(--border-2)] rounded-lg px-3 py-2 text-sm text-[color:var(--text)] outline-none focus:border-[color:var(--border-4)]" />
-      </div>
-      <div className="flex gap-2 mb-3">
-        <input type="number" value={draft.target} placeholder={t('goals.targetPh')}
-          onChange={e => update('target', e.target.value)}
-          className="flex-1 bg-[var(--surface-2)] border border-[color:var(--border-2)] rounded-lg px-3 py-2 text-sm text-[color:var(--text)] outline-none focus:border-[color:var(--border-4)]" />
-        <select value={draft.unit}
-          onChange={e => update('unit', e.target.value)}
-          className="w-28 bg-[var(--surface-2)] border border-[color:var(--border-2)] rounded-lg px-3 py-2 text-sm text-[color:var(--text)] outline-none focus:border-[color:var(--border-4)]">
-          {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
-        </select>
-      </div>
-      <div className="flex gap-2">
-        <button onClick={onCancel}
-          className="flex-1 py-2 rounded-xl text-sm text-[color:var(--text-muted)] border border-[color:var(--border-2)] hover:border-[color:var(--border-3)] transition-colors">
-          {t('common.cancel')}
-        </button>
-        <button onClick={submit} disabled={!draft.title.trim()}
-          className="flex-1 py-2 rounded-xl text-sm font-bold disabled:opacity-30"
-          style={{ backgroundColor: 'var(--accent)', color: 'var(--on-accent)' }}>
-          {t('common.add')}
-        </button>
-      </div>
-    </div>
-  )
-}
-
-// ─── Pagina ───────────────────────────────────────────────────────────────────
+// Obiettivi: si impostano SOLO su base giornaliera. Settimana e mese non sono piu' liste
+// separate ma vengono calcolati da questi (vedi scaleGoal in goalDefaults), cosi' i tre
+// periodi non possono piu' contraddirsi fra loro.
 function ImpostazioniObiettivi() {
-  const navigate = useNavigate()
   const { t } = useLang()
+  const navigate = useNavigate()
   const [goals, setGoals] = useState(loadGoals)
-  const [weeklyGoal, setWeeklyGoal] = useState(loadWeeklyGoal)
-  const [activeKey, setActiveKey] = useState('daily')
-  const [editingId, setEditingId] = useState(null)
-  const [addingSection, setAddingSection] = useState(null)
-  const [saved, setSaved] = useState(false)
+  const [weekly, setWeekly] = useState(loadWeeklyGoal)
 
-  function switchTab(key) {
-    setActiveKey(key)
-    setEditingId(null)       // chiude eventuale modifica aperta
-    setAddingSection(null)   // chiude eventuale form aggiunta aperto
+  function commit(next) {
+    setGoals(next)
+    saveGoals(next)
   }
 
-  function updateGoal(category, id, field, value) {
-    setGoals(prev => ({
-      ...prev,
-      [category]: prev[category].map(g => {
-        if (g.id !== id) return g
-        const updated = { ...g, [field]: value }
-        // Modificando il titolo l'obiettivo diventa "personalizzato": niente più traduzione
-        if (field === 'title') delete updated.titleKey
-        return updated
-      }),
-    }))
+  // Modificando un obiettivo predefinito si perde titleKey: da li' in poi vale il testo
+  // scritto dall'utente, non piu' la traduzione.
+  const patch = (id, changes) =>
+    commit(goals.map(g => (g.id === id ? { ...g, ...changes, titleKey: undefined } : g)))
+
+  function changeWeekly(n) {
+    const v = Math.max(1, Math.min(14, n))
+    setWeekly(v)
+    saveWeeklyGoal(v)
   }
 
-  function deleteGoal(category, id) {
-    setGoals(prev => ({ ...prev, [category]: prev[category].filter(g => g.id !== id) }))
-    if (editingId === id) setEditingId(null)
+  function add() {
+    if (goals.length >= MAX_GOALS) return
+    commit([...goals, {
+      id: newGoalId(), emoji: GOAL_EMOJIS[0], title: '', target: '', unit: GOAL_UNITS[0], perWorkout: false,
+    }])
   }
-
-  function addGoal(category, goal) {
-    setGoals(prev => ({ ...prev, [category]: [...prev[category], goal] }))
-    setAddingSection(null)
-  }
-
-  function saveAll() {
-    localStorage.setItem('fitpulse-goals', JSON.stringify(goals))
-    saveWeeklyGoal(weeklyGoal)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
-  }
-
-  const activeSection = SECTIONS.find(s => s.key === activeKey)
-  const list = goals[activeKey] ?? []
-  const atMax = list.length >= MAX_GOALS
 
   return (
     <div className="flex flex-col pb-28">
       <TopBar title={t('title.goals')} onBack={() => navigate('/profilo')} />
 
       <div className="px-5 pt-5">
-        <h2 className="text-2xl font-extrabold mb-1">{t('settings.goals.title')}</h2>
-        <p className="text-[color:var(--text-muted)] text-sm mb-5">
-          {t('goals.max', { max: MAX_GOALS })}
-        </p>
+        {/* Senza questa spiegazione i numeri di settimana e mese sembrerebbero
+            comparire dal nulla. */}
+        <div className="flex gap-3 rounded-2xl bg-[var(--surface)] border border-[color:var(--border-1)] p-4">
+          <IoInformationCircleOutline className="text-xl shrink-0" style={{ color: 'var(--accent)' }} />
+          <p className="text-xs text-[color:var(--text-muted)] leading-relaxed">{t('goals.derivedNote')}</p>
+        </div>
 
-        {/* Obiettivo allenamenti/settimana: alimenta la 3ª barra del Progresso in Palestra */}
-        <div className="bg-[var(--surface)] rounded-xl p-4 mb-4 flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-sm font-semibold">{t('settings.weeklyGoal')}</p>
+        {/* Allenamenti a settimana: e' il moltiplicatore degli obiettivi "per
+            allenamento", quindi sta qui accanto e non in una pagina lontana. */}
+        <div className="rounded-2xl bg-[var(--surface)] border border-[color:var(--border-1)] p-4 mt-3 flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm">{t('settings.weeklyGoal')}</p>
             <p className="text-xs text-[color:var(--text-dim)] mt-0.5">{t('settings.weeklyGoalDesc')}</p>
           </div>
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             <button
-              onClick={() => setWeeklyGoal(g => Math.max(1, g - 1))}
-              disabled={weeklyGoal <= 1}
-              className="w-8 h-8 rounded-full bg-[var(--fill-1)] border border-[color:var(--border-2)] flex items-center justify-center disabled:opacity-40"
+              onClick={() => changeWeekly(weekly - 1)}
+              aria-label={t('goals.decrease')}
+              className="h-9 w-9 rounded-full border border-[color:var(--border-2)] flex items-center justify-center hover:bg-[var(--surface-3)] transition-colors"
             >
               <IoRemove />
             </button>
-            <span className="w-5 text-center text-lg font-bold tabular-nums">{weeklyGoal}</span>
+            <span className="w-6 text-center font-bold tabular-nums">{weekly}</span>
             <button
-              onClick={() => setWeeklyGoal(g => Math.min(7, g + 1))}
-              disabled={weeklyGoal >= 7}
-              className="w-8 h-8 rounded-full bg-[var(--fill-1)] border border-[color:var(--border-2)] flex items-center justify-center disabled:opacity-40"
+              onClick={() => changeWeekly(weekly + 1)}
+              aria-label={t('goals.increase')}
+              className="h-9 w-9 rounded-full border border-[color:var(--border-2)] flex items-center justify-center hover:bg-[var(--surface-3)] transition-colors"
             >
               <IoAdd />
             </button>
           </div>
         </div>
 
-        {/* Tab selector — stessa logica della Home */}
-        <div className="grid grid-cols-3 gap-1 bg-[var(--surface)] rounded-xl p-1 mb-4">
-          {SECTIONS.map(s => (
-            <button
-              key={s.key}
-              onClick={() => switchTab(s.key)}
-              className="py-2 rounded-lg text-xs font-semibold transition-all duration-200"
-              style={
-                activeKey === s.key
-                  ? { backgroundColor: 'var(--accent)', color: 'var(--on-accent)' }
-                  : { color: 'var(--text-dim)' }
-              }
-            >
-              {t(s.tabKey)}
-            </button>
+        <div className="flex flex-col gap-3 mt-4">
+          {goals.map(g => (
+            <div key={g.id} className="rounded-2xl bg-[var(--surface)] border border-[color:var(--border-1)] p-4">
+              <div className="flex items-start justify-between gap-2 mb-3">
+                <EmojiPicker value={g.emoji} onChange={emoji => patch(g.id, { emoji })} />
+                <button
+                  onClick={() => commit(goals.filter(x => x.id !== g.id))}
+                  aria-label={t('goals.remove')}
+                  className="text-[color:var(--text-faint)] hover:text-red-400 transition-colors shrink-0"
+                >
+                  <IoTrashOutline className="text-lg" />
+                </button>
+              </div>
+
+              <label className="flex flex-col gap-1">
+                <span className="text-xs uppercase tracking-wider text-[color:var(--text-dim)]">{t('goals.name')}</span>
+                {/* Prima lettera sempre maiuscola, il resto come lo scrive l'utente. */}
+                <input
+                  value={g.titleKey ? t(g.titleKey) : g.title}
+                  onChange={e => patch(g.id, { title: capitalizeFirst(e.target.value) })}
+                  placeholder={t('goals.namePlaceholder')}
+                  className="w-full bg-[var(--surface-2)] border border-[color:var(--border-2)] rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
+                />
+              </label>
+
+              <div className="grid grid-cols-[1fr_6rem] gap-2 mt-3">
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs uppercase tracking-wider text-[color:var(--text-dim)]">{t('goals.target')}</span>
+                  {/* Solo cifre e un separatore decimale: niente lettere nel valore. */}
+                  <input
+                    value={g.target}
+                    onChange={e => patch(g.id, { target: numericOnly(e.target.value) })}
+                    inputMode="decimal"
+                    placeholder="0"
+                    className="w-full bg-[var(--surface-2)] border border-[color:var(--border-2)] rounded-xl px-4 py-3 text-sm tabular-nums outline-none focus:ring-1 focus:ring-[var(--accent)]"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs uppercase tracking-wider text-[color:var(--text-dim)]">{t('goals.unit')}</span>
+                  <select
+                    value={g.unit}
+                    onChange={e => patch(g.id, { unit: e.target.value })}
+                    className="w-full bg-[var(--surface-2)] border border-[color:var(--border-2)] rounded-xl px-3 py-3 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
+                  >
+                    {GOAL_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                  </select>
+                </label>
+              </div>
+
+              {/* Decide come si scala: "ogni giorno" ×7, "per allenamento" × sessioni. */}
+              <div className="grid grid-cols-2 gap-1 bg-[var(--surface-2)] rounded-full p-1 mt-3">
+                {[false, true].map(pw => (
+                  <button
+                    key={String(pw)}
+                    onClick={() => patch(g.id, { perWorkout: pw })}
+                    className="py-2 rounded-full text-xs font-semibold transition-all"
+                    style={Boolean(g.perWorkout) === pw
+                      ? { backgroundColor: 'var(--accent)', color: 'var(--on-accent)' }
+                      : { color: 'var(--text-dim)' }}
+                  >
+                    {t(pw ? 'goals.perWorkout' : 'goals.everyDay')}
+                  </button>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
 
-        {/* Contenuto sezione attiva */}
-        <div key={activeKey}>
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-bold uppercase tracking-widest text-[color:var(--text-dim)]">
-              {t(activeSection.labelKey)}
-            </p>
-            <span className="text-xs text-[color:var(--text-faint)]">{list.length}/{MAX_GOALS}</span>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            {list.map(goal =>
-              editingId === goal.id ? (
-                <GoalEditRow
-                  key={goal.id}
-                  goal={goal}
-                  onChange={(f, v) => updateGoal(activeKey, goal.id, f, v)}
-                  onDone={() => setEditingId(null)}
-                />
-              ) : (
-                <GoalRow
-                  key={goal.id}
-                  goal={goal}
-                  onEdit={() => setEditingId(goal.id)}
-                  onDelete={() => deleteGoal(activeKey, goal.id)}
-                />
-              )
-            )}
-
-            {addingSection === activeKey ? (
-              <AddGoalForm
-                onAdd={goal => addGoal(activeKey, goal)}
-                onCancel={() => setAddingSection(null)}
-              />
-            ) : !atMax ? (
-              <button
-                onClick={() => { setAddingSection(activeKey); setEditingId(null) }}
-                className="flex items-center gap-2 text-[color:var(--text-dim)] hover:text-[color:var(--text)] text-sm py-2 transition-colors"
-              >
-                <IoAdd size={16} />
-                <span>{t('goals.add')}</span>
-              </button>
-            ) : (
-              <p className="text-xs text-[color:var(--text-faint)] py-1">
-                {t('goals.limit', { max: MAX_GOALS })}
-              </p>
-            )}
-          </div>
-        </div>
-
         <button
-          onClick={saveAll}
-          className="w-full py-3 rounded-xl font-bold text-sm uppercase tracking-widest mt-6"
+          onClick={add}
+          disabled={goals.length >= MAX_GOALS}
+          className="mt-4 w-full flex items-center justify-center gap-2 rounded-full py-3.5 text-sm font-bold transition-opacity disabled:opacity-40"
           style={{ backgroundColor: 'var(--accent)', color: 'var(--on-accent)' }}
         >
-          {saved ? t('common.saved') : t('goals.save')}
+          <IoAdd className="text-xl" />
+          {t('goals.add')}
         </button>
+        <p className="mt-2 text-center text-xs text-[color:var(--text-faint)]">
+          {t('goals.count', { n: goals.length, max: MAX_GOALS })}
+        </p>
       </div>
     </div>
   )

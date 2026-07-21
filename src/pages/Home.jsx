@@ -5,7 +5,8 @@ import TopBar from '../components/TopBar'
 import RingChart from '../components/RingChart'
 import GoalCard from '../components/GoalCard'
 import { loadRings } from '../data/ringDefaults'
-import { DEFAULT_GOALS } from '../data/goalDefaults'
+import { loadGoals, goalsForPeriod, weeksInMonth } from '../data/goalDefaults'
+import { loadWeeklyGoal } from '../data/giornateDefaults'
 import { useLang } from '../context/LanguageContext'
 import { todayKey } from '../utils/date'
 import { loadDiario, dayMeals, dayTotals, loadNutritionGoals, todayDate } from '../data/nutritionDefaults'
@@ -20,18 +21,6 @@ const CATEGORIES = [
   { key: 'weekly',  labelKey: 'period.weekly'  },
   { key: 'monthly', labelKey: 'period.monthly' },
 ]
-
-function loadGoals() {
-  const saved = localStorage.getItem('fitpulse-goals')
-  if (!saved) return DEFAULT_GOALS
-  const parsed = JSON.parse(saved)
-  // migra longterm → monthly se necessario
-  if (parsed.longterm && !parsed.monthly) {
-    parsed.monthly = parsed.longterm
-    delete parsed.longterm
-  }
-  return parsed
-}
 
 // Anelli con i valori REALI di oggi. I default (colore, etichetta, obiettivo) restano,
 // ma `current` non è più un numero demo: viene dal diario, dal tracker idratazione e
@@ -73,6 +62,7 @@ function Home() {
   }, [user])
 
   const [goals] = useState(loadGoals)
+  const [workoutsPerWeek] = useState(loadWeeklyGoal)
   const [activeCategory, setActiveCategory] = useState('daily')
   const { t, lang } = useLang()
 
@@ -93,7 +83,12 @@ function Home() {
     touchStartX.current = null
   }
 
-  const activeGoals = (goals[activeCategory] ?? []).slice(0, 5)
+  // Gli obiettivi si impostano solo su base giornaliera: settimana e mese sono
+  // derivati (×7 oppure × allenamenti, poi × settimane del mese).
+  const activeGoals = goalsForPeriod(goals, activeCategory, {
+    workoutsPerWeek,
+    weeks: weeksInMonth(now.getFullYear(), now.getMonth() + 1),
+  })
   const firstName = displayFirstName(user, profile)
   const dateLabel = now.toLocaleDateString(lang, { weekday: 'long', day: 'numeric', month: 'long' })
 
