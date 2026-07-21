@@ -26,6 +26,14 @@ import { normalizeOff, normalizeFdc, hasNutrition, isPlausibleNutrition } from '
 
 const BATCH_SIZE = 500
 
+// Un import di centinaia di migliaia di righe sono migliaia di richieste HTTPS su decine
+// di minuti: una caduta di connessione (ECONNRESET, fetch failed) è la norma, non
+// l'eccezione, e senza ritentativi butterebbe via tutto il lavoro fatto fino a lì.
+const MAX_RETRIES = 6
+const RETRY_BASE_MS = 1000
+
+const sleep = ms => new Promise(r => setTimeout(r, ms))
+
 function parseArgs(argv) {
   const args = { off: [], fdc: [], dryRun: false, limit: Infinity, requireRegion: false, onlyRegion: null, onlyCountry: null }
   for (let i = 0; i < argv.length; i += 1) {
@@ -135,12 +143,24 @@ async function importSource({ label, filePath, normalize, client, args, counters
   let batch = []
   const sample = []
 
+  // Scrive un batch ritentando con backoff esponenziale. L'upsert è idempotente
+  // (chiave source,source_id), quindi riprovare non duplica nulla.
+  async function writeBatch(rows) {
+    let delay = RETRY_BASE_MS
+    for (let attempt = 1; ; attempt += 1) {
+      const { error } = await client.from('food_items').upsert(rows, { onConflict: 'source,source_id' })
+      if (!error) return
+      if (attempt >= MAX_RETRIES) throw error
+      console.log(`  ! scrittura fallita (${attempt}/${MAX_RETRIES}): ${error.message} — riprovo tra ${delay} ms`)
+      counters.retries += 1
+      await sleep(delay)
+      delay *= 2
+    }
+  }
+
   async function flush() {
     if (!batch.length) return
-    if (!args.dryRun) {
-      const { error } = await client.from('food_items').upsert(batch, { onConflict: 'source,source_id' })
-      if (error) throw error
-    }
+    if (!args.dryRun) await writeBatch(batch)
     counters.written += batch.length
     batch = []
   }
@@ -192,6 +212,7 @@ async function main() {
   const counters = {
     seen: 0, written: 0, skipped: 0,
     skippedNoNutrition: 0, skippedImplausible: 0, skippedNoRegion: 0, skippedNoCountry: 0,
+    retries: 0,
   }
 
   for (const p of args.fdc) {
