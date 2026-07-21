@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient'
+import { identityFromUser } from '../utils/greeting'
 
 // Gestione del profilo utente su public.profiles.
 // I dati del wizard vengono raccolti PRIMA dell'autenticazione: si salvano in
@@ -53,14 +54,58 @@ export async function getProfile(userId) {
   return data
 }
 
-// Scrive i dati in sospeso sul profilo dell'utente appena autenticato.
+// Scrive i dati in sospeso sul profilo dell'utente appena autenticato, poi completa i
+// campi ancora vuoti con quanto offre l'identita' del provider.
 export async function flushPendingProfile(user) {
+  if (!user) return
   const pending = loadPendingProfile()
-  if (!pending || !user) return
   try {
-    await upsertProfile(user.id, pending)
-    clearPendingProfile()
+    if (pending) {
+      await upsertProfile(user.id, pending)
+      clearPendingProfile()
+    }
+    await fillFromIdentity(user)
   } catch {
     // riproveremo al prossimo cambio di stato auth
   }
+}
+
+// Precompila il profilo con i dati dell'account del provider (con Google: nome, cognome
+// e foto; data di nascita, telefono e indirizzo NON vengono forniti e restano da
+// chiedere all'utente).
+// Riempie SOLO le caselle vuote: quanto l'utente ha scritto a mano non si tocca mai,
+// nemmeno al login successivo. Cosi' l'autocompilazione fa risparmiare digitazione senza
+// mai sovrascrivere una correzione.
+export async function fillFromIdentity(user) {
+  if (!supabase || !user) return
+  const id = identityFromUser(user)
+  if (!id.firstName && !id.lastName && !id.fullName && !id.avatarUrl) return
+
+  const current = await getProfile(user.id)
+  const parts = id.fullName ? id.fullName.split(/\s+/) : []
+  const patch = {}
+  const setIfEmpty = (col, value) => {
+    if (value && !(current?.[col] || '').trim()) patch[col] = value
+  }
+  setIfEmpty('first_name', id.firstName || parts[0] || '')
+  setIfEmpty('last_name', id.lastName || parts.slice(1).join(' ') || '')
+  setIfEmpty('display_name', id.fullName || [id.firstName, id.lastName].filter(Boolean).join(' '))
+  setIfEmpty('avatar_url', id.avatarUrl)
+
+  if (!Object.keys(patch).length) return
+  const { error } = await supabase.from('profiles').upsert({ id: user.id, ...patch }, { onConflict: 'id' })
+  if (error) throw error
+}
+
+// Aggiorna i dati anagrafici modificati dall'utente. A differenza di upsertProfile
+// (che mappa la forma del wizard) accetta direttamente le colonne, e le stringhe vuote
+// diventano null per non lasciare "" nel database.
+export async function updateProfileFields(userId, fields) {
+  if (!supabase) return
+  const clean = {}
+  for (const [k, v] of Object.entries(fields)) {
+    clean[k] = typeof v === 'string' ? (v.trim() || null) : (v ?? null)
+  }
+  const { error } = await supabase.from('profiles').upsert({ id: userId, ...clean }, { onConflict: 'id' })
+  if (error) throw error
 }

@@ -2,7 +2,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import {
   IoPersonCircleOutline, IoScaleOutline, IoBodyOutline, IoChevronForward,
   IoColorPaletteOutline, IoFlagOutline, IoLanguageOutline, IoArchiveOutline,
-  IoStopwatchOutline, IoLogOutOutline,
+  IoStopwatchOutline, IoLogOutOutline, IoIdCardOutline,
 } from 'react-icons/io5'
 import TopBar from '../components/TopBar'
 import { useAuth } from '../context/AuthContext'
@@ -68,6 +68,14 @@ function Profilo() {
             </p>
           </div>
         </div>
+
+        {/* I dati anagrafici si modificano solo da loggati: senza account non c'è
+            nessun profilo da salvare. */}
+        {user && (
+          <Section title={t('profilo.sectionPersonal')}>
+            <Row to="/impostazioni/profilo" icon={IoIdCardOutline} title={t('profile.title')} desc={t('profile.desc')} />
+          </Section>
+        )}
 
         <Section title={t('profilo.sectionApp')}>
           <Row to="/impostazioni/colori" icon={IoColorPaletteOutline} title={t('settings.colors.title')} desc={t('settings.colors.desc')} />
