@@ -2,16 +2,17 @@ import { Link, useNavigate } from 'react-router-dom'
 import {
   IoPersonCircleOutline, IoScaleOutline, IoBodyOutline, IoChevronForward,
   IoColorPaletteOutline, IoFlagOutline, IoLanguageOutline, IoArchiveOutline,
-  IoStopwatchOutline, IoLogOutOutline, IoIdCardOutline,
+  IoStopwatchOutline, IoLogOutOutline, IoIdCardOutline, IoMoonOutline,
 } from 'react-icons/io5'
 import TopBar from '../components/TopBar'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
+import { useTheme } from '../context/ThemeContext'
 import { supabase } from '../lib/supabaseClient'
 import { FEATURES } from '../config/features'
 
 // Riga di menu (icona in pastiglia + titolo/descrizione + chevron), come nel mockup Settings.
-function Row({ to, icon: Icon, title, desc }) {
+function Row({ to, icon: Icon, title, desc, trailing }) {
   return (
     <Link
       to={to}
@@ -24,8 +25,40 @@ function Row({ to, icon: Icon, title, desc }) {
         <p className="font-semibold text-sm">{title}</p>
         {desc && <p className="text-[color:var(--text-dim)] text-xs mt-0.5">{desc}</p>}
       </div>
+      {trailing}
       <IoChevronForward className="text-[color:var(--text-faint)] shrink-0" />
     </Link>
+  )
+}
+
+// Riga con interruttore, come il "Dark Mode" del mockup Settings: l'azione piu'
+// frequente si fa sul posto, senza entrare in una sottopagina.
+function ToggleRow({ icon: Icon, title, desc, checked, onChange }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className="bg-[var(--surface)] p-4 flex items-center gap-4 w-full text-left hover:bg-[var(--surface-3)] transition-colors"
+    >
+      <div className="w-10 h-10 rounded-xl bg-[var(--fill-1)] flex items-center justify-center shrink-0">
+        <Icon className="text-xl" style={{ color: 'var(--accent)' }} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-semibold text-sm">{title}</p>
+        {desc && <p className="text-[color:var(--text-dim)] text-xs mt-0.5">{desc}</p>}
+      </div>
+      <span
+        className="relative h-6 w-11 rounded-full shrink-0 transition-colors"
+        style={{ backgroundColor: checked ? 'var(--accent)' : 'var(--fill-2)' }}
+      >
+        <span
+          className="absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all"
+          style={{ left: checked ? '1.375rem' : '0.125rem' }}
+        />
+      </span>
+    </button>
   )
 }
 
@@ -45,6 +78,7 @@ function Section({ title, children }) {
 function Profilo() {
   const { t } = useLang()
   const { isConfigured, loading, user } = useAuth()
+  const { theme, mode, setMode } = useTheme()
   const navigate = useNavigate()
 
   async function logout() {
@@ -78,7 +112,22 @@ function Profilo() {
         )}
 
         <Section title={t('profilo.sectionApp')}>
-          <Row to="/impostazioni/colori" icon={IoColorPaletteOutline} title={t('settings.colors.title')} desc={t('settings.colors.desc')} />
+          {/* Come nel mockup Settings: l'aspetto si cambia da qui, la palette ha la sua
+              pagina ma mostra gia' il colore attivo nella riga. */}
+          <ToggleRow
+            icon={IoMoonOutline}
+            title={t('colors.dark')}
+            desc={t('profilo.darkDesc')}
+            checked={mode === 'dark'}
+            onChange={on => setMode(on ? 'dark' : 'light')}
+          />
+          <Row
+            to="/impostazioni/colori"
+            icon={IoColorPaletteOutline}
+            title={t('settings.colors.title')}
+            desc={theme.name}
+            trailing={<span className="h-4 w-4 rounded-full" style={{ backgroundColor: 'var(--accent)' }} />}
+          />
           <Row to="/impostazioni/lingua" icon={IoLanguageOutline} title={t('settings.language.title')} desc={t('settings.language.desc')} />
         </Section>
 
