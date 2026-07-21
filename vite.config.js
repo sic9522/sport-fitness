@@ -4,13 +4,18 @@ import tailwindcss from '@tailwindcss/vite'
 import basicSsl from '@vitejs/plugin-basic-ssl'
 import { VitePWA } from 'vite-plugin-pwa'
 
+// HTTPS in sviluppo solo su richiesta (`npm run dev:https`). Il certificato
+// self-signed serve alla fotocamera (getUserMedia, scanner barcode), che esige un
+// secure context anche in LAN, ma Safari su iOS rifiuta i self-signed su indirizzo
+// IP senza offrire alcun "procedi comunque": tenendolo sempre attivo l'app risulta
+// irraggiungibile da iPhone. Default HTTP, HTTPS quando serve la fotocamera.
+const httpsInDev = process.env.VITE_DEV_HTTPS === '1'
+
 export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    // Certificato self-signed per servire in HTTPS: la fotocamera (getUserMedia,
-    // usata dallo scanner barcode) richiede un secure context anche sulla LAN.
-    basicSsl(),
+    httpsInDev && basicSsl(),
     VitePWA({
       registerType: 'autoUpdate', // il SW si aggiorna da solo al deploy successivo
       injectRegister: 'auto',

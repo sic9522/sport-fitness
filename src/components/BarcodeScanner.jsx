@@ -19,7 +19,15 @@ function BarcodeScanner({ onScan, onClose }) {
   const { t } = useLang()
   useScrollLock()
   const videoRef = useRef(null)
-  const [error, setError] = useState(false)
+  const [error, setError] = useState(null) // errore emerso all'avvio della fotocamera
+
+  // getUserMedia esiste SOLO in secure context: su http:// (tipico caso dell'indirizzo IP
+  // in rete locale) `navigator.mediaDevices` è proprio assente e il browser non mostra
+  // nessuna richiesta di permesso. È la causa più frequente del "permesso negato"
+  // apparente, anche quando la fotocamera è autorizzata nelle impostazioni.
+  // È una proprietà dell'ambiente, non uno stato: si legge in render.
+  const insecure = !window.isSecureContext || !navigator.mediaDevices?.getUserMedia
+  const shownError = insecure ? t('nutrition.scanNeedsHttps') : error
   // onScan/onClose possono cambiare identità tra i render: li tengo in ref così l'effetto
   // che avvia la fotocamera parte UNA volta sola (niente riavvii dello stream).
   const onScanRef = useRef(onScan)
@@ -30,27 +38,62 @@ function BarcodeScanner({ onScan, onClose }) {
   })
 
   useEffect(() => {
+    // Contesto non sicuro: non c'è nulla da avviare (vedi `insecure` sopra).
+    if (insecure) return undefined
+
     const hints = new Map([[DecodeHintType.POSSIBLE_FORMATS, PRODUCT_FORMATS]])
     const reader = new BrowserMultiFormatReader(hints)
     let controls = null
     let done = false // scansione già consegnata: ignora i frame successivi
+    let cancelled = false
 
-    reader
-      .decodeFromConstraints({ video: { facingMode: 'environment' } }, videoRef.current, result => {
-        if (result && !done) {
-          done = true
-          controls?.stop()
-          onScanRef.current(result.getText())
+    function onResult(result) {
+      if (result && !done) {
+        done = true
+        controls?.stop()
+        onScanRef.current(result.getText())
+      }
+    }
+
+    // Messaggio utile invece di un generico "non disponibile": i nomi degli errori di
+    // getUserMedia sono standard e dicono esattamente cosa è andato storto.
+    function describe(err) {
+      if (err?.name === 'NotAllowedError' || err?.name === 'SecurityError') return t('nutrition.scanDenied')
+      if (err?.name === 'NotFoundError' || err?.name === 'OverconstrainedError') return t('nutrition.scanNoCamera')
+      return `${t('nutrition.scanError')}${err?.message ? ` (${err.name}: ${err.message})` : ''}`
+    }
+
+    ;(async () => {
+      // La posteriore è una PREFERENZA, non un obbligo: su desktop non esiste e un
+      // vincolo rigido farebbe fallire tutto. Se il primo tentativo non va, si ripiega
+      // su una fotocamera qualsiasi.
+      const attempts = [
+        { video: { facingMode: { ideal: 'environment' } } },
+        { video: true },
+      ]
+      let lastErr = null
+      for (const constraints of attempts) {
+        try {
+          const c = await reader.decodeFromConstraints(constraints, videoRef.current, onResult)
+          if (cancelled) { c.stop(); return }
+          controls = c
+          if (done) c.stop() // codice letto prima che la promise risolvesse
+          return
+        } catch (err) {
+          lastErr = err
+          // Permesso negato: insistere con altri vincoli non cambia nulla.
+          if (err?.name === 'NotAllowedError' || err?.name === 'SecurityError') break
         }
-      })
-      .then(c => {
-        controls = c
-        if (done) controls.stop() // codice letto prima che la promise risolvesse
-      })
-      .catch(() => setError(true)) // permesso negato o nessuna fotocamera
+      }
+      console.error('Scanner: avvio fotocamera fallito', lastErr)
+      if (!cancelled) setError(describe(lastErr))
+    })()
 
-    return () => controls?.stop()
-  }, [])
+    return () => {
+      cancelled = true
+      controls?.stop()
+    }
+  }, [t, insecure])
 
   useEffect(() => {
     function onKey(e) {
@@ -70,9 +113,9 @@ function BarcodeScanner({ onScan, onClose }) {
         <IoClose className="text-2xl" />
       </button>
 
-      {error ? (
+      {shownError ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
-          <p className="text-sm text-white/80">{t('nutrition.scanError')}</p>
+          <p className="text-sm text-white/80">{shownError}</p>
           <button
             onClick={onClose}
             className="rounded-xl px-5 py-2.5 text-sm font-semibold text-white"
