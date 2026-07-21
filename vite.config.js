@@ -31,14 +31,26 @@ const hasLocalCert = existsSync(certFile) && existsSync(keyFile)
 // mette il tunnel, quindi non serve alcun certificato locale.
 const tunnel = process.env.VITE_DEV_TUNNEL === '1'
 
-// Solo in modalità tunnel si tocca la sezione server, per non cambiare il comportamento
-// di `dev` e `dev:host`.
 const tunnelServer = {
   // Vite rifiuta gli host che non conosce: senza questo il tunnel risponde
   // "Blocked request. This host is not allowed."
   allowedHosts: ['.trycloudflare.com', '.ngrok-free.app', '.ngrok.io', '.loca.lt'],
   // Il client HMR va verso la porta pubblica del tunnel (443 in TLS), non la 5173.
   hmr: { clientPort: 443, protocol: 'wss' },
+}
+
+const server = {
+  port: 5173,
+  // Senza strictPort, se la 5173 e' occupata Vite passa SILENZIOSAMENTE alla 5174.
+  // L'app cambia origine, quindi il redirect OAuth (costruito su window.location.origin)
+  // torna su una porta che spesso non e' piu' in ascolto, e che comunque Supabase non ha
+  // fra i Redirect URLs: il login sembra fallire pur essendo andato a buon fine.
+  // Meglio fallire subito, cosi' si nota il server rimasto aperto e lo si chiude.
+  strictPort: true,
+  ...(tunnel ? tunnelServer : {}),
+  ...(httpsInDev && hasLocalCert
+    ? { https: { cert: readFileSync(certFile), key: readFileSync(keyFile) } }
+    : {}),
 }
 
 export default defineConfig({
@@ -67,11 +79,7 @@ export default defineConfig({
       devOptions: { enabled: false }, // niente SW in dev
     }),
   ],
-  ...(tunnel
-    ? { server: tunnelServer }
-    : httpsInDev && hasLocalCert
-      ? { server: { https: { cert: readFileSync(certFile), key: readFileSync(keyFile) } } }
-      : {}),
+  server,
   build: {
     rollupOptions: {
       output: {
