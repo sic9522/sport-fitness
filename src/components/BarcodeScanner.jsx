@@ -11,6 +11,30 @@ const PRODUCT_FORMATS = [
   BarcodeFormat.EAN_13, BarcodeFormat.EAN_8, BarcodeFormat.UPC_A, BarcodeFormat.UPC_E,
 ]
 
+// zxing di default aspetta 500 ms fra un tentativo di decodifica e l'altro: due letture
+// al secondo, che a mano libera si traducono in lunghi istanti di nulla. A 100 ms sono
+// dieci, e la lettura risulta immediata. Il costo è CPU, accettabile per i pochi secondi
+// in cui lo scanner è aperto.
+const SCAN_OPTIONS = { delayBetweenScanAttempts: 100, delayBetweenScanSuccess: 100 }
+
+// Tentativi in ordine di preferenza: si degrada solo se il browser rifiuta i vincoli.
+// L'alta risoluzione è ciò che conta di più per le barre sottili degli EAN; la messa a
+// fuoco continua evita l'immagine sfocata da vicino. Entrambe stanno in `advanced`
+// perché sono best-effort: se il dispositivo non le supporta vengono ignorate, non
+// fanno fallire la richiesta.
+const CONSTRAINT_ATTEMPTS = [
+  {
+    video: {
+      facingMode: { ideal: 'environment' },
+      width: { ideal: 1920 },
+      height: { ideal: 1080 },
+      advanced: [{ focusMode: 'continuous' }],
+    },
+  },
+  { video: { facingMode: { ideal: 'environment' } } },
+  { video: true },
+]
+
 // Scanner del codice a barre a tutto schermo (fotocamera posteriore). Decodifica in
 // continuo: al primo codice valido chiama `onScan(code)` una sola volta e si ferma.
 // Non fa lookup: chi lo usa (FoodEditor) cerca il prodotto in catalogo col codice.
@@ -51,8 +75,13 @@ function BarcodeScanner({ onScan, onClose }) {
     // Contesto non sicuro: non c'è nulla da avviare (vedi `insecure` sopra).
     if (insecure) return undefined
 
-    const hints = new Map([[DecodeHintType.POSSIBLE_FORMATS, PRODUCT_FORMATS]])
-    const reader = new BrowserMultiFormatReader(hints)
+    const hints = new Map([
+      [DecodeHintType.POSSIBLE_FORMATS, PRODUCT_FORMATS],
+      // Analisi più insistente di ogni fotogramma: costa CPU ma alza molto la
+      // probabilità di leggere un codice storto, riflettente o poco contrastato.
+      [DecodeHintType.TRY_HARDER, true],
+    ])
+    const reader = new BrowserMultiFormatReader(hints, SCAN_OPTIONS)
     let controls = null
     let done = false // scansione già consegnata: ignora i frame successivi
     let cancelled = false
@@ -78,14 +107,9 @@ function BarcodeScanner({ onScan, onClose }) {
     const run = chainRef.current.then(async () => {
       if (cancelled) return
       // La posteriore è una PREFERENZA, non un obbligo: su desktop non esiste e un
-      // vincolo rigido farebbe fallire tutto. Se il primo tentativo non va, si ripiega
-      // su una fotocamera qualsiasi.
-      const attempts = [
-        { video: { facingMode: { ideal: 'environment' } } },
-        { video: true },
-      ]
+      // vincolo rigido farebbe fallire tutto.
       let lastErr = null
-      for (const constraints of attempts) {
+      for (const constraints of CONSTRAINT_ATTEMPTS) {
         try {
           const c = await reader.decodeFromConstraints(constraints, videoRef.current, onResult)
           controls = c

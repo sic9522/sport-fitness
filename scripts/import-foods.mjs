@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises'
 import { createInterface } from 'node:readline'
 import { createGunzip } from 'node:zlib'
 import path from 'node:path'
-import { normalizeOff, normalizeFdc, hasNutrition, isPlausibleNutrition } from './food-normalize.mjs'
+import { normalizeOff, normalizeFdc, hasNutrition, isPlausibleNutrition } from '../src/utils/foodNormalize.js'
 
 // Import in blocco del catalogo alimenti unificato (public.food_items) dai dump di
 // Open Food Facts e FoodData Central. Local-first: l'app poi legge SOLO dal tuo DB,

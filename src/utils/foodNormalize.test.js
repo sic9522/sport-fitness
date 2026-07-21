@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   regionsFromCountryTags, normalizeOff, normalizeFdc, hasNutrition, isPlausibleNutrition, cleanText,
-} from './food-normalize.mjs'
+} from './foodNormalize.js'
 
 // Fixture ricavate da payload REALI delle due API (verificati via fetch).
 

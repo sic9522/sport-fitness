@@ -5,6 +5,7 @@ import useScrollLock from '../hooks/useScrollLock'
 import { titleCase } from '../utils/text'
 import { MEALS } from '../data/nutritionDefaults'
 import { searchFoodItems, getFoodItemByBarcode } from '../services/catalogs'
+import { fetchFoodByBarcodeOnline } from '../services/offApi'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import Field from './ui/Field'
 import Wheel from './Wheel'
@@ -118,17 +119,21 @@ function FoodEditor({ food, meal, date, dayOptions, onSave, onCancel }) {
     setScanMsg('')
   }
 
-  // Codice letto dallo scanner: cerca il prodotto in catalogo per barcode. Se c'è lo
-  // riempie come pickFood; altrimenti mostra "non trovato" (magari va aggiunto a mano).
+  // Codice letto dallo scanner: prima il catalogo locale (veloce e offline), poi come
+  // ripiego Open Food Facts. Il catalogo copre i prodotti marcati per l'Italia, ma su uno
+  // scaffale vero capitano importati ed edizioni estere che lì non ci sono.
   async function handleScan(code) {
     setScanOpen(false)
+    setScanMsg(t('nutrition.scanLooking'))
     try {
-      const item = await getFoodItemByBarcode(code)
-      if (item) pickFood(item)
-      else setScanMsg(t('nutrition.scanNotFound', { code }))
+      const local = await getFoodItemByBarcode(code)
+      if (local) { pickFood(local); return }
     } catch {
-      setScanMsg(t('nutrition.scanNotFound', { code }))
+      // catalogo non raggiungibile: si prova comunque online
     }
+    const online = await fetchFoodByBarcodeOnline(code)
+    if (online) pickFood(online)
+    else setScanMsg(t('nutrition.scanNotFound', { code }))
   }
 
   // Cambio grammi: se il valore viene dal catalogo, riscala kcal e macro.
