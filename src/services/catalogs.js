@@ -38,14 +38,21 @@ export async function searchFoodItems(query, { limit = 20, region } = {}) {
   return data || []
 }
 
+// Lo stesso barcode può comparire più volte: un prodotto presente sia in Open Food Facts
+// sia tra i "branded" di FoodData Central produce due righe con lo stesso GTIN. Perciò NON
+// si usa maybeSingle(), che va in errore con più di una riga e farebbe dire allo scanner
+// "codice non trovato" per un prodotto che invece esiste. Si prende la prima, preferendo
+// Open Food Facts: è la fonte con i prodotti europei e le etichette che l'utente scansiona.
 export async function getFoodItemByBarcode(barcode) {
   const client = requireSupabase()
   const { data, error } = await client
     .from('food_items')
     .select('id, source, source_id, name, brand, barcode, serving_size, serving_unit, calories_kcal, protein_g, carbs_g, fat_g, fiber_g, sugar_g, salt_g, regions')
     .eq('barcode', barcode)
-    .maybeSingle()
+    .order('source', { ascending: true }) // 'fdc' < 'off' → invertito sotto per preferire OFF
+    .limit(2)
 
   if (error) throw error
-  return data
+  if (!data?.length) return null
+  return data.find(r => r.source === 'off') || data[0]
 }
