@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises'
 import { createInterface } from 'node:readline'
 import { createGunzip } from 'node:zlib'
 import path from 'node:path'
-import { normalizeOff, normalizeFdc, hasNutrition } from './food-normalize.mjs'
+import { normalizeOff, normalizeFdc, hasNutrition, isPlausibleNutrition } from './food-normalize.mjs'
 
 // Import in blocco del catalogo alimenti unificato (public.food_items) dai dump di
 // Open Food Facts e FoodData Central. Local-first: l'app poi legge SOLO dal tuo DB,
@@ -27,7 +27,7 @@ import { normalizeOff, normalizeFdc, hasNutrition } from './food-normalize.mjs'
 const BATCH_SIZE = 500
 
 function parseArgs(argv) {
-  const args = { off: [], fdc: [], dryRun: false, limit: Infinity, requireRegion: false, onlyRegion: null }
+  const args = { off: [], fdc: [], dryRun: false, limit: Infinity, requireRegion: false, onlyRegion: null, onlyCountry: null }
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i]
     if (arg === '--off') args.off.push(argv[++i])
@@ -36,6 +36,7 @@ function parseArgs(argv) {
     else if (arg === '--limit') args.limit = Number(argv[++i])
     else if (arg === '--require-region') args.requireRegion = true
     else if (arg === '--only-region') args.onlyRegion = argv[++i]
+    else if (arg === '--only-country') args.onlyCountry = String(argv[++i] || '').toLowerCase()
     else if (arg === '--help') { printHelp(); process.exit(0) }
   }
   return args
@@ -56,6 +57,12 @@ Opzioni:
   --require-region   Scarta anche i prodotti senza regione (EU/US/CN): DB ancora più snello.
   --only-region <r>  Tiene SOLO i prodotti di quel mercato, es. --only-region eu
                      (europei + brand americani venduti in Europa). Per contenere lo spazio.
+  --only-country <c> Tiene SOLO i prodotti venduti in quel paese (slug OFF), es.
+                     --only-country italy. È il filtro più selettivo: sul dump completo
+                     l'Italia vale ~150k righe contro ~2.2M del totale, e sta comodamente
+                     nel piano gratuito di Supabase. Riguarda solo le sorgenti OFF (FDC
+                     non ha countries_tags). Salta il parsing JSON delle righe che non
+                     citano il paese, quindi è anche molto più veloce.
 
 Di default scarta i prodotti "solo titolo" senza kcal e macronutrienti.
 `)
@@ -86,7 +93,11 @@ function requireEnv(name) {
 //   proprietà array trovata (FoundationFoods / SRLegacyFoods / SurveyFoods / products…).
 // - altrimenti JSONL riga per riga (memory-safe per file da molti GB); .gz decompresso
 //   in streaming (sul disco basta il .gz, niente JSONL scompattato).
-async function* readRecords(filePath) {
+// `lineFilter` (opzionale) riceve la riga GREZZA e, se restituisce false, la scarta senza
+// fare JSON.parse. Su un dump da decine di GB il parsing è il collo di bottiglia, e un
+// semplice test di sottostringa evita di costruire l'oggetto per le righe che non servono.
+// Può solo produrre falsi positivi (poi eliminati dal controllo vero dopo il parse).
+async function* readRecords(filePath, lineFilter) {
   if (filePath.endsWith('.json')) {
     const parsed = JSON.parse(await readFile(filePath, 'utf8'))
     const arr = Array.isArray(parsed) ? parsed : Object.values(parsed).find(Array.isArray)
@@ -100,12 +111,19 @@ async function* readRecords(filePath) {
   for await (const line of rl) {
     const trimmed = line.trim()
     if (!trimmed) continue
+    if (lineFilter && !lineFilter(trimmed)) continue
     try {
       yield JSON.parse(trimmed)
     } catch {
       // riga malformata nel dump → salta
     }
   }
+}
+
+// Tag OFF del paese: 'italy' o 'en:italy' → 'en:italy'.
+function countryTag(country) {
+  const c = String(country || '').toLowerCase()
+  return c.includes(':') ? c : `en:${c}`
 }
 
 // Scorre una sorgente, normalizza, accumula in batch e li scrive (o li conta in dry-run).
@@ -127,13 +145,20 @@ async function importSource({ label, filePath, normalize, client, args, counters
     batch = []
   }
 
-  for await (const raw of readRecords(filePath)) {
+  // Filtro per paese: prima il test rapido sulla riga grezza (salta il parse), poi il
+  // controllo vero sui countries_tags del prodotto.
+  const tag = args.onlyCountry ? countryTag(args.onlyCountry) : null
+  const lineFilter = tag ? line => line.includes(`"${tag}"`) : null
+
+  for await (const raw of readRecords(filePath, lineFilter)) {
     if (seen >= args.limit) break
     seen += 1
     counters.seen += 1
+    if (tag && !(raw.countries_tags || []).includes(tag)) { counters.skippedNoCountry += 1; continue }
     const row = normalize(raw)
     if (!row) { counters.skipped += 1; continue }
     if (!hasNutrition(row)) { counters.skippedNoNutrition += 1; continue } // solo titolo, senza dati
+    if (!isPlausibleNutrition(row)) { counters.skippedImplausible += 1; continue } // valori impossibili nella fonte
     if (args.onlyRegion && !row.regions.includes(args.onlyRegion)) { counters.skippedNoRegion += 1; continue }
     else if (args.requireRegion && row.regions.length === 0) { counters.skippedNoRegion += 1; continue }
     if (sample.length < 2) sample.push(row)
@@ -164,7 +189,10 @@ async function main() {
     })
   }
 
-  const counters = { seen: 0, written: 0, skipped: 0, skippedNoNutrition: 0, skippedNoRegion: 0 }
+  const counters = {
+    seen: 0, written: 0, skipped: 0,
+    skippedNoNutrition: 0, skippedImplausible: 0, skippedNoRegion: 0, skippedNoCountry: 0,
+  }
 
   for (const p of args.fdc) {
     await importSource({ label: 'FDC', filePath: path.resolve(p), normalize: normalizeFdc, client, args, counters })
