@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  regionsFromCountryTags, normalizeOff, normalizeFdc, hasNutrition, isPlausibleNutrition,
+  regionsFromCountryTags, normalizeOff, normalizeFdc, hasNutrition, isPlausibleNutrition, cleanText,
 } from './food-normalize.mjs'
 
 // Fixture ricavate da payload REALI delle due API (verificati via fetch).
@@ -269,5 +269,50 @@ describe('normalizeOff — nuovo schema nutrition.aggregated_set', () => {
     const prepared = structuredClone(OFF_NEW_SCHEMA)
     prepared.nutrition.aggregated_set.preparation = 'prepared'
     expect(normalizeOff(prepared).calories_kcal).toBeNull()
+  })
+})
+
+// Il dump OFF contiene nomi e marche con caratteri di controllo. Il NUL fa fallire
+// l'INSERT con SQLSTATE 22P05 e, a batch da 500, un solo prodotto ne blocca altri 499.
+const NUL = String.fromCharCode(0)
+
+describe('cleanText', () => {
+  it('toglie il NUL mantenendo il testo', () => {
+    expect(cleanText(`Cioccolato${NUL} fondente`)).toBe('Cioccolato fondente')
+  })
+
+  it('toglie gli altri caratteri di controllo e normalizza gli spazi', () => {
+    expect(cleanText(`Latte${String.fromCharCode(31)}intero`)).toBe('Latte intero')
+    expect(cleanText('  Latte   intero ')).toBe('Latte intero')
+  })
+
+  it('un testo di soli caratteri di controllo diventa null', () => {
+    expect(cleanText(NUL + String.fromCharCode(31))).toBeNull()
+    expect(cleanText(null)).toBeNull()
+  })
+})
+
+describe('sanificazione dei testi nei normalizzatori', () => {
+  it('normalizeOff ripulisce nome e marca senza scartare il prodotto', () => {
+    const row = normalizeOff({
+      code: '80123456',
+      product_name: `Biscotti${NUL} Mulino`,
+      brands: `Barilla${NUL}`,
+      countries_tags: ['en:italy'],
+      nutriments: { 'energy-kcal_100g': 450, proteins_100g: 7, carbohydrates_100g: 65, fat_100g: 18 },
+    })
+    expect(row.name).toBe('Biscotti Mulino')
+    expect(row.brand).toBe('Barilla')
+    expect(hasNutrition(row)).toBe(true)
+  })
+
+  it('normalizeFdc ripulisce descrizione e marca', () => {
+    const row = normalizeFdc({ fdcId: 1, description: `CHEDDAR${NUL}`, brandName: `ACME${NUL}`, foodNutrients: [] })
+    expect(row.name).toBe('CHEDDAR')
+    expect(row.brand).toBe('ACME')
+  })
+
+  it('scarta il prodotto se il nome è fatto solo di caratteri di controllo', () => {
+    expect(normalizeOff({ code: '1', product_name: NUL, nutriments: {} })).toBeNull()
   })
 })
