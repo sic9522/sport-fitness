@@ -6,47 +6,37 @@
 // A differenza di prima, un tema NON e' piu' il solo accento: porta l'intera scala di
 // superfici, cosi' cambiando palette cambia davvero l'atmosfera dell'app e non un
 // dettaglio. `dark` e `light` sono le due varianti; il tema attivo decide quale usare.
+// Scala NEUTRA condivisa da tutte le palette. La tinta resta solo nell'accento: è la
+// scelta tipica degli strumenti professionali (una tela neutra, un solo colore che
+// segnala l'azione) e evita che lo sfondo colorato "sporchi" i dati e le fotografie.
+// I gradini sono percettivamente regolari, così le card si staccano dallo sfondo senza
+// bisogno di ombre marcate — il "tonal layering" previsto dal design system.
+const NEUTRAL_DARK = {
+  bg: '#0F1011',        // base, il livello più profondo
+  surface: '#17181A',   // card
+  surface2: '#0A0B0C',  // input e sfondi incassati
+  surface3: '#1F2124',  // hover, popover, stati attivi
+  text: '#EDEEF0',
+}
+
+const NEUTRAL_LIGHT = {
+  bg: '#F7F7F8',
+  surface: '#FFFFFF',
+  surface2: '#EFEFF1',
+  surface3: '#E4E5E8',
+  text: '#17181A',
+}
+
+const palette = (id, name, accent, onAccent) => ({
+  id, name, accent, onAccent, dark: NEUTRAL_DARK, light: NEUTRAL_LIGHT,
+})
+
 export const themes = [
-  {
-    id: 'lime',
-    name: 'Lumina Kinetic',
-    accent: '#CCFF00',
-    onAccent: '#111508',
-    dark: { bg: '#111508', surface: '#1A1E0F', surface2: '#0C1004', surface3: '#202512', text: '#E1E5CE' },
-    light: { bg: '#F6F7F2', surface: '#FFFFFF', surface2: '#EEF0E8', surface3: '#E4E6DC', text: '#1A1E0F' },
-  },
-  {
-    id: 'cobalt',
-    name: 'Cobalt Precision',
-    accent: '#2F6FED',
-    onAccent: '#FFFFFF',
-    dark: { bg: '#0E1116', surface: '#161B22', surface2: '#0A0D11', surface3: '#1C232C', text: '#DCE3EC' },
-    light: { bg: '#F4F6F9', surface: '#FFFFFF', surface2: '#E9EDF3', surface3: '#DDE3EC', text: '#0E1116' },
-  },
-  {
-    id: 'teal',
-    name: 'Clinical Teal',
-    accent: '#0FB5A5',
-    onAccent: '#04211E',
-    dark: { bg: '#0B1416', surface: '#121D20', surface2: '#070F11', surface3: '#17262A', text: '#D6E4E4' },
-    light: { bg: '#F2F7F7', surface: '#FFFFFF', surface2: '#E5EFEF', surface3: '#D8E6E6', text: '#0B1416' },
-  },
-  {
-    id: 'copper',
-    name: 'Copper Bronze',
-    accent: '#C88A3F',
-    onAccent: '#1A1206',
-    dark: { bg: '#15120E', surface: '#1F1A14', surface2: '#0F0D09', surface3: '#29221A', text: '#E7DFD3' },
-    light: { bg: '#F8F5F0', surface: '#FFFFFF', surface2: '#EFE9E0', surface3: '#E5DDD1', text: '#15120E' },
-  },
-  {
-    id: 'indigo',
-    name: 'Indigo Quiet',
-    accent: '#7C74F0',
-    onAccent: '#FFFFFF',
-    dark: { bg: '#101018', surface: '#191926', surface2: '#0B0B12', surface3: '#212133', text: '#DEDEEA' },
-    light: { bg: '#F5F5FA', surface: '#FFFFFF', surface2: '#ECECF5', surface3: '#E1E1EE', text: '#101018' },
-  },
+  palette('lime', 'Lumina Kinetic', '#CCFF00', '#141500'),
+  palette('cobalt', 'Cobalt Precision', '#2F6FED', '#FFFFFF'),
+  palette('teal', 'Clinical Teal', '#0FB5A5', '#04211E'),
+  palette('copper', 'Copper Bronze', '#C88A3F', '#1A1206'),
+  palette('indigo', 'Indigo Quiet', '#7C74F0', '#FFFFFF'),
 ]
 
 export const defaultTheme = themes[0]

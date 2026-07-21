@@ -3,20 +3,20 @@
 :root {
   --accent: #CCFF00;
   --on-accent: #111508;
-  --navbar: #111508;   /* sfondo TopBar + Footer, personalizzabile da Colori */
-  --body-bg: #111508;  /* sfondo del body, personalizzabile da Colori */
+  --navbar: #0F1011;   /* sfondo TopBar + Footer: lo imposta la palette attiva */
+  --body-bg: #0F1011;  /* sfondo del body: lo imposta la palette attiva */
 
   /* ── Token semantici (valori tema SCURO) ──────────────────────────────────
      Il tema chiaro sovrascrive questi valori più sotto, in [data-theme="light"].
      data-theme viene impostato in base alla luminosità dello sfondo scelto. */
-  --text: #ffffff;         /* testo principale (ex text-white) */
+  --text: #EDEEF0;         /* testo principale */
   --text-muted: #9ca3af;   /* ex text-gray-400 */
   --text-dim: #6b7280;     /* ex text-gray-500 */
   --text-faint: #4b5563;   /* ex text-gray-600 */
 
-  --surface: #1a1e0f;      /* card (ex bg-[#1a1e0f]) */
-  --surface-2: #111508;    /* input / sfondo profondo (ex bg-[#111508]) */
-  --surface-3: #202512;    /* hover card (ex bg-[#202512]) */
+  --surface: #17181A;      /* card */
+  --surface-2: #0A0B0C;    /* input / sfondo incassato */
+  --surface-3: #1F2124;    /* hover, popover, stati attivi */
 
   --fill-1: rgba(255, 255, 255, 0.05);  /* ex bg-white/5 */
   --fill-2: rgba(255, 255, 255, 0.10);  /* ex bg-white/10 */
@@ -33,14 +33,14 @@
 
 /* ── Tema CHIARO: attivo quando lo sfondo app è chiaro ──────────────────────── */
 :root[data-theme="light"] {
-  --text: #1a1e0f;
+  --text: #17181A;
   --text-muted: #4b5563;
   --text-dim: #6b7280;
   --text-faint: #9ca3af;
 
   --surface: #ffffff;
-  --surface-2: #eef0e8;
-  --surface-3: #e4e6dc;
+  --surface-2: #EFEFF1;
+  --surface-3: #E4E5E8;
 
   --fill-1: rgba(0, 0, 0, 0.04);
   --fill-2: rgba(0, 0, 0, 0.08);
@@ -49,7 +49,7 @@
   --border-2: rgba(0, 0, 0, 0.10);
   --border-3: rgba(0, 0, 0, 0.16);
   --border-4: rgba(0, 0, 0, 0.22);
-  --border-solid: #1a1e0f;
+  --border-solid: #17181A;
 
   --track: #d1d5db;
   --ring-track: rgba(0, 0, 0, 0.08);

@@ -9,14 +9,16 @@ const MODES = [
   { id: 'light', labelKey: 'colors.light', icon: IoSunnyOutline },
 ]
 
-// Campioni della palette: sfondo, card e accento. Tre quadratini raccontano l'atmosfera
-// di un tema molto meglio di un singolo pallino colorato.
-function Swatches({ palette, accent }) {
+// Le superfici neutre sono le stesse per tutte le palette: mostrarle cinque volte non
+// direbbe nulla. Il campione riproduce invece l'unica cosa che cambia — l'accento — nel
+// contesto in cui si vedra' davvero: un pulsante pieno con il suo testo sopra.
+function Swatch({ theme }) {
   return (
-    <span className="flex items-center gap-1 shrink-0">
-      <span className="h-7 w-7 rounded-lg border border-black/20" style={{ backgroundColor: palette.bg }} />
-      <span className="h-7 w-7 rounded-lg border border-black/20" style={{ backgroundColor: palette.surface }} />
-      <span className="h-7 w-7 rounded-lg border border-black/20" style={{ backgroundColor: accent }} />
+    <span
+      className="h-9 w-9 shrink-0 rounded-full flex items-center justify-center text-[11px] font-extrabold"
+      style={{ backgroundColor: theme.accent, color: theme.onAccent }}
+    >
+      Aa
     </span>
   )
 }
@@ -65,7 +67,7 @@ function ImpostazioniColori() {
               onClick={() => setTheme(th)}
               className="w-full flex items-center gap-3 bg-[var(--surface)] p-4 text-left hover:bg-[var(--surface-3)] transition-colors"
             >
-              <Swatches palette={mode === 'light' ? th.light : th.dark} accent={th.accent} />
+              <Swatch theme={th} />
               <span className="flex-1 min-w-0 font-semibold text-sm truncate">{th.name}</span>
               {th.id === theme.id && (
                 <IoCheckmark className="text-xl shrink-0" style={{ color: 'var(--accent)' }} />
