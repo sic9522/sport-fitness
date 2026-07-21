@@ -4,6 +4,7 @@ import { IoPersonCircleOutline } from 'react-icons/io5'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LanguageContext'
 import { signOut } from '../../services/auth'
+import { identityFromUser } from '../../utils/greeting'
 import LoginModal from './LoginModal'
 
 // Menu utente in alto a destra (icona placeholder).
@@ -16,7 +17,9 @@ function UserMenu() {
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
   const [loginOpen, setLoginOpen] = useState(false)
+  const [avatarBroken, setAvatarBroken] = useState(false)
   const ref = useRef(null)
+  const { avatarUrl } = identityFromUser(user)
 
   useEffect(() => {
     function onDocDown(e) {
@@ -45,7 +48,19 @@ function UserMenu() {
   return (
     <div className="relative" ref={ref}>
       <button onClick={onIconClick} aria-label={t('auth.menuProfile')}>
-        <IoPersonCircleOutline className="text-[color:var(--text-muted)] text-3xl" />
+        {/* Foto del provider (Google la fornisce con lo scope `profile`). Se manca o non
+            si carica — link scaduto, offline — si torna all'icona generica. */}
+        {avatarUrl && !avatarBroken ? (
+          <img
+            src={avatarUrl}
+            alt=""
+            onError={() => setAvatarBroken(true)}
+            referrerPolicy="no-referrer"
+            className="h-8 w-8 rounded-full object-cover border border-[color:var(--border-2)]"
+          />
+        ) : (
+          <IoPersonCircleOutline className="text-[color:var(--text-muted)] text-3xl" />
+        )}
       </button>
 
       {menuOpen && user && (

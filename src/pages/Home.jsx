@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { IoFlash, IoBarbell, IoRestaurant } from 'react-icons/io5'
 import TopBar from '../components/TopBar'
@@ -8,7 +8,10 @@ import { loadRings } from '../data/ringDefaults'
 import { DEFAULT_GOALS } from '../data/goalDefaults'
 import { useLang } from '../context/LanguageContext'
 import { todayKey } from '../utils/date'
-import { loadDiario, dayMeals, dayTotals, loadNutritionGoals } from '../data/nutritionDefaults'
+import { loadDiario, dayMeals, dayTotals, loadNutritionGoals, todayDate } from '../data/nutritionDefaults'
+import { useAuth } from '../context/AuthContext'
+import { getProfile } from '../services/profile'
+import { greetingKey, currentHour, displayFirstName } from '../utils/greeting'
 import { loadHydration, loadHydrationGoal, dayMl } from '../data/hydrationDefaults'
 import { loadWorkoutLog, minutesOn } from '../data/workoutLog'
 
@@ -50,11 +53,28 @@ function ringsWithToday(base) {
 }
 
 function Home() {
+  const { user } = useAuth()
   const [rings] = useState(() => ringsWithToday(loadRings()))
+
+  // Fascia oraria e data si fissano al montaggio: tenerle fuori dal render evita di
+  // leggere l'orologio a ogni ridisegno (react-hooks/purity).
+  const [greetKey] = useState(() => greetingKey(currentHour()))
+  const [now] = useState(todayDate)
+
+  // Profilo salvato: se c'è, il suo nome ha la precedenza su quello del provider.
+  const [profile, setProfile] = useState(null)
+  useEffect(() => {
+    if (!user) return undefined
+    let alive = true
+    getProfile(user.id)
+      .then(p => { if (alive) setProfile(p) })
+      .catch(() => { /* nessun profilo: si salutera' col nome del provider */ })
+    return () => { alive = false }
+  }, [user])
 
   const [goals] = useState(loadGoals)
   const [activeCategory, setActiveCategory] = useState('daily')
-  const { t } = useLang()
+  const { t, lang } = useLang()
 
   // Swipe gesture
   const touchStartX = useRef(null)
@@ -74,15 +94,20 @@ function Home() {
   }
 
   const activeGoals = (goals[activeCategory] ?? []).slice(0, 5)
+  const firstName = displayFirstName(user, profile)
+  const dateLabel = now.toLocaleDateString(lang, { weekday: 'long', day: 'numeric', month: 'long' })
 
   return (
     <div className="flex flex-col pb-28">
       <TopBar icon={IoFlash} title={t('brand.app')} titleLink="/" />
 
-      {/* Greeting */}
+      {/* Saluto: fascia oraria + nome dell'utente quando lo conosciamo. Da non loggati
+          resta il sottotitolo generico, senza spazi vuoti né "undefined". */}
       <div className="px-5 pt-5 pb-2">
-        <p className="text-[color:var(--text-muted)] text-sm">{t('home.greeting')}</p>
-        <h2 className="text-2xl font-extrabold leading-tight">{t('home.subtitle')}</h2>
+        <p className="text-[color:var(--text-muted)] text-sm capitalize">{dateLabel}</p>
+        <h2 className="text-2xl font-extrabold leading-tight">
+          {firstName ? t(greetKey, { name: firstName }) : t(`${greetKey}NoName`)}
+        </h2>
       </div>
 
       {/* Anelli + Legenda */}
