@@ -11,6 +11,23 @@ import { VitePWA } from 'vite-plugin-pwa'
 // irraggiungibile da iPhone. Default HTTP, HTTPS quando serve la fotocamera.
 const httpsInDev = process.env.VITE_DEV_HTTPS === '1'
 
+// Tunnel pubblico in sviluppo (`npm run dev:tunnel`, poi cloudflared/ngrok verso la
+// 5173). È l'unico modo pratico per usare la FOTOCAMERA da iPhone: il tunnel espone
+// l'app su un dominio con certificato VALIDO, mentre un self-signed su indirizzo IP
+// Safari lo rifiuta e basicSsl non può farci nulla. Qui Vite resta in HTTP: il TLS lo
+// mette il tunnel, quindi non serve alcun certificato locale.
+const tunnel = process.env.VITE_DEV_TUNNEL === '1'
+
+// Solo in modalità tunnel si tocca la sezione server, per non cambiare il comportamento
+// di `dev` e `dev:host`.
+const tunnelServer = {
+  // Vite rifiuta gli host che non conosce: senza questo il tunnel risponde
+  // "Blocked request. This host is not allowed."
+  allowedHosts: ['.trycloudflare.com', '.ngrok-free.app', '.ngrok.io', '.loca.lt'],
+  // Il client HMR va verso la porta pubblica del tunnel (443 in TLS), non la 5173.
+  hmr: { clientPort: 443, protocol: 'wss' },
+}
+
 export default defineConfig({
   plugins: [
     react(),
@@ -35,6 +52,7 @@ export default defineConfig({
       devOptions: { enabled: false }, // niente SW in dev
     }),
   ],
+  ...(tunnel ? { server: tunnelServer } : {}),
   build: {
     rollupOptions: {
       output: {
