@@ -32,10 +32,20 @@ function BarcodeScanner({ onScan, onClose }) {
   // che avvia la fotocamera parte UNA volta sola (niente riavvii dello stream).
   const onScanRef = useRef(onScan)
   const onCloseRef = useRef(onClose)
+  const tRef = useRef(t)
   useEffect(() => {
     onScanRef.current = onScan
     onCloseRef.current = onClose
+    tRef.current = t
   })
+
+  // Coda che SERIALIZZA avvii e arresti della fotocamera. Serve perché in sviluppo
+  // StrictMode monta, smonta e rimonta il componente: senza questa catena l'arresto del
+  // primo ciclo arriva DOPO che il secondo ha già agganciato il proprio stream allo
+  // stesso elemento <video>, e glielo azzera — la fotocamera si apre un istante e poi
+  // resta nera. Ogni ciclo aspetta che il precedente abbia finito di smontarsi.
+  const chainRef = useRef(null)
+  if (chainRef.current === null) chainRef.current = Promise.resolve()
 
   useEffect(() => {
     // Contesto non sicuro: non c'è nulla da avviare (vedi `insecure` sopra).
@@ -58,12 +68,15 @@ function BarcodeScanner({ onScan, onClose }) {
     // Messaggio utile invece di un generico "non disponibile": i nomi degli errori di
     // getUserMedia sono standard e dicono esattamente cosa è andato storto.
     function describe(err) {
-      if (err?.name === 'NotAllowedError' || err?.name === 'SecurityError') return t('nutrition.scanDenied')
-      if (err?.name === 'NotFoundError' || err?.name === 'OverconstrainedError') return t('nutrition.scanNoCamera')
-      return `${t('nutrition.scanError')}${err?.message ? ` (${err.name}: ${err.message})` : ''}`
+      const tr = tRef.current
+      if (err?.name === 'NotAllowedError' || err?.name === 'SecurityError') return tr('nutrition.scanDenied')
+      if (err?.name === 'NotFoundError' || err?.name === 'OverconstrainedError') return tr('nutrition.scanNoCamera')
+      return `${tr('nutrition.scanError')}${err?.message ? ` (${err.name}: ${err.message})` : ''}`
     }
 
-    ;(async () => {
+    // Si accoda all'eventuale ciclo precedente, invece di partire subito in parallelo.
+    const run = chainRef.current.then(async () => {
+      if (cancelled) return
       // La posteriore è una PREFERENZA, non un obbligo: su desktop non esiste e un
       // vincolo rigido farebbe fallire tutto. Se il primo tentativo non va, si ripiega
       // su una fotocamera qualsiasi.
@@ -75,9 +88,8 @@ function BarcodeScanner({ onScan, onClose }) {
       for (const constraints of attempts) {
         try {
           const c = await reader.decodeFromConstraints(constraints, videoRef.current, onResult)
-          if (cancelled) { c.stop(); return }
           controls = c
-          if (done) c.stop() // codice letto prima che la promise risolvesse
+          if (cancelled || done) c.stop()
           return
         } catch (err) {
           lastErr = err
@@ -87,13 +99,16 @@ function BarcodeScanner({ onScan, onClose }) {
       }
       console.error('Scanner: avvio fotocamera fallito', lastErr)
       if (!cancelled) setError(describe(lastErr))
-    })()
+    })
+    chainRef.current = run
 
     return () => {
       cancelled = true
-      controls?.stop()
+      // L'arresto entra nella stessa coda: il ciclo successivo partirà solo dopo che
+      // questo si è davvero spento, senza rubargli l'elemento <video>.
+      chainRef.current = run.then(() => controls?.stop()).catch(() => {})
     }
-  }, [t, insecure])
+  }, [insecure])
 
   useEffect(() => {
     function onKey(e) {
