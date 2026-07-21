@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { IoPulseOutline, IoChevronBack } from 'react-icons/io5'
 import { useLang } from '../../context/LanguageContext'
@@ -7,13 +7,20 @@ import StepMethod from './steps/StepMethod'
 import StepAnagrafica from './steps/StepAnagrafica'
 import StepFisico from './steps/StepFisico'
 import { signUpWithEmail, signInWithProvider } from '../../services/auth'
-import { savePendingProfile, flushPendingProfile } from '../../services/profile'
+import { savePendingProfile, flushPendingProfile, getProfile } from '../../services/profile'
+import { identityFromUser } from '../../utils/greeting'
 import {
   isEmail, isMinLength, isNonEmpty, isPhone, isPostalCode, isPastDate, isPositiveNumber,
 } from '../../utils/validators'
 
-const STEP_TITLES = ['auth.stepMethod', 'auth.stepAnagrafica', 'auth.stepFisico']
-const TOTAL = STEP_TITLES.length
+// Passi del wizard. Il primo (scelta del metodo, con email e password) sparisce quando
+// si arriva gia' autenticati da un provider: in quel caso le credenziali non servono,
+// perche' l'accesso avverra' sempre tramite il provider.
+const ALL_STEPS = [
+  { key: 'method', titleKey: 'auth.stepMethod' },
+  { key: 'anagrafica', titleKey: 'auth.stepAnagrafica' },
+  { key: 'fisico', titleKey: 'auth.stepFisico' },
+]
 
 const EMPTY = {
   method: null,
@@ -28,10 +35,18 @@ const EMPTY = {
 // associati all'utente tramite il "pending profile" (services/profile).
 function RegistrationWizard() {
   const { t } = useLang()
-  const { isConfigured } = useAuth()
+  const { isConfigured, user } = useAuth()
   const navigate = useNavigate()
   const [step, setStep] = useState(0)
   const [data, setData] = useState(EMPTY)
+
+  // Ritorno dal provider: l'utente e' gia' autenticato, quindi niente scelta del metodo
+  // e nessuna credenziale da chiedere. Restano solo i dati che il provider non da'.
+  const viaProvider = Boolean(user)
+  const steps = viaProvider ? ALL_STEPS.filter(s => s.key !== 'method') : ALL_STEPS
+  const TOTAL = steps.length
+  const currentKey = steps[Math.min(step, TOTAL - 1)].key
+
   const [errors, setErrors] = useState({})
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
@@ -41,15 +56,44 @@ function RegistrationWizard() {
   const setAna = patch => setData(d => ({ ...d, anagrafica: { ...d.anagrafica, ...patch } }))
   const setFis = patch => setData(d => ({ ...d, fisico: { ...d.fisico, ...patch } }))
 
+  // Precompila nome e cognome con quanto arriva dall'account, senza sovrascrivere
+  // quello che l'utente ha gia' scritto. Il setState sta in una callback asincrona,
+  // non nel corpo dell'effetto.
+  useEffect(() => {
+    if (!user) return undefined
+    let alive = true
+    getProfile(user.id)
+      .catch(() => null)
+      .then(profile => {
+        if (!alive) return
+        const id = identityFromUser(user)
+        const parts = id.fullName ? id.fullName.split(/\s+/) : []
+        setData(d => ({
+          ...d,
+          anagrafica: {
+            ...d.anagrafica,
+            firstName: d.anagrafica.firstName || profile?.first_name || id.firstName || parts[0] || '',
+            lastName: d.anagrafica.lastName || profile?.last_name || id.lastName || parts.slice(1).join(' ') || '',
+            birthDate: d.anagrafica.birthDate || profile?.birth_date || '',
+            phone: d.anagrafica.phone || profile?.phone || '',
+            city: d.anagrafica.city || profile?.city || '',
+            address: d.anagrafica.address || profile?.address || '',
+            postalCode: d.anagrafica.postalCode || profile?.postal_code || '',
+          },
+        }))
+      })
+    return () => { alive = false }
+  }, [user])
+
   function validate() {
     const e = {}
-    if (step === 0) {
+    if (currentKey === 'method') {
       if (!data.method) e.method = t('valid.method')
       if (data.method === 'email') {
         if (!isEmail(data.email)) e.email = t('valid.email')
         if (!isMinLength(data.password, 6)) e.password = t('valid.password')
       }
-    } else if (step === 1) {
+    } else if (currentKey === 'anagrafica') {
       const a = data.anagrafica
       if (!isNonEmpty(a.firstName)) e.firstName = t('valid.required')
       if (!isNonEmpty(a.lastName)) e.lastName = t('valid.required')
@@ -58,17 +102,29 @@ function RegistrationWizard() {
       if (!isNonEmpty(a.city)) e.city = t('valid.required')
       if (!isNonEmpty(a.address)) e.address = t('valid.required')
       if (!isPostalCode(a.postalCode)) e.postalCode = t('valid.postalCode')
-    } else if (step === 2) {
+    } else if (currentKey === 'fisico') {
       if (!isPositiveNumber(data.fisico.height)) e.height = t('valid.positive')
       if (!isPositiveNumber(data.fisico.weight)) e.weight = t('valid.positive')
     }
     return e
   }
 
-  function next() {
+  async function next() {
     const e = validate()
     setErrors(e)
     if (Object.keys(e).length) return
+
+    // Provider scelto: si autentica SUBITO e si torna qui. Cosi' non si chiedono dati
+    // che il provider fornisce gia' (nome, cognome) e non si perde la compilazione se
+    // l'accesso viene annullato.
+    if (currentKey === 'method' && data.method && data.method !== 'email') {
+      setSubmitting(true)
+      setError('')
+      const { error: err } = await signInWithProvider(data.method, '/registrazione')
+      if (err) { setError(err.message); setSubmitting(false) }
+      return
+    }
+
     if (step < TOTAL - 1) setStep(s => s + 1)
     else finish()
   }
@@ -86,6 +142,12 @@ function RegistrationWizard() {
     // I dati raccolti si scrivono sul profilo appena l'utente e' autenticato.
     savePendingProfile({ anagrafica: data.anagrafica, fisico: data.fisico })
     try {
+      // Gia' autenticato dal provider: il profilo si scrive e basta, nessuna credenziale.
+      if (viaProvider) {
+        await flushPendingProfile(user)
+        navigate('/')
+        return
+      }
       if (data.method === 'email') {
         const displayName = [data.anagrafica.firstName, data.anagrafica.lastName].filter(Boolean).join(' ')
         const { data: res, error: err } = await signUpWithEmail(data.email, data.password, { display_name: displayName })
@@ -121,11 +183,11 @@ function RegistrationWizard() {
         <p className="text-xs uppercase tracking-wider text-[color:var(--text-dim)]">
           {t('auth.step', { n: step + 1, total: TOTAL })}
         </p>
-        <h1 className="text-2xl font-extrabold mt-1">{t(STEP_TITLES[step])}</h1>
+        <h1 className="text-2xl font-extrabold mt-1">{t(steps[Math.min(step, TOTAL - 1)].titleKey)}</h1>
         <div className="mt-3 flex gap-1">
-          {STEP_TITLES.map((title, i) => (
+          {steps.map((s2, i) => (
             <span
-              key={title}
+              key={s2.key}
               className="h-1 flex-1 rounded-full"
               style={{ backgroundColor: i <= step ? 'var(--accent)' : 'var(--fill-1)' }}
             />
@@ -140,9 +202,9 @@ function RegistrationWizard() {
       )}
 
       <div className="flex-1">
-        {step === 0 && <StepMethod data={data} errors={errors} onChange={setTop} />}
-        {step === 1 && <StepAnagrafica data={data.anagrafica} errors={errors} onChange={setAna} />}
-        {step === 2 && <StepFisico data={data.fisico} errors={errors} onChange={setFis} />}
+        {currentKey === 'method' && <StepMethod data={data} errors={errors} onChange={setTop} />}
+        {currentKey === 'anagrafica' && <StepAnagrafica data={data.anagrafica} errors={errors} onChange={setAna} />}
+        {currentKey === 'fisico' && <StepFisico data={data.fisico} errors={errors} onChange={setFis} />}
       </div>
 
       {error && <p className="text-sm text-red-400 mt-3">{error}</p>}
@@ -162,7 +224,7 @@ function RegistrationWizard() {
           className="flex-1 rounded-xl py-3 font-bold disabled:opacity-40 disabled:cursor-not-allowed"
           style={{ backgroundColor: 'var(--accent)', color: 'var(--on-accent)' }}
         >
-          {submitting ? t('auth.creating') : isLast ? t('auth.createAccount') : t('auth.next')}
+          {submitting ? t('auth.creating') : isLast ? t(viaProvider ? 'auth.finishProfile' : 'auth.createAccount') : t('auth.next')}
         </button>
       </div>
 

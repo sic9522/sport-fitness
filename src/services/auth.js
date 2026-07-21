@@ -19,11 +19,13 @@ export function signUpWithEmail(email, password, meta = {}) {
   })
 }
 
-// OAuth (Google, e in futuro altri provider). Redirect verso l'app al ritorno.
-export function signInWithProvider(providerId) {
+// OAuth (Google, e in futuro altri provider). Al ritorno si rientra nell'app.
+// `path` permette di tornare su una pagina precisa: la registrazione lo usa per
+// riprendere il wizard e chiedere i soli dati che il provider non fornisce.
+export function signInWithProvider(providerId, path = '/') {
   return client().auth.signInWithOAuth({
     provider: providerId,
-    options: { redirectTo: window.location.origin },
+    options: { redirectTo: new URL(path, window.location.origin).toString() },
   })
 }
 
