@@ -47,21 +47,34 @@ export function saveCustomEmojis(list) {
   localStorage.setItem(EMOJI_KEY, JSON.stringify(list.slice(0, MAX_CUSTOM_EMOJIS)))
 }
 
-// Tiene il PRIMO carattere visibile: un'emoji può essere composta da più code point
-// (bandiere, tonalità della pelle), quindi si spezza per grafemi e non per lettere.
-// Scarta quelle già presenti fra le proposte o fra le personalizzate.
+// Vero solo per una vera emoji. Senza questo controllo il campo accetterebbe la prima
+// lettera o cifra digitata e la salverebbe come se fosse un simbolo.
+// Tre famiglie, perché non hanno la stessa forma:
+//  - bandiere: due indicatori regionali (🇮🇹 = "IT" in caratteri speciali);
+//  - keycap: una cifra (o # o *) seguita dal segno U+20E3, es. 1️⃣;
+//  - tutte le altre: devono contenere un pittogramma e NESSUNA lettera o cifra.
+export function isEmoji(value) {
+  const s = String(value ?? '')
+  if (!s) return false
+  if (/^\p{Regional_Indicator}{2}$/u.test(s)) return true
+  if (/^[0-9#*]️?⃣$/u.test(s)) return true
+  return /\p{Extended_Pictographic}/u.test(s) && !/[\p{L}\p{N}]/u.test(s)
+}
+
+// Tiene il PRIMO grafema: un'emoji può essere composta da più code point (bandiere,
+// tonalità della pelle), quindi si spezza per grafemi e non per caratteri.
+// Restituisce la lista invariata se il valore non è un'emoji o è già presente.
 export function addCustomEmoji(list, raw) {
-  const chars = [...String(raw ?? '').trim()]
-  if (!chars.length) return Array.isArray(list) ? list : []
-  const emoji = firstGrapheme(String(raw).trim())
   const current = Array.isArray(list) ? list : []
-  if (!emoji || GOAL_EMOJIS.includes(emoji) || current.includes(emoji)) return current
+  const emoji = firstGrapheme(String(raw ?? '').trim())
+  if (!isEmoji(emoji)) return current
+  if (GOAL_EMOJIS.includes(emoji) || current.includes(emoji)) return current
   return [emoji, ...current].slice(0, MAX_CUSTOM_EMOJIS)
 }
 
 // Primo grafema della stringa: usa Intl.Segmenter dove c'è (tutti i browser moderni),
 // altrimenti ripiega sul primo code point.
-function firstGrapheme(s) {
+export function firstGrapheme(s) {
   if (typeof Intl !== 'undefined' && Intl.Segmenter) {
     const seg = new Intl.Segmenter(undefined, { granularity: 'grapheme' })
     for (const { segment } of seg.segment(s)) return segment

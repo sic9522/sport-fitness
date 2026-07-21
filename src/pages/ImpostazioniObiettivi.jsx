@@ -7,7 +7,7 @@ import TopBar from '../components/TopBar'
 import { useLang } from '../context/LanguageContext'
 import {
   loadGoals, saveGoals, newGoalId, capitalizeFirst, numericOnly,
-  loadCustomEmojis, saveCustomEmojis, addCustomEmoji,
+  loadCustomEmojis, saveCustomEmojis, addCustomEmoji, isEmoji, firstGrapheme,
   GOAL_EMOJIS, GOAL_UNITS, MAX_GOALS,
 } from '../data/goalDefaults'
 import { loadWeeklyGoal, saveWeeklyGoal } from '../data/giornateDefaults'
@@ -24,14 +24,23 @@ function EmojiField({ value, onChange }) {
   const [open, setOpen] = useState(false)
   const [custom, setCustom] = useState(loadCustomEmojis)
   const [draft, setDraft] = useState('')
+  const [error, setError] = useState('')
 
   function commitCustom() {
-    const next = addCustomEmoji(custom, draft)
+    const value = draft.trim()
+    if (!value) return
+    // Si accettano SOLO emoji: senza questo controllo una lettera o una cifra
+    // finirebbe salvata come se fosse un simbolo. Il rifiuto va detto, non subito.
+    if (!isEmoji(firstGrapheme(value))) {
+      setError(t('goals.emojiOnly'))
+      return
+    }
+    const next = addCustomEmoji(custom, value)
     setCustom(next)
     saveCustomEmojis(next)
-    // Se l'emoji è entrata (o esisteva già), la si seleziona subito.
-    if (next[0] && next !== custom) onChange(next[0])
+    onChange(next[0] ?? firstGrapheme(value)) // seleziona subito, anche se era già presente
     setDraft('')
+    setError('')
   }
 
   const cell = 'h-10 w-10 rounded-xl text-lg flex items-center justify-center border transition-colors shrink-0'
@@ -81,7 +90,7 @@ function EmojiField({ value, onChange }) {
           <div className="flex items-center gap-2">
             <input
               value={draft}
-              onChange={e => setDraft(e.target.value)}
+              onChange={e => { setDraft(e.target.value); setError('') }}
               onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); commitCustom() } }}
               placeholder={t('goals.emojiPlaceholder')}
               aria-label={t('goals.emojiPlaceholder')}
@@ -97,6 +106,7 @@ function EmojiField({ value, onChange }) {
               {t('goals.addEmoji')}
             </button>
           </div>
+          {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
         </div>
       )}
     </div>

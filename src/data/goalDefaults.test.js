@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   capitalizeFirst, numericOnly, weeksInMonth, scaleGoal, goalsForPeriod,
-  addCustomEmoji, MAX_CUSTOM_EMOJIS,
+  addCustomEmoji, MAX_CUSTOM_EMOJIS, isEmoji,
 } from './goalDefaults'
 
 describe('capitalizeFirst', () => {
@@ -134,5 +134,58 @@ describe('addCustomEmoji', () => {
     let list = []
     for (let i = 0; i < 20; i += 1) list = addCustomEmoji(list, String.fromCodePoint(0x1f600 + i))
     expect(list.length).toBe(MAX_CUSTOM_EMOJIS)
+  })
+})
+
+describe('isEmoji', () => {
+  it('accetta le emoji comuni', () => {
+    expect(isEmoji('🎯')).toBe(true)
+    expect(isEmoji('🧘')).toBe(true)
+    expect(isEmoji('⚡')).toBe(true)
+  })
+
+  it('accetta le emoji composte: tonalita della pelle e famiglie', () => {
+    expect(isEmoji('👍🏽')).toBe(true)
+    expect(isEmoji('👨‍👩‍👧')).toBe(true)
+  })
+
+  it('accetta le bandiere (due indicatori regionali)', () => {
+    expect(isEmoji('🇮🇹')).toBe(true)
+  })
+
+  it('accetta i keycap', () => {
+    expect(isEmoji('1️⃣')).toBe(true)
+  })
+
+  it('RIFIUTA lettere, cifre e simboli di testo', () => {
+    expect(isEmoji('a')).toBe(false)
+    expect(isEmoji('Z')).toBe(false)
+    expect(isEmoji('7')).toBe(false)
+    expect(isEmoji('!')).toBe(false)
+    expect(isEmoji('-')).toBe(false)
+    expect(isEmoji('è')).toBe(false)
+    expect(isEmoji('漢')).toBe(false)
+  })
+
+  it('rifiuta vuoto e valori assenti', () => {
+    expect(isEmoji('')).toBe(false)
+    expect(isEmoji(null)).toBe(false)
+    expect(isEmoji('   ')).toBe(false)
+  })
+})
+
+describe('addCustomEmoji rifiuta i non-emoji', () => {
+  it('non salva lettere o numeri', () => {
+    expect(addCustomEmoji([], 'a')).toEqual([])
+    expect(addCustomEmoji([], '123')).toEqual([])
+    expect(addCustomEmoji([], 'ciao')).toEqual([])
+  })
+
+  it('estrae comunque l’emoji se incollata con del testo davanti a un simbolo', () => {
+    expect(addCustomEmoji([], '🎯 obiettivo')).toEqual(['🎯'])
+  })
+
+  it('testo che inizia con lettera viene rifiutato del tutto', () => {
+    expect(addCustomEmoji([], 'obiettivo 🎯')).toEqual([])
   })
 })
