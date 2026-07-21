@@ -1,3 +1,6 @@
+import { existsSync, readFileSync } from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
@@ -10,6 +13,16 @@ import { VitePWA } from 'vite-plugin-pwa'
 // IP senza offrire alcun "procedi comunque": tenendolo sempre attivo l'app risulta
 // irraggiungibile da iPhone. Default HTTP, HTTPS quando serve la fotocamera.
 const httpsInDev = process.env.VITE_DEV_HTTPS === '1'
+
+// Certificato mkcert per la LAN (`npm run certs` lo genera in ./certs, ignorata da git
+// perché contiene la chiave privata). A differenza di basicSsl, questo è firmato dalla
+// CA locale di mkcert: installandola sull'iPhone, Safari accetta l'indirizzo IP senza
+// avvisi — l'unico modo per usare la fotocamera da telefono restando in LAN.
+// Se i file non ci sono si ricade su basicSsl, che basta per il desktop.
+const certDir = fileURLToPath(new URL('./certs', import.meta.url))
+const certFile = path.join(certDir, 'dev-cert.pem')
+const keyFile = path.join(certDir, 'dev-key.pem')
+const hasLocalCert = existsSync(certFile) && existsSync(keyFile)
 
 // Tunnel pubblico in sviluppo (`npm run dev:tunnel`, poi cloudflared/ngrok verso la
 // 5173). È l'unico modo pratico per usare la FOTOCAMERA da iPhone: il tunnel espone
@@ -32,7 +45,9 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    httpsInDev && basicSsl(),
+    // basicSsl serve solo come ripiego: se c'è il certificato mkcert lo si preferisce
+    // (vedi httpsServer sotto), perché quello di basicSsl iOS non lo accetta.
+    httpsInDev && !hasLocalCert && basicSsl(),
     VitePWA({
       registerType: 'autoUpdate', // il SW si aggiorna da solo al deploy successivo
       injectRegister: 'auto',
@@ -52,7 +67,11 @@ export default defineConfig({
       devOptions: { enabled: false }, // niente SW in dev
     }),
   ],
-  ...(tunnel ? { server: tunnelServer } : {}),
+  ...(tunnel
+    ? { server: tunnelServer }
+    : httpsInDev && hasLocalCert
+      ? { server: { https: { cert: readFileSync(certFile), key: readFileSync(keyFile) } } }
+      : {}),
   build: {
     rollupOptions: {
       output: {

@@ -15,6 +15,10 @@ dist-ssr
 # Config MCP locale (contiene chiavi API: mai nel repo)
 .mcp.json
 
+# Certificati di sviluppo generati con mkcert (contengono una CHIAVE PRIVATA).
+# Sono locali alla macchina e si rigenerano con `npm run certs`: mai nel repo.
+certs/
+
 # Dump alimenti per `npm run import:foods` (grandi: restano locali, mai nel repo).
 # Il dataset esercizi (data/exercises.json) invece è tracciato: non combacia con questi.
 data/*.jsonl
