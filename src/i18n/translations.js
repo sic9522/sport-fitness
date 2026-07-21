@@ -351,6 +351,8 @@ export const translations = {
     'profilo.signOut': 'Esci',
     'profilo.supabaseOff': 'Supabase non è configurato: aggiungi le variabili in .env.local per usare login e sincronizzazione.',
     'common.loading': 'Caricamento…',
+    'common.confirm': 'Conferma',
+    'date.choose': 'Scegli una data',
 
     // Colori
     'colors.subtitle': 'Personalizza il tema e gli anelli',
@@ -743,6 +745,8 @@ export const translations = {
     'profilo.signOut': 'Sign out',
     'profilo.supabaseOff': 'Supabase is not configured: add the variables in .env.local to use login and sync.',
     'common.loading': 'Loading…',
+    'common.confirm': 'Confirm',
+    'date.choose': 'Pick a date',
 
     'colors.subtitle': 'Customize the theme and the rings',
     'colors.tab.theme': 'Theme',
@@ -1130,6 +1134,8 @@ export const translations = {
     'profilo.signOut': 'Cerrar sesión',
     'profilo.supabaseOff': 'Supabase no está configurado: añade las variables en .env.local para usar inicio de sesión y sincronización.',
     'common.loading': 'Cargando…',
+    'common.confirm': 'Confirmar',
+    'date.choose': 'Elige una fecha',
 
     'colors.subtitle': 'Personaliza el tema y los anillos',
     'colors.tab.theme': 'Tema',
@@ -1517,6 +1523,8 @@ export const translations = {
     'profilo.signOut': 'Se déconnecter',
     'profilo.supabaseOff': 'Supabase n’est pas configuré : ajoutez les variables dans .env.local pour utiliser la connexion et la synchronisation.',
     'common.loading': 'Chargement…',
+    'common.confirm': 'Confirmer',
+    'date.choose': 'Choisir une date',
 
     'colors.subtitle': 'Personnalise le thème et les anneaux',
     'colors.tab.theme': 'Thème',
@@ -1904,6 +1912,8 @@ export const translations = {
     'profilo.signOut': '退出登录',
     'profilo.supabaseOff': 'Supabase 尚未配置：在 .env.local 中添加变量以使用登录和同步。',
     'common.loading': '加载中…',
+    'common.confirm': '确认',
+    'date.choose': '选择日期',
 
     'colors.subtitle': '自定义主题和圆环',
     'colors.tab.theme': '主题',

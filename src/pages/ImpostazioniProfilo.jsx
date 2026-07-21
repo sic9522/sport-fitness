@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { IoPersonCircleOutline } from 'react-icons/io5'
 import TopBar from '../components/TopBar'
 import Field from '../components/ui/Field'
+import DateField from '../components/ui/DateField'
+import { birthYearRange } from '../utils/date'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { getProfile, updateProfileFields } from '../services/profile'
@@ -103,14 +105,25 @@ function ImpostazioniProfilo() {
           <>
             <div className="flex flex-col gap-3">
               {FIELDS.map(f => (
-                <Field
-                  key={f.col}
-                  label={t(f.labelKey)}
-                  type={f.type || 'text'}
-                  autoComplete={f.autoComplete}
-                  value={form[f.col]}
-                  onChange={e => set(f.col, e.target.value)}
-                />
+                f.type === 'date' ? (
+                  <DateField
+                    key={f.col}
+                    label={t(f.labelKey)}
+                    value={form[f.col]}
+                    onChange={v => set(f.col, v)}
+                    minYear={birthYearRange.from}
+                    maxYear={birthYearRange.to}
+                  />
+                ) : (
+                  <Field
+                    key={f.col}
+                    label={t(f.labelKey)}
+                    type={f.type || 'text'}
+                    autoComplete={f.autoComplete}
+                    value={form[f.col]}
+                    onChange={e => set(f.col, e.target.value)}
+                  />
+                )
               ))}
             </div>
 
