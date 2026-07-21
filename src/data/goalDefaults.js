@@ -27,6 +27,49 @@ export const DEFAULT_GOALS = [
 
 export const newGoalId = () => (crypto?.randomUUID && crypto.randomUUID()) || String(Date.now())
 
+// --- Emoji personalizzate, salvate sull'account ---
+// Restano separate dagli obiettivi: una volta aggiunta, l'emoji resta disponibile
+// anche per gli obiettivi futuri, senza doverla ridigitare ogni volta.
+const EMOJI_KEY = 'fitpulse-goal-emojis'
+export const MAX_CUSTOM_EMOJIS = 12
+
+export function loadCustomEmojis() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(EMOJI_KEY) || 'null')
+    if (Array.isArray(saved)) return saved.filter(e => typeof e === 'string' && e)
+  } catch {
+    // dato corrotto → nessuna personalizzata
+  }
+  return []
+}
+
+export function saveCustomEmojis(list) {
+  localStorage.setItem(EMOJI_KEY, JSON.stringify(list.slice(0, MAX_CUSTOM_EMOJIS)))
+}
+
+// Tiene il PRIMO carattere visibile: un'emoji può essere composta da più code point
+// (bandiere, tonalità della pelle), quindi si spezza per grafemi e non per lettere.
+// Scarta quelle già presenti fra le proposte o fra le personalizzate.
+export function addCustomEmoji(list, raw) {
+  const chars = [...String(raw ?? '').trim()]
+  if (!chars.length) return Array.isArray(list) ? list : []
+  const emoji = firstGrapheme(String(raw).trim())
+  const current = Array.isArray(list) ? list : []
+  if (!emoji || GOAL_EMOJIS.includes(emoji) || current.includes(emoji)) return current
+  return [emoji, ...current].slice(0, MAX_CUSTOM_EMOJIS)
+}
+
+// Primo grafema della stringa: usa Intl.Segmenter dove c'è (tutti i browser moderni),
+// altrimenti ripiega sul primo code point.
+function firstGrapheme(s) {
+  if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+    const seg = new Intl.Segmenter(undefined, { granularity: 'grapheme' })
+    for (const { segment } of seg.segment(s)) return segment
+    return ''
+  }
+  return [...s][0] || ''
+}
+
 // --- Funzioni PURE (testate) ---
 
 // Prima lettera maiuscola, il resto invariato: "corsa mattutina" → "Corsa mattutina".

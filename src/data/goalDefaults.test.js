@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { capitalizeFirst, numericOnly, weeksInMonth, scaleGoal, goalsForPeriod } from './goalDefaults'
+import {
+  capitalizeFirst, numericOnly, weeksInMonth, scaleGoal, goalsForPeriod,
+  addCustomEmoji, MAX_CUSTOM_EMOJIS,
+} from './goalDefaults'
 
 describe('capitalizeFirst', () => {
   it('rende maiuscola la prima lettera', () => {
@@ -103,5 +106,33 @@ describe('goalsForPeriod', () => {
 
   it('lista assente o non valida non esplode', () => {
     expect(goalsForPeriod(null, 'weekly')).toEqual([])
+  })
+})
+
+describe('addCustomEmoji', () => {
+  it('aggiunge in testa la nuova emoji', () => {
+    expect(addCustomEmoji([], '🎯')).toEqual(['🎯'])
+    expect(addCustomEmoji(['🎯'], '🧘')).toEqual(['🧘', '🎯'])
+  })
+
+  it('tiene un solo grafema anche se si incolla del testo', () => {
+    expect(addCustomEmoji([], '🎯 obiettivo')).toEqual(['🎯'])
+  })
+
+  it('non duplica quelle gia presenti ne quelle gia proposte', () => {
+    expect(addCustomEmoji(['🎯'], '🎯')).toEqual(['🎯'])
+    expect(addCustomEmoji([], '🔥')).toEqual([]) // 🔥 e gia fra le predefinite
+  })
+
+  it('ignora input vuoti', () => {
+    expect(addCustomEmoji(['🎯'], '')).toEqual(['🎯'])
+    expect(addCustomEmoji(['🎯'], '   ')).toEqual(['🎯'])
+    expect(addCustomEmoji(null, '')).toEqual([])
+  })
+
+  it('non supera il limite', () => {
+    let list = []
+    for (let i = 0; i < 20; i += 1) list = addCustomEmoji(list, String.fromCodePoint(0x1f600 + i))
+    expect(list.length).toBe(MAX_CUSTOM_EMOJIS)
   })
 })
