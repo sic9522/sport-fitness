@@ -83,6 +83,26 @@ input[type='number']::-webkit-inner-spin-button { -webkit-appearance: none; marg
   #root {
     min-height: 100vh;
   }
+
+  /* ── Tipografia del design system "Lumina Kinetic" ─────────────────────────
+     Tracking stretto sui titoli grandi: dà loro il peso "professionale" previsto
+     dalla scala tipografica (page-title -0.02em). */
+  h1, h2 {
+    letter-spacing: -0.02em;
+  }
+
+  /* CIFRE TABULARI ovunque compaiano numeri che si incolonnano: timer, pesi, kcal,
+     campi numerici. Senza questa regola le cifre hanno larghezze diverse e le liste
+     "ballano" a ogni aggiornamento — è il dettaglio che più distingue un'interfaccia
+     curata da una approssimativa. Il design system la impone per tutti i dati. */
+  input[type='number'],
+  input[inputmode='numeric'],
+  input[type='tel'],
+  time,
+  [class*='tabular'] {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+  }
 }
 
 /* Nasconde la scrollbar mantenendo lo scroll */
