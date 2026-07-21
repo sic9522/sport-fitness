@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useRef } from 'react'
+import { loadRestLog, saveRestLog, addRest, newRestId } from '../data/restLog'
 
 const TimerContext = createContext(null)
 
@@ -119,6 +120,11 @@ export function TimerProvider({ children }) {
       if (!zeroFiredRef.current && elapsedMs(state) >= state.duration * 1000) {
         zeroFiredRef.current = true
         fireZeroAlert()
+        // Il recupero e' arrivato davvero a zero: lo si registra. E' l'unico punto in
+        // cui si sa che e' stato COMPLETATO e non interrotto a meta'.
+        saveRestLog(addRest(loadRestLog(), {
+          id: newRestId(), seconds: state.duration, at: Date.now(),
+        }))
       }
       setTick(t => t + 1)
     }, 250)
@@ -160,8 +166,14 @@ export function TimerProvider({ children }) {
   if (!isOvertime) color = displaySeconds <= 5 ? RED : GREEN
   else color = displaySeconds === 0 ? RED : YELLOW
 
+  // Frazione di tempo ancora da scorrere: serve all'anello di progresso, che si svuota.
+  const progress = activeDuration > 0
+    ? Math.max(0, Math.min(1, (activeDuration - elapsedSec) / activeDuration))
+    : 0
+
   const value = {
     status: state.status,
+    progress,
     duration: activeDuration,
     isOvertime,
     color,

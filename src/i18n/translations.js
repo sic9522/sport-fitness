@@ -106,6 +106,9 @@ export const translations = {
     'timer.pause': 'Pausa',
     'timer.resume': 'Riprendi',
     'timer.from': 'da {time}',
+    'timer.remaining': 'Tempo restante',
+    'timer.reset': 'Azzera',
+    'timer.recent': 'Ultimi recuperi',
 
     // Periodi (tab)
     'period.daily': 'Giornaliero',
@@ -517,6 +520,9 @@ export const translations = {
     'timer.pause': 'Pause',
     'timer.resume': 'Resume',
     'timer.from': 'from {time}',
+    'timer.remaining': 'Time remaining',
+    'timer.reset': 'Reset',
+    'timer.recent': 'Recent rests',
 
     'period.daily': 'Daily',
     'period.weekly': 'Weekly',
@@ -917,6 +923,9 @@ export const translations = {
     'timer.pause': 'Pausa',
     'timer.resume': 'Reanudar',
     'timer.from': 'desde {time}',
+    'timer.remaining': 'Tiempo restante',
+    'timer.reset': 'Reiniciar',
+    'timer.recent': 'Últimos descansos',
 
     'period.daily': 'Diario',
     'period.weekly': 'Semanal',
@@ -1317,6 +1326,9 @@ export const translations = {
     'timer.pause': 'Pause',
     'timer.resume': 'Reprendre',
     'timer.from': 'depuis {time}',
+    'timer.remaining': 'Temps restant',
+    'timer.reset': 'Réinitialiser',
+    'timer.recent': 'Récupérations récentes',
 
     'period.daily': 'Quotidien',
     'period.weekly': 'Hebdomadaire',
@@ -1717,6 +1729,9 @@ export const translations = {
     'timer.pause': '暂停',
     'timer.resume': '继续',
     'timer.from': '从 {time}',
+    'timer.remaining': '剩余时间',
+    'timer.reset': '重置',
+    'timer.recent': '最近的休息',
 
     'period.daily': '每日',
     'period.weekly': '每周',
