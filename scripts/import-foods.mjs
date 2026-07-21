@@ -145,23 +145,39 @@ async function importSource({ label, filePath, normalize, client, args, counters
 
   // Scrive un batch ritentando con backoff esponenziale. L'upsert è idempotente
   // (chiave source,source_id), quindi riprovare non duplica nulla.
+  // Si ritenta SOLO sugli errori di trasporto: un errore SQL (che arriva con un SQLSTATE
+  // in `code`) è deterministico e riprovarlo aspetterebbe solo dei secondi per fallire uguale.
   async function writeBatch(rows) {
     let delay = RETRY_BASE_MS
     for (let attempt = 1; ; attempt += 1) {
       const { error } = await client.from('food_items').upsert(rows, { onConflict: 'source,source_id' })
       if (!error) return
+      if (error.code) throw error // errore del database, non transitorio
       if (attempt >= MAX_RETRIES) throw error
-      console.log(`  ! scrittura fallita (${attempt}/${MAX_RETRIES}): ${error.message} — riprovo tra ${delay} ms`)
+      console.log(`  ! rete KO (${attempt}/${MAX_RETRIES}): ${error.message} — riprovo tra ${delay} ms`)
       counters.retries += 1
       await sleep(delay)
       delay *= 2
     }
   }
 
+  // Lo stesso codice prodotto può comparire più volte nel dump. Postgres rifiuta un
+  // upsert che tocca due volte la stessa chiave nello STESSO comando
+  // ("ON CONFLICT DO UPDATE command cannot affect row a second time"), quindi il batch
+  // va deduplicato per (source, source_id) prima di scriverlo: vince l'ultima occorrenza,
+  // che nel dump è la versione più aggiornata del prodotto.
+  function dedupe(rows) {
+    const byKey = new Map()
+    for (const r of rows) byKey.set(`${r.source}|${r.source_id}`, r)
+    return [...byKey.values()]
+  }
+
   async function flush() {
     if (!batch.length) return
-    if (!args.dryRun) await writeBatch(batch)
-    counters.written += batch.length
+    const rows = dedupe(batch)
+    counters.duplicatesInBatch += batch.length - rows.length
+    if (!args.dryRun) await writeBatch(rows)
+    counters.written += rows.length
     batch = []
   }
 
@@ -212,7 +228,7 @@ async function main() {
   const counters = {
     seen: 0, written: 0, skipped: 0,
     skippedNoNutrition: 0, skippedImplausible: 0, skippedNoRegion: 0, skippedNoCountry: 0,
-    retries: 0,
+    retries: 0, duplicatesInBatch: 0,
   }
 
   for (const p of args.fdc) {
