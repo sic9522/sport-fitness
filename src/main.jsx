@@ -8,6 +8,7 @@ import { ThemeProvider } from "./context/ThemeContext";
 import { LanguageProvider } from "./context/LanguageContext";
 import { TimerProvider } from "./context/TimerContext";
 import { AuthProvider } from "./context/AuthContext";
+import { WorkoutSessionProvider } from "./context/WorkoutSessionContext";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
@@ -17,7 +18,9 @@ createRoot(document.getElementById("root")).render(
           <ThemeProvider>
             <AuthProvider>
               <TimerProvider>
-                <App />
+                <WorkoutSessionProvider>
+                  <App />
+                </WorkoutSessionProvider>
               </TimerProvider>
             </AuthProvider>
           </ThemeProvider>

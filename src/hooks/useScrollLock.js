@@ -1,9 +1,12 @@
 import { useEffect } from 'react'
 
-// Blocca lo scroll dello sfondo finché il componente (una modale) è montato.
+// Blocca lo scroll dello sfondo mentre `active` è vero (default: sempre, finché il
+// componente è montato). Il parametro serve ai componenti sempre montati che bloccano
+// solo quando visibili, come il Workout Player in Layout.
 // Usa position:fixed perché su mobile (iOS) `overflow:hidden` sul body non basta.
-export default function useScrollLock() {
+export default function useScrollLock(active = true) {
   useEffect(() => {
+    if (!active) return undefined
     const scrollY = window.scrollY
     const body = document.body
     const prev = {
@@ -23,5 +26,5 @@ export default function useScrollLock() {
       body.style.width = prev.width
       window.scrollTo(0, scrollY)
     }
-  }, [])
+  }, [active])
 }

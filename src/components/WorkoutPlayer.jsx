@@ -1,17 +1,37 @@
-import { useState, useEffect, useRef } from 'react'
-import { IoClose, IoCheckmark, IoBarbellOutline, IoCheckmarkCircle } from 'react-icons/io5'
+import { useState, useEffect } from 'react'
+import { IoClose, IoChevronDown, IoCheckmark, IoBarbellOutline, IoCheckmarkCircle } from 'react-icons/io5'
 import { useLang } from '../context/LanguageContext'
 import { useTheme } from '../context/ThemeContext'
+import { useWorkoutSession } from '../context/WorkoutSessionContext'
 import useScrollLock from '../hooks/useScrollLock'
 import {
-  buildSteps, exerciseCount, stepLabel, elapsedMinutes, formatElapsed, ringColor,
+  exerciseCount, stepLabel, elapsedMinutes, formatElapsed, restState, ringColor,
 } from '../data/workoutPlayer'
 import { formatKg } from '../data/exerciseSets'
 
-const DEFAULT_REST = 60 // secondi, se la scheda non ne definisce uno
+// Anima nowMs a ~60fps con requestAnimationFrame: l'anello del recupero scorre fluido,
+// senza gli scatti di un tick al secondo.
+function useAnimatedNow(active) {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    if (!active) return undefined
+    let raf
+    const loop = () => {
+      setNow(Date.now())
+      raf = requestAnimationFrame(loop)
+    }
+    raf = requestAnimationFrame(loop)
+    return () => cancelAnimationFrame(raf)
+  }, [active])
+  return now
+}
 
-// Barra a segmenti: uno per serie. Comunica a colpo d'occhio quanto manca, cosa che
-// una percentuale non farebbe con la stessa immediatezza.
+const mmss = totalSec => {
+  const s = Math.max(0, Math.floor(totalSec))
+  return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
+}
+
+// Barra a segmenti: uno per serie. Comunica a colpo d'occhio quanto manca.
 function ProgressSegments({ total, done }) {
   return (
     <div className="flex gap-1">
@@ -27,8 +47,7 @@ function ProgressSegments({ total, done }) {
 }
 
 // Immagine dell'esercizio: foto dell'utente o del catalogo se c'è, altrimenti un
-// segnaposto neutro. Non si lascia mai un buco: il 65% dello schermo vuoto sembrerebbe
-// un errore di caricamento.
+// segnaposto neutro (anche se l'URL non carica). Il 65% vuoto sembrerebbe un errore.
 function ExerciseImage({ src, alt }) {
   const [broken, setBroken] = useState(false)
   if (!src || broken) {
@@ -38,65 +57,35 @@ function ExerciseImage({ src, alt }) {
       </div>
     )
   }
-  return (
-    <img src={src} alt={alt} onError={() => setBroken(true)} className="h-full w-full object-cover" />
-  )
+  return <img src={src} alt={alt} onError={() => setBroken(true)} className="h-full w-full object-cover" />
 }
 
-const ringGeom = size => {
-  const stroke = 8
-  const r = (size - stroke) / 2
-  return { stroke, r, c: size / 2, circumference: 2 * Math.PI * r }
-}
+const RING = 260
+const STROKE = 8
+const R = (RING - STROKE) / 2
+const CIRC = 2 * Math.PI * R
 
-const mmss = totalSec => {
-  const s = Math.max(0, Math.floor(totalSec))
-  return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
-}
-
-// Fase di recupero: schermata dedicata. NON avanza da sola: al raggiungimento dello zero
-// il countdown diventa un cronometro che conta all'insu', così chi ha bisogno di più
-// recupero non viene interrotto. Si prosegue solo col pulsante.
-// L'anello e' guidato da requestAnimationFrame invece che da un tick al secondo, per uno
-// scorrimento fluido. Colori: accento come base, rosso negli ultimi 5 secondi, giallo in
-// cronometro (con lo slittamento se l'accento e' rosso — vedi ringColor).
-function RestPhase({ total, step, accent, onProceed }) {
+// Fase di recupero. Il tempo si deriva dall'ISTANTE DI INIZIO nel contesto, così player
+// e pill di background restano allineati. Allo zero non avanza da solo: diventa un
+// cronometro (+mm:ss). Colori: accento, rosso negli ultimi 5s, giallo in cronometro
+// (con lo slittamento se l'accento è rosso).
+function RestPhase({ restStartedAt, restTotal, step, accent, onProceed }) {
   const { t } = useLang()
-  const size = 260
-  const { stroke, r, c, circumference } = ringGeom(size)
-
-  const [startedAt] = useState(() => Date.now())
-  const [nowMs, setNowMs] = useState(() => Date.now())
-  useEffect(() => {
-    let raf
-    const loop = () => {
-      setNowMs(Date.now())
-      raf = requestAnimationFrame(loop)
-    }
-    raf = requestAnimationFrame(loop)
-    return () => cancelAnimationFrame(raf)
-  }, [])
-
-  const elapsed = Math.max(0, (nowMs - startedAt) / 1000)
-  const overtime = elapsed >= total
-  const secondsLeft = overtime ? 0 : Math.ceil(total - elapsed)
-  const overSec = overtime ? Math.floor(elapsed - total) : 0
-
-  // Countdown: l'anello si svuota; cronometro: resta pieno e cambia solo colore.
-  const fraction = overtime || total <= 0 ? 1 : Math.max(0, (total - elapsed) / total)
+  const now = useAnimatedNow(true)
+  const { overtime, secondsLeft, overSec, fraction } = restState(restStartedAt, restTotal, now)
   const color = ringColor(accent, { overtime, secondsLeft })
   const display = overtime ? `+${mmss(overSec)}` : mmss(secondsLeft)
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center px-8 nut-fade">
-      <div className="relative" style={{ width: size, height: size }}>
-        <svg viewBox={`0 0 ${size} ${size}`} className="w-full h-full -rotate-90">
-          <circle cx={c} cy={c} r={r} fill="none" stroke="var(--ring-track)" strokeWidth={stroke} />
+      <div className="relative" style={{ width: RING, height: RING }}>
+        <svg viewBox={`0 0 ${RING} ${RING}`} className="w-full h-full -rotate-90">
+          <circle cx={RING / 2} cy={RING / 2} r={R} fill="none" stroke="var(--ring-track)" strokeWidth={STROKE} />
           <circle
-            cx={c} cy={c} r={r} fill="none"
-            stroke={color} strokeWidth={stroke} strokeLinecap="round"
-            strokeDasharray={circumference}
-            strokeDashoffset={circumference * (1 - fraction)}
+            cx={RING / 2} cy={RING / 2} r={R} fill="none"
+            stroke={color} strokeWidth={STROKE} strokeLinecap="round"
+            strokeDasharray={CIRC}
+            strokeDashoffset={CIRC * (1 - fraction)}
             style={{ transition: 'stroke 400ms ease' }}
           />
         </svg>
@@ -113,8 +102,6 @@ function RestPhase({ total, step, accent, onProceed }) {
       <p className="mt-10 text-xl font-bold text-center">{step?.nome}</p>
       <p className="mt-1 text-sm text-[color:var(--text-dim)]">{stepLabel(step, t)}</p>
 
-      {/* Non c'e' piu' auto-avanzamento: durante il recupero "Salta" accorcia, in
-          cronometro "Avanti" prosegue. Entrambi passano alla serie successiva. */}
       <button
         onClick={onProceed}
         className="mt-auto mb-8 w-full max-w-sm rounded-full py-4 font-bold transition-colors"
@@ -136,30 +123,21 @@ function DonePhase({ scheda, steps, startedAt, onExit }) {
     { value: exerciseCount(steps), labelKey: 'player.exercises' },
     { value: steps.length, labelKey: 'player.sets' },
   ]
-
   return (
     <div className="flex-1 flex flex-col items-center justify-center px-6 nut-fade">
-      <div
-        className="h-20 w-20 rounded-full flex items-center justify-center"
-        style={{ backgroundColor: 'var(--fill-1)' }}
-      >
+      <div className="h-20 w-20 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--fill-1)' }}>
         <IoCheckmarkCircle className="text-5xl" style={{ color: 'var(--accent)' }} />
       </div>
-
       <h1 className="mt-6 text-3xl font-extrabold text-center leading-tight">{t('player.completed')}</h1>
       <p className="mt-1 text-[color:var(--text-dim)]">{scheda?.nome}</p>
-
       <div className="mt-8 grid grid-cols-3 gap-3 w-full max-w-sm">
         {stats.map(s => (
           <div key={s.labelKey} className="rounded-2xl bg-[var(--surface)] border border-[color:var(--border-1)] p-4 text-center">
             <p className="text-2xl font-extrabold tabular-nums">{s.value}</p>
-            <p className="mt-1 text-[10px] uppercase tracking-[0.08em] text-[color:var(--text-dim)]">
-              {t(s.labelKey)}
-            </p>
+            <p className="mt-1 text-[10px] uppercase tracking-[0.08em] text-[color:var(--text-dim)]">{t(s.labelKey)}</p>
           </div>
         ))}
       </div>
-
       <button
         onClick={onExit}
         className="mt-auto mb-8 w-full max-w-sm rounded-full py-4 font-bold"
@@ -171,71 +149,28 @@ function DonePhase({ scheda, steps, startedAt, onExit }) {
   )
 }
 
-// Modalità di esecuzione a tutto schermo: accompagna dalla prima all'ultima serie
-// alternando esercizio e recupero, senza mai far tornare alla scheda.
-// `onFinish(riepilogo)` viene chiamata solo se l'allenamento è stato COMPLETATO:
-// uscendo a metà non si registra nulla, perché non è un allenamento svolto.
-function WorkoutPlayer({ scheda, onExit, onFinish }) {
+// Modalità di esecuzione a tutto schermo, guidata dal contesto: si mostra solo quando
+// c'è una sessione ED è in primo piano. Il tasto "riduci" la manda in background (pill
+// in Layout) senza interromperla; la X la abbandona.
+function WorkoutPlayer() {
   const { t } = useLang()
   const { theme } = useTheme()
-  useScrollLock()
+  const { session, foreground, completeSet, proceed, exitSession, sendToBackground } = useWorkoutSession()
+  const visible = Boolean(session) && foreground
+  useScrollLock(visible)
+  const nowClock = useAnimatedNow(visible)
 
-  const [steps] = useState(() => buildSteps(scheda))
-  const [index, setIndex] = useState(0)
-  const [phase, setPhase] = useState('exercise') // exercise | rest | done
-  const [startedAt] = useState(() => Date.now())
-  const [elapsed, setElapsed] = useState('00:00')
+  if (!visible) return null
 
-  const restTotal = Number(scheda?.rest) > 0 ? Number(scheda.rest) : DEFAULT_REST
+  const { scheda, steps, index, phase, startedAt, restStartedAt, restTotal } = session
   const step = steps[index]
-  const finishedRef = useRef(false)
 
-  // Cronometro dell'intero allenamento, in alto.
-  useEffect(() => {
-    const id = setInterval(() => setElapsed(formatElapsed(startedAt)), 1000)
-    return () => clearInterval(id)
-  }, [startedAt])
-
-  // Segnala il completamento una volta sola, quando si arriva alla fine.
-  useEffect(() => {
-    if (phase !== 'done' || finishedRef.current) return
-    finishedRef.current = true
-    onFinish?.({
-      durationMin: elapsedMinutes(startedAt),
-      exercises: exerciseCount(steps),
-      sets: steps.length,
-    })
-  }, [phase, onFinish, startedAt, steps])
-
-  function advance() {
-    setIndex(i => {
-      const next = i + 1
-      if (next >= steps.length) {
-        setPhase('done')
-        return i
-      }
-      setPhase('exercise')
-      return next
-    })
-  }
-
-  // Serie completata: si va SEMPRE al recupero, tranne dopo l'ultima, dove il recupero
-  // non avrebbe scopo e si passa direttamente al riepilogo.
-  function completeSet() {
-    if (index + 1 >= steps.length) {
-      setPhase('done')
-      return
-    }
-    setPhase('rest')
-  }
-
-  // Scheda senza serie: non c'è nulla da eseguire, meglio dirlo che mostrare un player vuoto.
   if (!steps.length) {
     return (
       <div className="fixed inset-0 z-[70] bg-[var(--body-bg)] flex flex-col items-center justify-center px-8 text-center">
         <p className="text-sm text-[color:var(--text-muted)]">{t('player.empty')}</p>
         <button
-          onClick={onExit}
+          onClick={exitSession}
           className="mt-6 rounded-full px-6 py-3 font-bold"
           style={{ backgroundColor: 'var(--accent)', color: 'var(--on-accent)' }}
         >
@@ -247,32 +182,46 @@ function WorkoutPlayer({ scheda, onExit, onFinish }) {
 
   return (
     <div className="fixed inset-0 z-[70] bg-[var(--body-bg)] text-[color:var(--text)] flex flex-col max-w-[430px] mx-auto">
-      {/* Intestazione: avanzamento, uscita e cronometro. Resta identica in tutte le fasi
-          così non "salta" passando da esercizio a recupero. */}
       <div className="px-5 pt-4 shrink-0">
         <ProgressSegments total={steps.length} done={phase === 'done' ? steps.length : index} />
         <div className="flex items-center justify-between mt-3">
-          <button onClick={onExit} aria-label={t('player.exit')} className="text-[color:var(--text-muted)] hover:text-[color:var(--text)] transition-colors">
-            <IoClose className="text-2xl" />
+          {/* Riduci: manda in background senza interrompere. */}
+          <button
+            onClick={sendToBackground}
+            aria-label={t('player.background')}
+            className="text-[color:var(--text-muted)] hover:text-[color:var(--text)] transition-colors"
+          >
+            <IoChevronDown className="text-2xl" />
           </button>
-          <span className="text-xs tabular-nums text-[color:var(--text-dim)]">{elapsed}</span>
-          <span className="text-xs tabular-nums text-[color:var(--text-dim)]">
-            {Math.min(index + 1, steps.length)}/{steps.length}
-          </span>
+          <span className="text-xs tabular-nums text-[color:var(--text-dim)]">{formatElapsed(startedAt, nowClock)}</span>
+          <div className="flex items-center gap-4">
+            <span className="text-xs tabular-nums text-[color:var(--text-dim)]">
+              {Math.min(index + 1, steps.length)}/{steps.length}
+            </span>
+            {/* Abbandona la sessione. */}
+            <button onClick={exitSession} aria-label={t('player.exit')} className="text-[color:var(--text-muted)] hover:text-[color:var(--text)] transition-colors">
+              <IoClose className="text-2xl" />
+            </button>
+          </div>
         </div>
       </div>
 
       {phase === 'rest' && (
-        <RestPhase key={index} total={restTotal} step={step} accent={theme.accent} onProceed={advance} />
+        <RestPhase
+          key={index}
+          restStartedAt={restStartedAt}
+          restTotal={restTotal}
+          step={step}
+          accent={theme.accent}
+          onProceed={proceed}
+        />
       )}
-      {phase === 'done' && <DonePhase scheda={scheda} steps={steps} startedAt={startedAt} onExit={onExit} />}
+      {phase === 'done' && <DonePhase scheda={scheda} steps={steps} startedAt={startedAt} onExit={exitSession} />}
 
       {phase === 'exercise' && (
         <div className="flex-1 flex flex-col nut-fade min-h-0">
-          {/* 65% dello schermo all'immagine, come da progetto. */}
           <div className="relative overflow-hidden rounded-b-3xl" style={{ flex: '0 0 65%' }}>
             <ExerciseImage src={step.foto} alt={step.nome} />
-            {/* Sfumatura verso il fondo: fa respirare il testo sotto senza scurire la foto. */}
             <div
               className="pointer-events-none absolute inset-x-0 bottom-0 h-32"
               style={{ background: 'linear-gradient(to top, var(--body-bg), transparent)' }}
@@ -281,9 +230,7 @@ function WorkoutPlayer({ scheda, onExit, onFinish }) {
 
           <div className="flex-1 px-6 pt-5 pb-8 flex flex-col min-h-0">
             <h1 className="text-3xl font-extrabold leading-tight">{step.nome}</h1>
-            <p className="mt-2 text-sm uppercase tracking-[0.08em] text-[color:var(--text-dim)]">
-              {stepLabel(step, t)}
-            </p>
+            <p className="mt-2 text-sm uppercase tracking-[0.08em] text-[color:var(--text-dim)]">{stepLabel(step, t)}</p>
 
             {(step.kg || step.reps) && (
               <div className="mt-4 flex items-center gap-2">
@@ -302,9 +249,7 @@ function WorkoutPlayer({ scheda, onExit, onFinish }) {
 
             <div className="mt-auto flex items-end justify-end">
               <div className="flex flex-col items-center gap-1">
-                <span className="text-[10px] uppercase tracking-[0.08em] text-[color:var(--text-dim)]">
-                  {t('player.next')}
-                </span>
+                <span className="text-[10px] uppercase tracking-[0.08em] text-[color:var(--text-dim)]">{t('player.next')}</span>
                 <button
                   onClick={completeSet}
                   aria-label={t('player.next')}

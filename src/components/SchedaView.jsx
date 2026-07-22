@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { IoAdd, IoPlay, IoStop, IoBarbellOutline, IoClose, IoPencil, IoReorderTwoOutline } from 'react-icons/io5'
+import { IoAdd, IoPlay, IoBarbellOutline, IoClose, IoPencil, IoReorderTwoOutline } from 'react-icons/io5'
 import {
   DndContext, DragOverlay, PointerSensor, useSensor, useSensors, closestCenter,
 } from '@dnd-kit/core'
@@ -11,16 +11,10 @@ import TopBar from './TopBar'
 import EsercizioEditor from './EsercizioEditor'
 import ConfirmModal from './ConfirmModal'
 import RestPicker from './RestPicker'
-import WorkoutPlayer from './WorkoutPlayer'
 import { useLang } from '../context/LanguageContext'
-import { useAuth } from '../context/AuthContext'
-import { pushSession } from '../services/workoutSessions'
+import { useWorkoutSession } from '../context/WorkoutSessionContext'
 import useLongPress from '../hooks/useLongPress'
 import { editorRows, formatKg } from '../data/exerciseSets'
-import {
-  loadActiveWorkout, saveActiveWorkout, clearActiveWorkout, elapsedSec, formatElapsed,
-  loadWorkoutLog, saveWorkoutLog, addSession, sessionFromScheda,
-} from '../data/workoutLog'
 
 function newId() {
   return (crypto?.randomUUID && crypto.randomUUID()) || String(Date.now())
@@ -241,7 +235,7 @@ function EsercizioCard({ ex, editMode, onEnterEdit, onDelete, onEdit, onToggleSt
 // Pagina interna (NON una rotta) del dettaglio scheda.
 function SchedaView({ scheda, onExercisesChange, onRestChange, onBack }) {
   const { t } = useLang()
-  const { user } = useAuth()
+  const { startSession } = useWorkoutSession()
   const esercizi = scheda.esercizi
   const [editingId, setEditingId] = useState(null)
   const [newDraft, setNewDraft] = useState(null)
@@ -250,48 +244,6 @@ function SchedaView({ scheda, onExercisesChange, onRestChange, onBack }) {
   // Stato tenuto qui (proprietario della lista) così è estendibile a future azioni.
   const [editMode, setEditMode] = useState(false)
   const [deleteExId, setDeleteExId] = useState(null) // esercizio in attesa di conferma eliminazione
-
-  // Allenamento in corso: si salva l'istante di INIZIO (così sopravvive a refresh e
-  // cambio pagina) e la durata si MISURA alla fine, senza chiederla a mano.
-  // `elapsed` è solo il cronometro a schermo, aggiornato ogni secondo.
-  const [playerOpen, setPlayerOpen] = useState(false)
-  const [active, setActive] = useState(loadActiveWorkout)
-  const [elapsed, setElapsed] = useState(() => {
-    const a = loadActiveWorkout() // sessione ripresa dopo un refresh: riparte dal reale
-    return a ? elapsedSec(a.startedAt) : 0
-  })
-
-  useEffect(() => {
-    if (!active) return undefined
-    const id = setInterval(() => setElapsed(elapsedSec(active.startedAt)), 1000)
-    return () => clearInterval(id)
-  }, [active])
-
-  // Avvia: registra l'inizio. Termina: calcola i minuti reali e scrive la sessione nel
-  // registro (fonte di activity trend e kcal stimate in Statistiche).
-  function toggleWorkout() {
-    if (active) {
-      const min = Math.round(elapsedSec(active.startedAt) / 60)
-      const session = sessionFromScheda(scheda, min)
-      saveWorkoutLog(addSession(loadWorkoutLog(), session))
-      // Da loggato la spingo subito sul cloud: il mirror completo vive in Statistiche,
-      // e senza questo una sessione registrata e mai seguita da una visita a quella
-      // pagina resterebbe solo su questo dispositivo. Upsert per id → niente doppioni.
-      // Se fallisce resta comunque salvata in locale: local-first, il cloud è lo specchio.
-      if (user) {
-        pushSession(user.id, session).catch(err =>
-          console.error('Invio allenamento fallito (resta salvato in locale):', err))
-      }
-      clearActiveWorkout()
-      setActive(null)
-      setElapsed(0)
-    } else {
-      const next = { schedaId: scheda.id, nome: scheda.nome || '', startedAt: Date.now() }
-      saveActiveWorkout(next)
-      setActive(next)
-      setElapsed(0)
-    }
-  }
 
   // Uscita dalla modalità modifica: tocco FUORI dalle card. Disattivata mentre la
   // conferma di eliminazione è aperta (confermare o annullare non fa uscire).
@@ -361,23 +313,16 @@ function SchedaView({ scheda, onExercisesChange, onRestChange, onBack }) {
         {/* Il nome si sceglie alla creazione della scheda: qui è in sola lettura */}
         <h2 className="min-w-0 truncate text-2xl font-extrabold">{scheda.nome}</h2>
 
-        {/* Avvia/termina l'allenamento: a sessione attiva mostra il cronometro e alla
-            fine scrive la durata reale nel registro (alimenta Statistiche). */}
+        {/* Avvia il Workout Player: la modalita' di esecuzione a tutto schermo (vive nel
+            contesto, quindi prosegue anche uscendo dalla scheda). */}
         <button
           type="button"
-          onClick={() => (active ? toggleWorkout() : setPlayerOpen(true))}
-          aria-label={active ? t('palestra.stopWorkout') : t('palestra.play')}
-          className={`${HEADER_BTN} w-20 gap-1`}
-          style={active ? { backgroundColor: '#ef4444', color: '#fff' } : { backgroundColor: GREEN, color: '#fff' }}
+          onClick={() => startSession(scheda)}
+          aria-label={t('palestra.play')}
+          className={`${HEADER_BTN} w-20`}
+          style={{ backgroundColor: GREEN, color: '#fff' }}
         >
-          {active ? (
-            <>
-              <IoStop className="text-sm shrink-0" />
-              <span className="text-xs font-bold tabular-nums">{formatElapsed(elapsed)}</span>
-            </>
-          ) : (
-            <IoPlay className="text-lg" />
-          )}
+          <IoPlay className="text-lg" />
         </button>
 
         {/* Recupero della SCHEDA: indipendente per ogni scheda (fallback al globale
@@ -437,25 +382,8 @@ function SchedaView({ scheda, onExercisesChange, onRestChange, onBack }) {
         )}
       </div>
 
-      {/* Modalita' di esecuzione a tutto schermo. La sessione si registra SOLO se
-          l'allenamento e' stato completato: uscendo a meta' non e' un allenamento svolto. */}
-      {playerOpen && (
-        <WorkoutPlayer
-          scheda={scheda}
-          onExit={() => setPlayerOpen(false)}
-          onFinish={summary => {
-            const session = {
-              ...sessionFromScheda(scheda, summary.durationMin),
-              exercises: summary.exercises,
-            }
-            saveWorkoutLog(addSession(loadWorkoutLog(), session))
-            if (user) {
-              pushSession(user.id, session).catch(err =>
-                console.error('Invio allenamento fallito (resta salvato in locale):', err))
-            }
-          }}
-        />
-      )}
+      {/* Il Workout Player e la sua pill vivono in Layout: la sessione prosegue anche
+          uscendo da questa scheda. Qui si limita ad avviarla. */}
 
       {editorProps && <EsercizioEditor key={editorProps.esercizio.id} {...editorProps} />}
 

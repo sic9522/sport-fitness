@@ -152,3 +152,31 @@ export function ringColor(accent, { overtime, secondsLeft }) {
   if (secondsLeft <= LAST_SECONDS) return c.danger
   return c.base
 }
+
+// Stato del recupero calcolato dall'ISTANTE DI INIZIO: player e pill lo derivano dalla
+// stessa sorgente, quindi restano allineati anche se uno dei due non è a schermo.
+export function restState(restStartedAt, restTotal, now = Date.now()) {
+  const elapsed = Math.max(0, (now - Number(restStartedAt || 0)) / 1000)
+  const overtime = elapsed >= restTotal
+  return {
+    overtime,
+    secondsLeft: overtime ? 0 : Math.ceil(restTotal - elapsed),
+    overSec: overtime ? Math.floor(elapsed - restTotal) : 0,
+    fraction: overtime || restTotal <= 0 ? 1 : Math.max(0, (restTotal - elapsed) / restTotal),
+  }
+}
+
+// Info del passo corrente per la pill di background. Il numero dell'esercizio conta gli
+// esercizi DISTINTI, non le serie: alla seconda esercizio dopo uno split da 3 serie è
+// "2", non "4". Le ripetizioni sono quelle della serie corrente (con lo split cambiano
+// da una serie all'altra).
+export function currentStepInfo(session) {
+  const step = session?.steps?.[session?.index]
+  if (!step) return null
+  return {
+    exerciseNumber: step.exerciseIndex + 1,
+    reps: step.reps,
+    nome: step.nome,
+    phase: session.phase,
+  }
+}

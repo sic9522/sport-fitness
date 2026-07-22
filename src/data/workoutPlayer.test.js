@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   buildSteps, exerciseCount, stepLabel, nextIndex, progressAt, elapsedMinutes, formatElapsed,
-  hexHue, isReddish, ringColor,
+  hexHue, isReddish, ringColor, restState, currentStepInfo,
 } from './workoutPlayer'
 
 // Traduzione finta: restituisce chiave e parametri, così i test verificano la LOGICA
@@ -171,5 +171,48 @@ describe('ringColor', () => {
 
   it('il sesto secondo prima della fine e ancora base', () => {
     expect(ringColor(lime, { overtime: false, secondsLeft: 6 })).toBe(lime)
+  })
+})
+
+describe('restState', () => {
+  it('countdown: secondi rimasti e frazione che cala', () => {
+    const st = restState(0, 60, 20_000) // 20s trascorsi su 60
+    expect(st.overtime).toBe(false)
+    expect(st.secondsLeft).toBe(40)
+    expect(st.fraction).toBeCloseTo(40 / 60, 5)
+  })
+
+  it('a fine countdown passa in overtime e conta all insu', () => {
+    const st = restState(0, 60, 63_000) // 3s oltre
+    expect(st.overtime).toBe(true)
+    expect(st.secondsLeft).toBe(0)
+    expect(st.overSec).toBe(3)
+    expect(st.fraction).toBe(1)
+  })
+
+  it('recupero nullo: subito overtime, niente divisione per zero', () => {
+    const st = restState(0, 0, 1000)
+    expect(st.overtime).toBe(true)
+    expect(st.fraction).toBe(1)
+  })
+})
+
+describe('currentStepInfo', () => {
+  it('numera gli ESERCIZI distinti, non le serie', () => {
+    // esercizio A con 3 serie, poi esercizio B: la 1a serie di B è "esercizio 2"
+    const session = { index: 3, phase: 'exercise', steps: buildSteps({ esercizi: [exNoSplit, exSplit] }) }
+    const info = currentStepInfo(session)
+    expect(info.exerciseNumber).toBe(2)   // NON 4
+    expect(info.reps).toBe('12')          // prima serie dello split
+  })
+
+  it('nella prima serie del primo esercizio è "1"', () => {
+    const session = { index: 0, phase: 'rest', steps: buildSteps({ esercizi: [exNoSplit] }) }
+    expect(currentStepInfo(session).exerciseNumber).toBe(1)
+  })
+
+  it('sessione o passo assente → null', () => {
+    expect(currentStepInfo(null)).toBeNull()
+    expect(currentStepInfo({ index: 9, steps: [] })).toBeNull()
   })
 })
