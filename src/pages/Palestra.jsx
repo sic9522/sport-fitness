@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { IoAdd, IoBarbell, IoChevronBack } from 'react-icons/io5'
 import TopBar from '../components/TopBar'
-import RestPicker from '../components/RestPicker'
 import GiornataView from '../components/GiornataView'
 import SchedaView from '../components/SchedaView'
 import GiornataCard from '../components/GiornataCard'
@@ -266,7 +265,9 @@ function Palestra() {
 
       <TopBar icon={IoBarbell} title={t('title.myworkout')} />
 
-      {/* Section Header: a destra il timer (sopra) e il tasto "crea giornata" (sotto, allineato) */}
+      {/* Section Header: a destra il tasto "crea giornata". Il selettore di recupero
+          globale è stato tolto: il recupero ora è per-scheda (scheda.rest, dentro la
+          singola scheda), quindi qui non serviva. */}
       <div className="px-5 pt-2 pb-6 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className="text-3xl font-extrabold leading-tight">
@@ -278,11 +279,7 @@ function Palestra() {
         </div>
 
         <div className="flex flex-col items-center gap-2 shrink-0">
-          {/* Selettore recupero: scrive il valore condiviso usato da Recupero */}
-          <RestPicker />
-
-          {/* Crea giornata: allineato verticalmente sotto il timer, sulla linea del sottotitolo */}
-          <div className="relative mt-2">
+          <div className="relative">
             <button
               onClick={() => { if (canAdd) { setPickerMode('root'); setPickerOpen(o => !o) } }}
               disabled={!canAdd}
