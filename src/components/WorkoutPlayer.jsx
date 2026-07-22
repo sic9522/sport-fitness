@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { IoClose, IoCheckmark, IoBarbellOutline, IoCheckmarkCircle } from 'react-icons/io5'
 import { useLang } from '../context/LanguageContext'
+import { useTheme } from '../context/ThemeContext'
 import useScrollLock from '../hooks/useScrollLock'
 import {
-  buildSteps, exerciseCount, stepLabel, elapsedMinutes, formatElapsed,
+  buildSteps, exerciseCount, stepLabel, elapsedMinutes, formatElapsed, ringColor,
 } from '../data/workoutPlayer'
 import { formatKg } from '../data/exerciseSets'
 
@@ -48,13 +49,43 @@ const ringGeom = size => {
   return { stroke, r, c: size / 2, circumference: 2 * Math.PI * r }
 }
 
-// Fase di recupero: schermata dedicata, come da progetto. Al termine torna da sola alla
-// serie successiva, così l'utente non deve toccare nulla fra una serie e l'altra.
-function RestPhase({ seconds, total, step, onSkip }) {
+const mmss = totalSec => {
+  const s = Math.max(0, Math.floor(totalSec))
+  return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
+}
+
+// Fase di recupero: schermata dedicata. NON avanza da sola: al raggiungimento dello zero
+// il countdown diventa un cronometro che conta all'insu', così chi ha bisogno di più
+// recupero non viene interrotto. Si prosegue solo col pulsante.
+// L'anello e' guidato da requestAnimationFrame invece che da un tick al secondo, per uno
+// scorrimento fluido. Colori: accento come base, rosso negli ultimi 5 secondi, giallo in
+// cronometro (con lo slittamento se l'accento e' rosso — vedi ringColor).
+function RestPhase({ total, step, accent, onProceed }) {
   const { t } = useLang()
   const size = 260
   const { stroke, r, c, circumference } = ringGeom(size)
-  const progress = total > 0 ? Math.max(0, Math.min(1, seconds / total)) : 0
+
+  const [startedAt] = useState(() => Date.now())
+  const [nowMs, setNowMs] = useState(() => Date.now())
+  useEffect(() => {
+    let raf
+    const loop = () => {
+      setNowMs(Date.now())
+      raf = requestAnimationFrame(loop)
+    }
+    raf = requestAnimationFrame(loop)
+    return () => cancelAnimationFrame(raf)
+  }, [])
+
+  const elapsed = Math.max(0, (nowMs - startedAt) / 1000)
+  const overtime = elapsed >= total
+  const secondsLeft = overtime ? 0 : Math.ceil(total - elapsed)
+  const overSec = overtime ? Math.floor(elapsed - total) : 0
+
+  // Countdown: l'anello si svuota; cronometro: resta pieno e cambia solo colore.
+  const fraction = overtime || total <= 0 ? 1 : Math.max(0, (total - elapsed) / total)
+  const color = ringColor(accent, { overtime, secondsLeft })
+  const display = overtime ? `+${mmss(overSec)}` : mmss(secondsLeft)
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center px-8 nut-fade">
@@ -63,18 +94,18 @@ function RestPhase({ seconds, total, step, onSkip }) {
           <circle cx={c} cy={c} r={r} fill="none" stroke="var(--ring-track)" strokeWidth={stroke} />
           <circle
             cx={c} cy={c} r={r} fill="none"
-            stroke="var(--accent)" strokeWidth={stroke} strokeLinecap="round"
+            stroke={color} strokeWidth={stroke} strokeLinecap="round"
             strokeDasharray={circumference}
-            strokeDashoffset={circumference * (1 - progress)}
-            style={{ transition: 'stroke-dashoffset 1s linear' }}
+            strokeDashoffset={circumference * (1 - fraction)}
+            style={{ transition: 'stroke 400ms ease' }}
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span className="text-[10px] uppercase tracking-[0.08em] text-[color:var(--text-dim)]">
-            {t('player.rest')}
+            {overtime ? t('player.overtime') : t('player.rest')}
           </span>
-          <span className="text-6xl font-extrabold tabular-nums mt-1">
-            {String(Math.floor(seconds / 60)).padStart(2, '0')}:{String(seconds % 60).padStart(2, '0')}
+          <span className="text-6xl font-extrabold tabular-nums mt-1" style={{ color: overtime ? color : undefined }}>
+            {display}
           </span>
         </div>
       </div>
@@ -82,11 +113,16 @@ function RestPhase({ seconds, total, step, onSkip }) {
       <p className="mt-10 text-xl font-bold text-center">{step?.nome}</p>
       <p className="mt-1 text-sm text-[color:var(--text-dim)]">{stepLabel(step, t)}</p>
 
+      {/* Non c'e' piu' auto-avanzamento: durante il recupero "Salta" accorcia, in
+          cronometro "Avanti" prosegue. Entrambi passano alla serie successiva. */}
       <button
-        onClick={onSkip}
-        className="mt-auto mb-8 w-full max-w-sm rounded-full py-4 font-bold border border-[color:var(--border-2)] hover:bg-[var(--surface-3)] transition-colors"
+        onClick={onProceed}
+        className="mt-auto mb-8 w-full max-w-sm rounded-full py-4 font-bold transition-colors"
+        style={overtime
+          ? { backgroundColor: 'var(--accent)', color: 'var(--on-accent)' }
+          : { border: '1px solid var(--border-2)' }}
       >
-        {t('player.skip')}
+        {overtime ? t('player.next') : t('player.skip')}
       </button>
     </div>
   )
@@ -141,12 +177,12 @@ function DonePhase({ scheda, steps, startedAt, onExit }) {
 // uscendo a metà non si registra nulla, perché non è un allenamento svolto.
 function WorkoutPlayer({ scheda, onExit, onFinish }) {
   const { t } = useLang()
+  const { theme } = useTheme()
   useScrollLock()
 
   const [steps] = useState(() => buildSteps(scheda))
   const [index, setIndex] = useState(0)
   const [phase, setPhase] = useState('exercise') // exercise | rest | done
-  const [rest, setRest] = useState(0)
   const [startedAt] = useState(() => Date.now())
   const [elapsed, setElapsed] = useState('00:00')
 
@@ -159,23 +195,6 @@ function WorkoutPlayer({ scheda, onExit, onFinish }) {
     const id = setInterval(() => setElapsed(formatElapsed(startedAt)), 1000)
     return () => clearInterval(id)
   }, [startedAt])
-
-  // Countdown del recupero: a zero riparte da solo con la serie successiva.
-  useEffect(() => {
-    if (phase !== 'rest') return undefined
-    const id = setInterval(() => {
-      setRest(s => {
-        if (s <= 1) {
-          clearInterval(id)
-          advance()
-          return 0
-        }
-        return s - 1
-      })
-    }, 1000)
-    return () => clearInterval(id)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase])
 
   // Segnala il completamento una volta sola, quando si arriva alla fine.
   useEffect(() => {
@@ -207,7 +226,6 @@ function WorkoutPlayer({ scheda, onExit, onFinish }) {
       setPhase('done')
       return
     }
-    setRest(restTotal)
     setPhase('rest')
   }
 
@@ -244,7 +262,9 @@ function WorkoutPlayer({ scheda, onExit, onFinish }) {
         </div>
       </div>
 
-      {phase === 'rest' && <RestPhase seconds={rest} total={restTotal} step={step} onSkip={advance} />}
+      {phase === 'rest' && (
+        <RestPhase key={index} total={restTotal} step={step} accent={theme.accent} onProceed={advance} />
+      )}
       {phase === 'done' && <DonePhase scheda={scheda} steps={steps} startedAt={startedAt} onExit={onExit} />}
 
       {phase === 'exercise' && (

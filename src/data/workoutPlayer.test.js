@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   buildSteps, exerciseCount, stepLabel, nextIndex, progressAt, elapsedMinutes, formatElapsed,
+  hexHue, isReddish, ringColor,
 } from './workoutPlayer'
 
 // Traduzione finta: restituisce chiave e parametri, così i test verificano la LOGICA
@@ -122,5 +123,53 @@ describe('elapsedMinutes / formatElapsed', () => {
   it('formatta mm:ss', () => {
     expect(formatElapsed(0, 0)).toBe('00:00')
     expect(formatElapsed(0, 95_000)).toBe('01:35')
+  })
+})
+
+describe('hexHue / isReddish', () => {
+  it('riconosce le tinte principali', () => {
+    expect(hexHue('#ff0000')).toBe(0)
+    expect(hexHue('#00ff00')).toBe(120)
+    expect(hexHue('#0000ff')).toBe(240)
+  })
+
+  it('un accento rosso e riconosciuto come tale', () => {
+    expect(isReddish('#ef4444')).toBe(true)
+    expect(isReddish('#ff3b30')).toBe(true)
+  })
+
+  it('gli accenti della palette NON sono rossi', () => {
+    expect(isReddish('#ccff00')).toBe(false) // lime
+    expect(isReddish('#2f6fed')).toBe(false) // cobalto
+    expect(isReddish('#0fb5a5')).toBe(false) // teal
+    expect(isReddish('#7c74f0')).toBe(false) // indaco
+  })
+
+  it('valori non validi non esplodono', () => {
+    expect(hexHue('')).toBeNull()
+    expect(hexHue(null)).toBeNull()
+    expect(isReddish('xyz')).toBe(false)
+  })
+})
+
+describe('ringColor', () => {
+  const lime = '#ccff00'
+  const red = '#ef4444'
+
+  it('accento normale: base, poi rosso negli ultimi 5s, poi giallo in cronometro', () => {
+    expect(ringColor(lime, { overtime: false, secondsLeft: 30 })).toBe(lime)
+    expect(ringColor(lime, { overtime: false, secondsLeft: 5 })).toBe('#ef4444')
+    expect(ringColor(lime, { overtime: false, secondsLeft: 1 })).toBe('#ef4444')
+    expect(ringColor(lime, { overtime: true, secondsLeft: 0 })).toBe('#f59e0b')
+  })
+
+  it('accento ROSSO: gli ultimi 5s diventano gialli e il cronometro verde', () => {
+    expect(ringColor(red, { overtime: false, secondsLeft: 30 })).toBe(red)
+    expect(ringColor(red, { overtime: false, secondsLeft: 4 })).toBe('#f59e0b')
+    expect(ringColor(red, { overtime: true, secondsLeft: 0 })).toBe('#22c55e')
+  })
+
+  it('il sesto secondo prima della fine e ancora base', () => {
+    expect(ringColor(lime, { overtime: false, secondsLeft: 6 })).toBe(lime)
   })
 })

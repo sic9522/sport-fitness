@@ -99,3 +99,56 @@ export function formatElapsed(startedAt, now = Date.now()) {
   const sec = Math.max(0, Math.floor((now - Number(startedAt || 0)) / 1000))
   return `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`
 }
+
+// --- Colori del timer di recupero ---
+// La base e' l'accento scelto dall'utente. Negli ultimi 5 secondi diventa rosso per
+// avvisare che il recupero sta per finire; a zero passa a cronometro e diventa giallo.
+// MA se l'accento e' gia' rosso quei due colori si confonderebbero con la base, quindi
+// slittano: pericolo -> giallo, cronometro -> verde.
+const RED = '#ef4444'
+const YELLOW = '#f59e0b'
+const GREEN = '#22c55e'
+const LAST_SECONDS = 5
+
+// Tinta (0-359) di un colore #rrggbb, oppure null se non interpretabile.
+export function hexHue(hex) {
+  const h = String(hex || '').replace('#', '')
+  if (h.length < 6) return null
+  const r = parseInt(h.slice(0, 2), 16) / 255
+  const g = parseInt(h.slice(2, 4), 16) / 255
+  const b = parseInt(h.slice(4, 6), 16) / 255
+  const max = Math.max(r, g, b)
+  const min = Math.min(r, g, b)
+  const d = max - min
+  if (d === 0) return 0 // grigio: tinta convenzionale 0
+  let hue
+  if (max === r) hue = ((g - b) / d) % 6
+  else if (max === g) hue = (b - r) / d + 2
+  else hue = (r - g) / d + 4
+  return (Math.round(hue * 60) + 360) % 360
+}
+
+// L'accento e' "rosso" se la sua tinta cade entro ~20 gradi dal rosso puro.
+export function isReddish(hex) {
+  const h = hexHue(hex)
+  return h != null && (h <= 20 || h >= 340)
+}
+
+// I tre colori della fase di recupero, dato l'accento.
+export function timerColors(accent) {
+  const reddish = isReddish(accent)
+  return {
+    base: accent,
+    danger: reddish ? YELLOW : RED,
+    overtime: reddish ? GREEN : YELLOW,
+  }
+}
+
+// Colore corrente dell'anello: cronometro -> overtime; ultimi 5s del countdown ->
+// danger; altrimenti base.
+export function ringColor(accent, { overtime, secondsLeft }) {
+  const c = timerColors(accent)
+  if (overtime) return c.overtime
+  if (secondsLeft <= LAST_SECONDS) return c.danger
+  return c.base
+}
