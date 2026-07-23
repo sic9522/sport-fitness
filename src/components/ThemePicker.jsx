@@ -1,19 +1,18 @@
 import { useState, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { IoColorPaletteOutline } from 'react-icons/io5'
+import { IoColorPaletteOutline, IoSunnyOutline, IoMoonOutline } from 'react-icons/io5'
 import { useTheme } from '../context/ThemeContext'
 import { useLang } from '../context/LanguageContext'
 
 const DELAY = 5000
 
 function ThemePicker() {
-  const { theme, setTheme, themes } = useTheme()
+  const { theme, setTheme, themes, mode, setMode } = useTheme()
   const { t } = useLang()
   const [open, setOpen] = useState(false)
   const [timerKey, setTimerKey] = useState(0)
   const [timerActive, setTimerActive] = useState(false)
   const closeTimer = useRef(null)
-  const navigate = useNavigate()
+  const dark = mode !== 'light'
 
   function startCloseTimer() {
     if (closeTimer.current) clearTimeout(closeTimer.current)
@@ -45,15 +44,12 @@ function ThemePicker() {
     startCloseTimer()
   }
 
-  function applyCustom() {
-    const saved = JSON.parse(localStorage.getItem('fitpulse-custom-theme') || 'null')
-    if (saved) {
-      setTheme({ id: 'custom', name: 'Personalizzato', ...saved })
-      startCloseTimer()
-    } else {
-      closeImmediately()
-      navigate('/impostazioni/colori')
-    }
+  // Chiaro <-> scuro. Il popover resta aperto col solito countdown: cambiare
+  // modalità è la cosa che si fa più spesso, e chiuderlo costringerebbe a
+  // riaprirlo per accorgersi che si era premuto quello sbagliato.
+  function toggleMode() {
+    setMode(dark ? 'light' : 'dark')
+    startCloseTimer()
   }
 
   return (
@@ -89,17 +85,17 @@ function ThemePicker() {
               {/* Separatore */}
               <div className="w-px h-4 bg-[var(--fill-2)]" />
 
-              {/* Custom arcobaleno */}
+              {/* Chiaro/scuro. L'icona mostra DOVE si va, non dove si è: un sole
+                  su fondo scuro si legge come "porta alla luce", ed è il gesto
+                  che l'utente sta per fare. */}
               <button
-                onClick={applyCustom}
-                className={`w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 overflow-hidden ${
-                  theme.id === 'custom' ? 'border-[color:var(--border-solid)] scale-110' : 'border-[color:var(--border-4)]'
-                }`}
-                style={{
-                  background: 'conic-gradient(from 0deg, #ff0000, #ff8800, #ffff00, #00cc00, #0088ff, #8800ff, #ff0000)',
-                }}
-                title={t('colors.customColor')}
-              />
+                onClick={toggleMode}
+                aria-label={t(dark ? 'colors.light' : 'colors.dark')}
+                title={t(dark ? 'colors.light' : 'colors.dark')}
+                className="w-6 h-6 rounded-full border-2 border-[color:var(--border-4)] flex items-center justify-center transition-transform hover:scale-110 text-[color:var(--text)]"
+              >
+                {dark ? <IoSunnyOutline className="text-sm" /> : <IoMoonOutline className="text-sm" />}
+              </button>
             </div>
 
             {/* Barra countdown — si svuota in DELAY ms, repart da zero ad ogni nuova scelta */}
