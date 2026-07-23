@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { fetchHydration, replaceHydration, fetchHydrationGoal, upsertHydrationGoal } from '../services/hydration'
@@ -6,8 +6,9 @@ import { fetchSessions, replaceSessions } from '../services/workoutSessions'
 import { saveHydration, saveHydrationGoal, hydrationHasData, DEFAULT_HYDRATION_GOAL_ML } from '../data/hydrationDefaults'
 import { saveWorkoutLog, workoutLogHasData } from '../data/workoutLog'
 import { loadInsightsOwner, saveInsightsOwner } from '../data/insightsOwner'
-
-const MIRROR_DELAY = 800 // ms di quiete prima di rispecchiare (accorpa modifiche in raffica)
+import { useDebouncedMirror } from './useDebouncedMirror'
+import { syncFailed } from '../data/syncStatus'
+import { useRefreshOnFocus } from './useRefreshOnFocus'
 
 // Ponte LOCAL-FIRST + MIRROR per IDRATAZIONE e ALLENAMENTI SVOLTI, sullo stesso modello
 // di useNutritionSync. localStorage resta il motore: l'app funziona offline e da non
@@ -28,8 +29,13 @@ export function useInsightsSync(hydration, setHydration, goalMl, setGoalMl, log,
   useEffect(() => { goalRef.current = goalMl }, [goalMl])
   useEffect(() => { logRef.current = log }, [log])
 
-  const startedFor = useRef(null) // login già in riconciliazione (evita doppioni)
-  const readyFor = useRef(null)   // riconciliazione COMPLETATA → il mirror può partire
+  // Ri-legge dal cloud a ogni ritorno in primo piano (vedi useWorkoutSync).
+  const refreshTick = useRefreshOnFocus()
+
+  const startedFor = useRef(null) // riconciliazione già in corso per questa chiave
+  // Riconciliazione COMPLETATA. È STATO, non un ref: al termine il mirror deve
+  // rivalutare la propria condizione, cosa che un ref non provoca.
+  const [readyFor, setReadyFor] = useState(null)
 
   // 1) Riconciliazione una-tantum per utente loggato.
   useEffect(() => {
@@ -37,13 +43,16 @@ export function useInsightsSync(hydration, setHydration, goalMl, setGoalMl, log,
     if (!user) {
       // Logout: azzero i marcatori così il prossimo login riconcilia da capo.
       startedFor.current = null
-      readyFor.current = null
+      // `readyFor` non si tocca: senza utente il mirror è già disattivato, e resettarlo
+      // qui sarebbe un setState sincrono dentro un effect (vietato in React 19).
       return undefined
     }
-    if (startedFor.current === user.id) return undefined
-    startedFor.current = user.id
+    const runKey = `${user.id}:${refreshTick}`
+    if (startedFor.current === runKey) return undefined
+    startedFor.current = runKey
 
     let alive = true
+    let done = false // riconciliazione portata a termine (vedi cleanup)
     ;(async () => {
       try {
         const [remoteHydration, remoteGoal, remoteLog] = await Promise.all([
@@ -88,46 +97,33 @@ export function useInsightsSync(hydration, setHydration, goalMl, setGoalMl, log,
         }
 
         saveInsightsOwner(user.id)
-        readyFor.current = user.id
+        setReadyFor(user.id)
+        done = true
       } catch (err) {
         console.error('Sync statistiche (riconciliazione) fallita:', err)
+        syncFailed('statistiche (riconciliazione)', err)
         startedFor.current = null // il locale resta valido; consenti un nuovo tentativo
       }
     })()
 
-    return () => { alive = false }
-  }, [user, setHydration, setGoalMl, setLog])
+    return () => {
+      alive = false
+      // Riconciliazione interrotta a metà (tipico del doppio mount di StrictMode):
+      // riapre la porta al tentativo successivo, altrimenti il mirror non si attiva mai.
+      if (!done) startedFor.current = null
+    }
+  }, [user, setHydration, setGoalMl, setLog, refreshTick])
 
-  // 2a) Mirror dell'idratazione a ogni modifica, solo dopo la riconciliazione.
-  useEffect(() => {
-    if (!isSupabaseConfigured || !user) return undefined
-    if (readyFor.current !== user.id) return undefined
-    const handle = setTimeout(() => {
-      replaceHydration(user.id, hydration).catch(err =>
-        console.error('Sync idratazione (mirror) fallito:', err))
-    }, MIRROR_DELAY)
-    return () => clearTimeout(handle)
-  }, [hydration, user])
+  // 2) Mirror a ogni modifica, solo dopo la riconciliazione. Il push non si perde se si
+  // lascia la pagina o l'app va in background: se ne occupa useDebouncedMirror.
+  const enabled = Boolean(isSupabaseConfigured && user && readyFor === user.id)
 
-  // 2b) Mirror dell'obiettivo.
-  useEffect(() => {
-    if (!isSupabaseConfigured || !user) return undefined
-    if (readyFor.current !== user.id) return undefined
-    const handle = setTimeout(() => {
-      upsertHydrationGoal(user.id, goalMl).catch(err =>
-        console.error('Sync obiettivo idratazione (mirror) fallito:', err))
-    }, MIRROR_DELAY)
-    return () => clearTimeout(handle)
-  }, [goalMl, user])
+  const pushHydration = useCallback(h => replaceHydration(user.id, h), [user])
+  useDebouncedMirror(hydration, pushHydration, enabled)
 
-  // 2c) Mirror del registro allenamenti.
-  useEffect(() => {
-    if (!isSupabaseConfigured || !user) return undefined
-    if (readyFor.current !== user.id) return undefined
-    const handle = setTimeout(() => {
-      replaceSessions(user.id, log).catch(err =>
-        console.error('Sync allenamenti (mirror) fallito:', err))
-    }, MIRROR_DELAY)
-    return () => clearTimeout(handle)
-  }, [log, user])
+  const pushGoal = useCallback(g => upsertHydrationGoal(user.id, g), [user])
+  useDebouncedMirror(goalMl, pushGoal, enabled)
+
+  const pushLog = useCallback(l => replaceSessions(user.id, l), [user])
+  useDebouncedMirror(log, pushLog, enabled)
 }

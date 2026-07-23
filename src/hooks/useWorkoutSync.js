@@ -1,10 +1,11 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { fetchWorkoutDays, replaceWorkoutDays } from '../services/workouts'
 import { saveGiornate, loadGiornateOwner, saveGiornateOwner } from '../data/giornateDefaults'
-
-const MIRROR_DELAY = 800 // ms di quiete prima di rispecchiare (accorpa modifiche in raffica)
+import { useDebouncedMirror } from './useDebouncedMirror'
+import { syncFailed } from '../data/syncStatus'
+import { useRefreshOnFocus } from './useRefreshOnFocus'
 
 // Ponte LOCAL-FIRST + MIRROR per le GIORNATE di Palestra.
 // localStorage resta il motore: l'app funziona offline e da non loggati esattamente come
@@ -25,22 +26,33 @@ export function useWorkoutSync(giornate, setGiornate) {
     giornateRef.current = giornate
   }, [giornate])
 
-  const startedFor = useRef(null) // login gia' in riconciliazione (evita doppioni)
-  const readyFor = useRef(null)   // riconciliazione COMPLETATA -> il mirror puo' partire
+  // Ri-legge dal cloud a ogni ritorno in primo piano: senza questo un dispositivo
+  // lasciato aperto non vedrebbe mai le schede create su un altro.
+  const refreshTick = useRefreshOnFocus()
+
+  const startedFor = useRef(null) // riconciliazione gia' in corso per questa chiave
+  // Riconciliazione COMPLETATA. E' STATO, non un ref: al termine il mirror deve
+  // rivalutare la propria condizione, cosa che un ref non provoca.
+  const [readyFor, setReadyFor] = useState(null)
 
   // 1) Riconciliazione una-tantum per utente loggato.
   useEffect(() => {
     if (!isSupabaseConfigured) return undefined
     if (!user) {
-      // Logout: azzero i marcatori cosi' il prossimo login riconcilia da capo.
+      // Logout: basta azzerare questo, cosi' il prossimo login riconcilia da capo.
+      // `readyFor` non si tocca: senza utente il mirror e' gia' disattivato, e resettarlo
+      // qui sarebbe un setState sincrono dentro un effect (vietato in React 19).
       startedFor.current = null
-      readyFor.current = null
       return undefined
     }
-    if (startedFor.current === user.id) return undefined
-    startedFor.current = user.id
+    // La chiave include refreshTick: al ritorno in primo piano cambia, quindi la
+    // riconciliazione riparte e il cloud torna a essere la fonte di verita'.
+    const runKey = `${user.id}:${refreshTick}`
+    if (startedFor.current === runKey) return undefined
+    startedFor.current = runKey
 
     let alive = true
+    let done = false // riconciliazione portata a termine (vedi cleanup)
     ;(async () => {
       try {
         const remote = await fetchWorkoutDays()
@@ -61,26 +73,37 @@ export function useWorkoutSync(giornate, setGiornate) {
           saveGiornate([])
         }
         saveGiornateOwner(user.id)
-        readyFor.current = user.id
+        setReadyFor(user.id)
+        done = true
       } catch (err) {
+        // Se la riconciliazione fallisce il mirror NON si attiva mai: e' il caso in cui
+        // "le schede restano sul telefono e non salgono". Va reso visibile, non solo loggato.
         console.error('Sync giornate (riconciliazione) fallita:', err)
+        syncFailed('giornate (riconciliazione)', err)
         startedFor.current = null // il locale resta valido; consenti un nuovo tentativo
       }
     })()
 
     return () => {
       alive = false
+      // Se la riconciliazione NON e' arrivata in fondo, va riaperta la porta al prossimo
+      // tentativo. Senza questo, in StrictMode (doppio mount in sviluppo) accadeva:
+      // run 1 marca startedFor e avvia il fetch -> cleanup mette alive=false -> run 2
+      // trova startedFor gia' impostato ed esce -> il fetch della run 1 torna, vede
+      // alive=false ed esce prima di setReadyFor. Esito: `readyFor` mai impostato, mirror
+      // mai attivo, nessun errore. Il sync restava muto per l'intera sessione.
+      if (!done) startedFor.current = null
     }
-  }, [user, setGiornate])
+  }, [user, setGiornate, refreshTick])
 
-  // 2) Mirror su Supabase a ogni modifica, solo dopo che la riconciliazione e' finita.
-  useEffect(() => {
-    if (!isSupabaseConfigured || !user) return undefined
-    if (readyFor.current !== user.id) return undefined
-    const handle = setTimeout(() => {
-      replaceWorkoutDays(user.id, giornate).catch(err =>
-        console.error('Sync giornate (mirror) fallito:', err))
-    }, MIRROR_DELAY)
-    return () => clearTimeout(handle)
-  }, [giornate, user])
+  // 2) Mirror a ogni modifica, solo dopo che la riconciliazione e' finita. Il push non si
+  // perde se si lascia la pagina o l'app va in background: se ne occupa useDebouncedMirror.
+  const push = useCallback(g => replaceWorkoutDays(user.id, g), [user])
+  useDebouncedMirror(
+    giornate,
+    push,
+    Boolean(isSupabaseConfigured && user && readyFor === user.id),
+    undefined,
+    'giornate',
+  )
 }

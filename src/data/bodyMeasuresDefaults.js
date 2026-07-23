@@ -8,7 +8,7 @@ import { todayISO } from './weightDefaults'
 const KEY = 'fitpulse-body-measures'
 
 export { todayISO }
-export const newMeasureId = () => (crypto?.randomUUID && crypto.randomUUID()) || String(Date.now())
+export { newId as newMeasureId } from './ids'
 
 // Gruppi e campi delle misure. Iterati da editor e pagina: aggiungere un campo =
 // una riga qui + la relativa chiave i18n `body.field.*`.

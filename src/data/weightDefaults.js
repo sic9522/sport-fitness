@@ -3,7 +3,7 @@
 // Local-first come il resto dell'app.
 const KEY = 'fitpulse-weight'
 
-export const newWeightId = () => (crypto?.randomUUID && crypto.randomUUID()) || String(Date.now())
+export { newId as newWeightId } from './ids'
 
 // Data odierna YYYY-MM-DD in fuso LOCALE (helper impuro a livello di modulo, come
 // newId in giornateDefaults, per tenere new Date() fuori dai componenti).

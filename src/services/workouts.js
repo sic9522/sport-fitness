@@ -1,8 +1,22 @@
 import { supabase } from '../lib/supabaseClient'
+import { isUuid } from '../data/ids'
 
 function requireSupabase() {
   if (!supabase) throw new Error('Supabase is not configured')
   return supabase
+}
+
+// Riusa l'id locale SOLO se e' un UUID valido. I dati creati prima della correzione di
+// ids.js (o in contesto non sicuro) hanno id tipo "1753189200000": passarli a una colonna
+// `uuid` farebbe fallire l'insert e perderebbe l'intera sincronizzazione. Omettendo il
+// campo, Postgres ne genera uno lui; al primo pull il locale adotta gli id del database,
+// quindi il disallineamento si sana da solo.
+const withId = (row, id) => (isUuid(id) ? { ...row, id } : row)
+
+// Recupero per-scheda: intero >= 0, altrimenti NULL (= non impostato).
+const restToDb = v => {
+  const n = Number(v)
+  return Number.isFinite(n) && n >= 0 ? Math.round(n) : null
 }
 
 function exerciseFromRow(row) {
@@ -24,6 +38,9 @@ function cardFromRow(row) {
     id: row.id,
     nome: row.name,
     custom: row.is_custom,
+    // NULL sul DB = recupero non impostato: il modello locale lo rappresenta con
+    // l'assenza della chiave, cosi' la scheda ricade sul valore predefinito.
+    ...(row.rest_seconds == null ? {} : { rest: row.rest_seconds }),
     esercizi: (row.exercises || [])
       .sort((a, b) => a.sort_order - b.sort_order)
       .map(exerciseFromRow),
@@ -58,6 +75,7 @@ export async function fetchWorkoutDays() {
         id,
         name,
         is_custom,
+        rest_seconds,
         sort_order,
         exercises (
           id,
@@ -92,15 +110,14 @@ export async function replaceWorkoutDays(userId, giornate) {
   for (const [dayIndex, giornata] of giornate.entries()) {
     const { data: dayRows, error: dayError } = await client
       .from('workout_days')
-      .insert({
-        id: giornata.id,
+      .insert(withId({
         user_id: userId,
         name: giornata.nome || null,
         day_key: giornata.day || null,
         is_custom: Boolean(giornata.custom),
         status: giornata.stato || 'none',
         sort_order: dayIndex,
-      })
+      }, giornata.id))
       .select('id')
       .single()
 
@@ -109,20 +126,19 @@ export async function replaceWorkoutDays(userId, giornate) {
     for (const [cardIndex, scheda] of (giornata.schede || []).entries()) {
       const { data: cardRows, error: cardError } = await client
         .from('workout_cards')
-        .insert({
-          id: scheda.id,
+        .insert(withId({
           workout_day_id: dayRows.id,
           name: scheda.nome || '',
           is_custom: Boolean(scheda.custom),
+          rest_seconds: restToDb(scheda.rest),
           sort_order: cardIndex,
-        })
+        }, scheda.id))
         .select('id')
         .single()
 
       if (cardError) throw cardError
 
-      const exercises = (scheda.esercizi || []).map((exercise, exerciseIndex) => ({
-        id: exercise.id,
+      const exercises = (scheda.esercizi || []).map((exercise, exerciseIndex) => withId({
         workout_card_id: cardRows.id,
         title: exercise.titolo,
         sets: String(exercise.serie),
@@ -133,7 +149,7 @@ export async function replaceWorkoutDays(userId, giornate) {
         is_split: Boolean(exercise.split),
         set_details: exercise.split ? (exercise.sets || null) : null,
         sort_order: exerciseIndex,
-      }))
+      }, exercise.id))
 
       if (exercises.length) {
         const { error: exerciseError } = await client

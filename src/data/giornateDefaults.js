@@ -1,6 +1,8 @@
 // Giornate di allenamento (livello principale in Palestra), persistite in localStorage.
 // Gerarchia: giornata → schede → esercizi. Ogni giornata è fissata su un giorno
 // della settimana (max 7, uno per giorno). Modello: { id, day, schede: [...] }.
+import { newId } from './ids'
+
 const KEY = 'fitpulse-giornate'
 const OLD_SCHEDE_KEY = 'fitpulse-schede'
 
@@ -23,7 +25,8 @@ export const dayLabelKey = key => DAYS.find(d => d.key === key)?.labelKey || key
 export const giornataName = (g, t) => (g.day ? t(dayLabelKey(g.day)) : (g.nome || ''))
 
 // ID stabile (helper a livello di modulo: tiene le funzioni impure fuori dai componenti).
-export const newId = () => (crypto?.randomUUID && crypto.randomUUID()) || String(Date.now())
+// La generazione vive in ./ids: deve produrre UUID validi anche in http, o il sync salta.
+export { newId }
 
 // C'è già una scheda con lo stesso nome (trim, case-insensitive) tra quelle date?
 export const schedaNameTaken = (schede, nome) => {

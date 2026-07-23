@@ -25,7 +25,7 @@ export const DEFAULT_GOALS = [
   { id: 'g3', emoji: '💪', title: 'Minuti allenamento', titleKey: 'goal.workoutMin', target: 60, unit: 'min', perWorkout: true },
 ]
 
-export const newGoalId = () => (crypto?.randomUUID && crypto.randomUUID()) || String(Date.now())
+export { newId as newGoalId } from './ids'
 
 // --- Emoji personalizzate, salvate sull'account ---
 // Restano separate dagli obiettivi: una volta aggiunta, l'emoji resta disponibile
