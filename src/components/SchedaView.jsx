@@ -20,14 +20,11 @@ function newId() {
   return (crypto?.randomUUID && crypto.randomUUID()) || String(Date.now())
 }
 
-const SLOP = 8            // px oltre i quali il gesto è uno scroll (annulla pressione e tap)
-const TAP_WINDOW = 280    // ms per contare doppio/triplo tap
+const SLOP = 8            // px oltre i quali il gesto è uno scroll (annulla la pressione)
 const LONG_PRESS_MS = 400 // ms di pressione per entrare in modalità modifica (stile iPhone)
 const RED = '#ef4444'
 const BLUE = '#3b82f6'  // primary (pulsante Modifica in modalità modifica)
 const GREEN = '#22c55e' // success (pulsante Play)
-const STATO_DONE = '#22c55e' // bordo verde: esercizio svolto (doppio tap)
-const STATO_SKIP = '#ef4444' // bordo rosso: esercizio saltato (triplo tap)
 
 // Pulsanti della modalità modifica: cerchietti a cavallo del bordo della card
 // (le classi -top-3/-left-3/-right-3 li fanno sporgere ~50% del diametro, come su iPhone).
@@ -37,10 +34,11 @@ const EDIT_BTN = 'absolute z-20 w-6 h-6 rounded-full flex items-center justify-c
 // (la larghezza la decide ognuno: Play e recupero uguali, "+" resta come prima).
 const HEADER_BTN = 'h-9 rounded-full flex items-center justify-center shrink-0'
 
-// Bordo colorato solo se c'è uno stato (verde/rosso); altrimenti bordo neutro sottile.
-const resolveBorder = ex =>
-  ex.stato === 'done' ? STATO_DONE : ex.stato === 'skip' ? STATO_SKIP : null
-
+// Il bordo colorato per "svolto/saltato" è stato rimosso insieme al doppio/triplo tap:
+// senza piu' un gesto che lo imposti, sarebbe rimasto acceso sui dati vecchi senza alcun
+// modo di spegnerlo. Il completamento ora si legge dalla riga informativa della scheda,
+// alimentata dall'allenamento reale. `CardVisual` accetta ancora borderColor, cosi' resta
+// riutilizzabile se un giorno servira' evidenziare una card.
 const INFO_CLS = 'text-[color:var(--text-muted)] text-xs tabular-nums'
 
 // Split OFF: numero di serie e, sotto, "Rip 8 - 30 kg" nello stesso formato delle
@@ -120,19 +118,19 @@ function CardVisual({ ex, borderColor, handleProps, style, className = '' }) {
 // - Pressione prolungata (~400ms) → attiva la MODALITÀ MODIFICA (su tutte le card).
 //   In modalità modifica la card trema e mostra i pulsanti elimina (X, alto sx) e
 //   modifica (matita, alto dx), che richiamano le STESSE funzioni di prima.
-// - Doppio tap → verde (svolto); triplo tap → rosso (skip); ripetendo torna normale.
 // - Riordino: trascinando la MANIGLIA a destra (DragOverlay + segnaposto).
-function EsercizioCard({ ex, editMode, onEnterEdit, onDelete, onEdit, onToggleStato }) {
+//
+// Lo stato "svolto/saltato" NON si imposta piu' a mano con doppio/triplo tap: ora deriva
+// dall'allenamento realmente eseguito nel player (soglia del 50% delle serie), quindi
+// segnarlo a dito sarebbe una seconda verita' capace di contraddire la prima.
+function EsercizioCard({ ex, editMode, onEnterEdit, onDelete, onEdit }) {
   const { t } = useLang()
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
     useSortable({ id: ex.id })
 
   const longPress = useLongPress(onEnterEdit, LONG_PRESS_MS)
   const startRef = useRef(null)
-  const movedRef = useRef(false) // puntatore mosso → è uno scroll: né pressione né tap
-  const tapCountRef = useRef(0)
-  const tapTimerRef = useRef(null)
-  useEffect(() => () => clearTimeout(tapTimerRef.current), [])
+  const movedRef = useRef(false) // puntatore mosso → è uno scroll: niente pressione
 
   function onPointerDown(e) {
     // Maniglia (riordino) e pulsanti modifica gestiscono il proprio gesto.
@@ -152,20 +150,8 @@ function EsercizioCard({ ex, editMode, onEnterEdit, onDelete, onEdit, onToggleSt
   }
   function onPointerUp() {
     if (!startRef.current) return // nessun tracking (maniglia o pulsante)
-    const wasLongPress = longPress.fired.current
-    const moved = movedRef.current
     startRef.current = null
     longPress.cancel()
-    if (wasLongPress || moved) return // pressione prolungata o scroll → non è un tap
-
-    tapCountRef.current += 1
-    clearTimeout(tapTimerRef.current)
-    tapTimerRef.current = setTimeout(() => {
-      const n = tapCountRef.current
-      tapCountRef.current = 0
-      if (n >= 3) onToggleStato(ex.id, 'skip')       // triplo tap = skip (rosso)
-      else if (n === 2) onToggleStato(ex.id, 'done')  // doppio tap = svolto (verde)
-    }, TAP_WINDOW)
   }
   function onPointerCancel() {
     startRef.current = null
@@ -200,7 +186,6 @@ function EsercizioCard({ ex, editMode, onEnterEdit, onDelete, onEdit, onToggleSt
       {/* Card (trema in modalità modifica; segnaposto sbiadito mentre la trascini) */}
       <CardVisual
         ex={ex}
-        borderColor={resolveBorder(ex)}
         handleProps={handleProps}
         className={`${editMode ? 'jiggle' : ''} ${isDragging ? 'opacity-40' : ''}`}
       />
@@ -277,10 +262,6 @@ function SchedaView({ scheda, onExercisesChange, onRestChange, onBack }) {
   function openEsercizio(id) {
     setEditingId(id)
     setEditMode(false)
-  }
-  // Doppio/triplo tap: attiva o disattiva lo stato "svolto"/"skip"
-  function toggleStato(id, target) {
-    onExercisesChange(esercizi.map(e => (e.id === id ? { ...e, stato: e.stato === target ? undefined : target } : e)))
   }
   function handleDragEnd(event) {
     setActiveId(null)
@@ -367,7 +348,6 @@ function SchedaView({ scheda, onExercisesChange, onRestChange, onBack }) {
                     onEnterEdit={() => setEditMode(true)}
                     onDelete={setDeleteExId}
                     onEdit={openEsercizio}
-                    onToggleStato={toggleStato}
                   />
                 ))}
               </div>
@@ -375,7 +355,7 @@ function SchedaView({ scheda, onExercisesChange, onRestChange, onBack }) {
 
             <DragOverlay>
               {activeEx
-                ? <CardVisual ex={activeEx} borderColor={resolveBorder(activeEx)} className="shadow-2xl scale-[1.03]" />
+                ? <CardVisual ex={activeEx} className="shadow-2xl scale-[1.03]" />
                 : null}
             </DragOverlay>
           </DndContext>

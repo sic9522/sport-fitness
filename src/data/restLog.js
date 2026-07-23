@@ -5,7 +5,7 @@
 const KEY = 'fitpulse-rest-log'
 const MAX = 5 // ne servono pochi: è un promemoria, non uno storico
 
-export const newRestId = () => (crypto?.randomUUID && crypto.randomUUID()) || String(Date.now())
+export { newId as newRestId } from './ids'
 
 export function loadRestLog() {
   try {

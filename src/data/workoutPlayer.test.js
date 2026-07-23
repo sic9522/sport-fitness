@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   buildSteps, exerciseCount, stepLabel, nextIndex, progressAt, elapsedMinutes, formatElapsed,
   hexHue, isReddish, ringColor, restState, currentStepInfo,
+  completedExerciseCount, completedReps, nextStep,
 } from './workoutPlayer'
 
 // Traduzione finta: restituisce chiave e parametri, così i test verificano la LOGICA
@@ -214,5 +215,139 @@ describe('currentStepInfo', () => {
   it('sessione o passo assente → null', () => {
     expect(currentStepInfo(null)).toBeNull()
     expect(currentStepInfo({ index: 9, steps: [] })).toBeNull()
+  })
+})
+
+describe('completedExerciseCount (solo esercizi svolti per intero)', () => {
+  const withSets = n => buildSteps({ esercizi: [{ ...exNoSplit, serie: String(n) }] })
+
+  it('serve completare TUTTE le serie', () => {
+    expect(completedExerciseCount(withSets(3), [0, 1, 2])).toBe(1)
+    expect(completedExerciseCount(withSets(3), [0, 1])).toBe(0) // 2 su 3 non basta piu'
+    expect(completedExerciseCount(withSets(3), [0])).toBe(0)
+  })
+
+  it('un esercizio saltato del tutto non conta', () => {
+    expect(completedExerciseCount(withSets(4), [])).toBe(0)
+  })
+
+  it('esempio: 3 esercizi, ne svolgo 1 e salto gli altri 2 -> 1', () => {
+    const tre = buildSteps({
+      esercizi: [
+        { id: 'a', serie: '2', reps: '10', kg: '20' },
+        { id: 'b', serie: '2', reps: '10', kg: '20' },
+        { id: 'c', serie: '2', reps: '10', kg: '20' },
+      ],
+    })
+    // completate solo le due serie del primo esercizio (indici 0 e 1)
+    expect(completedExerciseCount(tre, [0, 1])).toBe(1)
+  })
+
+  it('conta ESERCIZI, non serie: tre serie restano un esercizio', () => {
+    const steps = buildSteps({ esercizi: [exNoSplit, exSplit] })
+    expect(completedExerciseCount(steps, [0, 1, 2])).toBe(1)
+    expect(completedExerciseCount(steps, [0, 1, 2])).toBeLessThan(exerciseCount(steps))
+  })
+
+  it('piu esercizi completati per intero si sommano', () => {
+    const steps = buildSteps({ esercizi: [exNoSplit, exSplit] })
+    expect(completedExerciseCount(steps, [0, 1, 2, 3, 4, 5])).toBe(2)
+  })
+
+  it('nessuna serie completata: nessun esercizio svolto', () => {
+    expect(completedExerciseCount(withSets(3), [])).toBe(0)
+    expect(completedExerciseCount([], [])).toBe(0)
+  })
+})
+describe('nextStep', () => {
+  const steps = buildSteps({ esercizi: [exNoSplit] })
+
+  it('restituisce il passo successivo', () => {
+    expect(nextStep({ index: 0, steps }).setIndex).toBe(1)
+  })
+
+  it('sull ultimo passo restituisce null', () => {
+    expect(nextStep({ index: steps.length - 1, steps })).toBeNull()
+  })
+})
+
+describe('completedReps (somma diretta delle serie confermate)', () => {
+  const withSets = n => buildSteps({ esercizi: [{ ...exNoSplit, serie: String(n) }] })
+
+  it('conta le ripetizioni delle SOLE serie confermate', () => {
+    // 3 serie da 10: confermandone 1 si segnano 10 ripetizioni, non 0 e non 30
+    expect(completedReps(withSets(3), [0])).toBe(10)
+    expect(completedReps(withSets(3), [0, 1])).toBe(20)
+    expect(completedReps(withSets(3), [0, 1, 2])).toBe(30)
+  })
+
+  it('una sola serie su tre conta comunque: niente soglia qui', () => {
+    // caso dell'esempio: 8 ripetizioni per serie, 1 su 3 -> 8 (non 0)
+    const steps = buildSteps({ esercizi: [{ ...exNoSplit, serie: '3', reps: '8' }] })
+    expect(completedReps(steps, [0])).toBe(8)
+  })
+
+  it('con split somma le ripetizioni REALI della serie svolta', () => {
+    // esercizio B = 12/10/8 agli indici 3-5
+    const steps = buildSteps({ esercizi: [exNoSplit, exSplit] })
+    expect(completedReps(steps, [3])).toBe(12)
+    expect(completedReps(steps, [3, 5])).toBe(20) // 12 + 8
+  })
+
+  it('somma attraverso esercizi diversi', () => {
+    const steps = buildSteps({ esercizi: [exNoSplit, exSplit] })
+    expect(completedReps(steps, [0, 3])).toBe(22) // 10 + 12
+  })
+
+  it('nessuna serie confermata: zero', () => {
+    expect(completedReps(withSets(3), [])).toBe(0)
+    expect(completedReps([], [])).toBe(0)
+  })
+})
+
+describe('badge vs percentuale: due misure indipendenti', () => {
+  // Scheda dell'esempio: 8 esercizi da 24 ripetizioni ciascuno (192 totali).
+  // 4 esercizi completati per intero, 4 fermi a meta' delle serie.
+  const scheda = {
+    esercizi: [
+      { id: 'e1', serie: '3', reps: '8', kg: '20' },  // 24 rip
+      { id: 'e2', serie: '4', reps: '6', kg: '20' },  // 24 rip
+      { id: 'e3', serie: '3', reps: '8', kg: '20' },  // 24 rip
+      { id: 'e4', serie: '4', reps: '6', kg: '20' },  // 24 rip
+      { id: 'e5', serie: '4', reps: '6', kg: '20' },
+      { id: 'e6', serie: '4', reps: '6', kg: '20' },
+      { id: 'e7', serie: '4', reps: '6', kg: '20' },
+      { id: 'e8', serie: '4', reps: '6', kg: '20' },
+    ],
+  }
+  const steps = buildSteps(scheda)
+
+  // indici: e1 0-2, e2 3-6, e3 7-9, e4 10-13, e5 14-17, e6 18-21, e7 22-25, e8 26-29
+  const completed = [
+    0, 1, 2,              // e1 intero
+    3, 4, 5, 6,           // e2 intero
+    7, 8, 9,              // e3 intero
+    10, 11, 12, 13,       // e4 intero
+    14, 15,               // e5 meta'
+    18, 19,               // e6 meta'
+    22, 23,               // e7 meta'
+    26, 27,               // e8 meta'
+  ]
+
+  it('il BADGE conta solo gli esercizi completati per intero: 4 su 8', () => {
+    expect(completedExerciseCount(steps, completed)).toBe(4)
+  })
+
+  it('la PERCENTUALE pesa le ripetizioni: 144 su 192 = 75%', () => {
+    const totale = steps.reduce((s, x) => s + Number(x.reps), 0)
+    expect(totale).toBe(192)
+    expect(completedReps(steps, completed)).toBe(144)
+    expect(Math.round((144 / totale) * 100)).toBe(75)
+  })
+
+  it('le due misure DEVONO poter divergere: 4/8 esercizi ma 75% di lavoro', () => {
+    const perEsercizi = completedExerciseCount(steps, completed) / 8      // 0,50
+    const perRipetizioni = completedReps(steps, completed) / 192          // 0,75
+    expect(perEsercizi).not.toBe(perRipetizioni)
   })
 })

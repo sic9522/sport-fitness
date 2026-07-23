@@ -166,6 +166,70 @@ export function restState(restStartedAt, restTotal, now = Date.now()) {
   }
 }
 
+// --- Metriche reali del riepilogo ---
+// Un esercizio conta come SVOLTO solo se se ne completano TUTTE le serie.
+//
+// La soglia era al 50%, ma contava come fatto un esercizio lasciato a meta': il conteggio
+// finiva per premiare anche cio' che era stato in gran parte saltato. Qui interessa
+// distinguere l'esercizio davvero eseguito da quello soltanto attraversato, quindi vale
+// solo il completamento pieno.
+//
+// Resta una soglia e non un confronto secco proprio per poterla riabbassare con un numero
+// solo, se un giorno servisse tornare a considerare i parziali.
+const DONE_RATIO = 1
+
+// Quante serie sono previste e quante svolte, per ogni esercizio distinto.
+function perExercise(steps, completed) {
+  const done = new Set(Array.isArray(completed) ? completed : [])
+  const map = new Map()
+  ;(steps || []).forEach((step, i) => {
+    if (!step?.exerciseId) return
+    const e = map.get(step.exerciseId) || { total: 0, done: 0 }
+    e.total += 1
+    if (done.has(i)) e.done += 1
+    map.set(step.exerciseId, e)
+  })
+  return map
+}
+
+// Gli esercizi che superano la soglia. E' la base sia del conteggio esercizi sia di
+// quello delle ripetizioni: tenere una sola definizione di "svolto" evita che le due
+// cifre mostrate sulla stessa riga possano contraddirsi.
+export function completedExerciseIds(steps, completed) {
+  const ids = new Set()
+  perExercise(steps, completed).forEach(({ total, done }, id) => {
+    if (total > 0 && done / total >= DONE_RATIO) ids.add(id)
+  })
+  return ids
+}
+
+// Quanti esercizi DISTINTI risultano svolti secondo la soglia del 50%. Un esercizio non
+// e' una serie: tre serie di panca restano UN esercizio.
+export const completedExerciseCount = (steps, completed) =>
+  completedExerciseIds(steps, completed).size
+
+// Ripetizioni completate: somma DIRETTA delle serie confermate, una per una.
+// Niente soglia qui — quella governa il conteggio degli ESERCIZI, non questo. Fatta 1
+// serie su 3 di un esercizio da 8 ripetizioni, il contatore segna 8: sono ripetizioni
+// realmente eseguite, e nasconderle finche' non si supera meta' esercizio le farebbe
+// sparire pur essendo state fatte.
+export function completedReps(steps, completed) {
+  const done = Array.isArray(completed) ? completed : []
+  return done.reduce((sum, i) => sum + repsOf(steps?.[i]), 0)
+}
+
+const repsOf = step => {
+  const n = Number(String(step?.reps ?? '').replace(',', '.'))
+  return Number.isFinite(n) && n > 0 ? n : 0
+}
+
+// Il passo successivo, per la card "PROSSIMO" mostrata durante il recupero: durante la
+// pausa serve sapere cosa arriva, non cosa si e' appena finito.
+export function nextStep(session) {
+  const i = nextIndex(session?.index ?? -1, session?.steps)
+  return i == null ? null : session.steps[i]
+}
+
 // Info del passo corrente per la pill di background. Il numero dell'esercizio conta gli
 // esercizi DISTINTI, non le serie: alla seconda esercizio dopo uno split da 3 serie è
 // "2", non "4". Le ripetizioni sono quelle della serie corrente (con lo split cambiano

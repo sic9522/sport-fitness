@@ -1,10 +1,17 @@
 import { createContext, useContext, useState, useEffect, useRef } from 'react'
 import { useAuth } from './AuthContext'
-import { buildSteps, exerciseCount, elapsedMinutes } from '../data/workoutPlayer'
+import {
+  buildSteps, exerciseCount, completedExerciseCount, completedReps, elapsedMinutes,
+} from '../data/workoutPlayer'
+import {
+  getSchedaProgress, saveSchedaProgress, setSchedaEntry, resetSchedaEntry,
+} from '../data/schedaProgress'
 import { loadWorkoutLog, saveWorkoutLog, addSession, sessionFromScheda } from '../data/workoutLog'
 import { pushSession } from '../services/workoutSessions'
 
-const DEFAULT_REST = 60 // secondi, se la scheda non ne definisce uno
+// Recupero predefinito: unica definizione, condivisa con la stima del tempo mostrata
+// sulla card. Duplicarlo avrebbe fatto divergere il tempo stimato da quello applicato.
+import { DEFAULT_REST_SECONDS as DEFAULT_REST } from '../data/schedaStats'
 
 const WorkoutSessionContext = createContext(null)
 
@@ -23,6 +30,9 @@ export function WorkoutSessionProvider({ children }) {
 
   function startSession(scheda) {
     registeredRef.current = false
+    // Nuovo allenamento: il contatore della card riparte da zero, perche' mostra
+    // l'ULTIMA sessione e non un totale storico.
+    saveSchedaProgress(resetSchedaEntry(getSchedaProgress(), scheda?.id))
     setSession({
       scheda,
       steps: buildSteps(scheda),
@@ -31,17 +41,21 @@ export function WorkoutSessionProvider({ children }) {
       startedAt: Date.now(),
       restStartedAt: null,
       restTotal: 0,
+      completed: [], // indici delle serie SVOLTE (le saltate non entrano)
     })
     setForeground(true)
   }
 
   // Serie completata: al recupero, tranne dopo l'ultima serie → riepilogo.
+  // L'indice finisce in `completed`: è la base del volume nel riepilogo, e distingue
+  // ciò che è stato sollevato da ciò che è stato saltato.
   function completeSet() {
     setSession(s => {
       if (!s) return s
-      if (s.index + 1 >= s.steps.length) return { ...s, phase: 'done' }
+      const completed = s.completed?.includes(s.index) ? s.completed : [...(s.completed || []), s.index]
+      if (s.index + 1 >= s.steps.length) return { ...s, completed, phase: 'done' }
       const restTotal = Number(s.scheda?.rest) > 0 ? Number(s.scheda.rest) : DEFAULT_REST
-      return { ...s, phase: 'rest', restStartedAt: Date.now(), restTotal }
+      return { ...s, completed, phase: 'rest', restStartedAt: Date.now(), restTotal }
     })
   }
 
@@ -55,10 +69,39 @@ export function WorkoutSessionProvider({ children }) {
     })
   }
 
+  // Salta la serie corrente: passa direttamente alla successiva senza recupero. È come
+  // proceed() ma parte dalla fase esercizio (l'utente non ha svolto la serie).
+  const skipSet = proceed
+
+  // Uscita dalla sessione, completata o abbandonata a meta'. Prima di scartarla si
+  // fissa la durata REALE: l'effect qui sotto scrive solo quando la sessione cambia,
+  // quindi senza questo passaggio resterebbe registrato il tempo dell'ultima serie
+  // confermata invece di quello effettivo fino all'uscita.
   function exitSession() {
+    const id = session?.scheda?.id
+    if (id) {
+      saveSchedaProgress(setSchedaEntry(getSchedaProgress(), id, {
+        reps: completedReps(session.steps, session.completed),
+        exercises: completedExerciseCount(session.steps, session.completed),
+        seconds: Math.max(0, (Date.now() - Number(session.startedAt || 0)) / 1000),
+      }))
+    }
     setSession(null)
     setForeground(false)
   }
+
+  // Avanzamento della card, riscritto a ogni cambio di sessione: cosi' la scheda mostra
+  // le ripetizioni completate sia mentre ci si allena sia dopo, senza distinguere i due
+  // casi. Sta in un effect e non dentro l'updater di stato, che deve restare puro.
+  useEffect(() => {
+    const id = session?.scheda?.id
+    if (!id) return
+    saveSchedaProgress(setSchedaEntry(getSchedaProgress(), id, {
+      reps: completedReps(session.steps, session.completed),
+      exercises: completedExerciseCount(session.steps, session.completed),
+      seconds: Math.max(0, (Date.now() - Number(session.startedAt || 0)) / 1000),
+    }))
+  }, [session])
 
   // Registra l'allenamento UNA volta sola, al completamento. Uscendo a metà non si
   // registra nulla: non è un allenamento svolto. Il salvataggio locale è la verità;
@@ -67,9 +110,10 @@ export function WorkoutSessionProvider({ children }) {
     if (session?.phase !== 'done' || registeredRef.current) return
     registeredRef.current = true
     const durationMin = elapsedMinutes(session.startedAt)
+    // Si registra ciò che è stato SVOLTO: le serie saltate non fanno numero.
     const record = {
       ...sessionFromScheda(session.scheda, durationMin),
-      exercises: exerciseCount(session.steps),
+      exercises: completedExerciseCount(session.steps, session.completed) || exerciseCount(session.steps),
     }
     saveWorkoutLog(addSession(loadWorkoutLog(), record))
     if (user) {
@@ -84,6 +128,7 @@ export function WorkoutSessionProvider({ children }) {
     startSession,
     completeSet,
     proceed,
+    skipSet,
     exitSession,
     sendToBackground: () => setForeground(false),
     openForeground: () => setForeground(true),

@@ -4,10 +4,11 @@
 // l'activity trend e per la stima delle calorie bruciate.
 // Voce = { id, date: 'YYYY-MM-DD', nome, durationMin, exercises }
 import { dayKey } from '../utils/date'
+import { newId } from './ids'
 
 const KEY = 'fitpulse-workout-log'
 
-export const newSessionId = () => (crypto?.randomUUID && crypto.randomUUID()) || String(Date.now())
+export { newId as newSessionId }
 
 // MET (Metabolic Equivalent of Task) del sollevamento pesi tipico, da Compendium of
 // Physical Activities: ~5.0 per uno sforzo vigoroso. Serve solo alla STIMA delle kcal:
@@ -90,7 +91,7 @@ export function activitySeries(log, keys) {
 // oggi; il chiamante può forzarla (es. registrare un allenamento di ieri).
 export function sessionFromScheda(scheda, durationMin, date = dayKey()) {
   return {
-    id: newSessionId(),
+    id: newId(),
     date,
     nome: scheda?.nome || '',
     durationMin: Math.max(0, Number(durationMin) || 0),
