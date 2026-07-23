@@ -1,34 +1,19 @@
 import { useState, useRef, useEffect } from 'react'
-import { IoClose, IoChevronDown, IoCameraOutline, IoSearch, IoSaveOutline } from 'react-icons/io5'
+import { IoClose, IoChevronDown } from 'react-icons/io5'
 import { useLang } from '../context/LanguageContext'
 import useScrollLock from '../hooks/useScrollLock'
+import useModalGuard, { useDirty } from '../hooks/useModalGuard'
 import { titleCase } from '../utils/text'
-import { MEALS } from '../data/nutritionDefaults'
-import { searchFoodItems, getFoodItemByBarcode } from '../services/catalogs'
-import { fetchFoodByBarcodeOnline } from '../services/offApi'
-import { isSupabaseConfigured } from '../lib/supabaseClient'
+import { onlyDigits, decimalInput } from '../utils/numberInput'
+import { MEALS, MACRO_KEYS, baseFromFoodItem, scaleNutrients } from '../data/nutritionDefaults'
+import { loadCustomMeals, findCustomMeal, NO_CUSTOM_MEAL } from '../data/customMeals'
 import Field from './ui/Field'
+import ModalActions from './ui/ModalActions'
 import Wheel from './Wheel'
-import BarcodeScanner from './BarcodeScanner'
+import FoodSearchInput from './FoodSearchInput'
 
 // Stessa resa dell'<input> di Field, che accetta solo props native di <input>.
-const SELECT_CLS = 'w-full bg-[var(--surface)] border border-[color:var(--border-2)] rounded-xl px-4 py-3 text-sm text-[color:var(--text)] outline-none focus:ring-1 focus:ring-[var(--accent)]'
-
-// I valori del catalogo sono per 100 g: qui li scalo sulla quantità inserita.
-// kcal arrotondate all'intero, macro a un decimale. `base` = valori/100 g (o null = manuale).
-function scaledFrom(base, grammiStr) {
-  const g = Number(grammiStr)
-  const f = Number.isFinite(g) && g > 0 ? g / 100 : 1
-  const r1 = v => (v == null ? '' : String(Math.round(v * f * 10) / 10))
-  return {
-    kcal: base.kcal == null ? '' : String(Math.round(base.kcal * f)),
-    protein: r1(base.protein),
-    carbs: r1(base.carbs),
-    fat: r1(base.fat),
-    sugars: r1(base.sugars),
-    fiber: r1(base.fiber),
-  }
-}
+export const SELECT_CLS = 'w-full bg-[var(--surface)] border border-[color:var(--border-2)] rounded-xl px-4 py-3 text-sm text-[color:var(--text)] outline-none focus:ring-1 focus:ring-[var(--accent)]'
 
 // Editor di un alimento (nuovo o esistente). Lavora su copie locali (`form`, `sel`, `day`):
 // si applica solo con Salva; Annulla o X scartano. Nome e kcal sono obbligatori.
@@ -40,20 +25,15 @@ function FoodEditor({ food, meal, date, dayOptions, onSave, onCancel }) {
   useScrollLock()
   const [form, setForm] = useState(food)
   const [sel, setSel] = useState(meal)
+  // Pasti personalizzati (creati in Prodotti → Personali). Si leggono una volta
+  // all'apertura della modale: stanno in localStorage, non cambiano da soli.
+  const [customMeals] = useState(loadCustomMeals)
+  const [custom, setCustom] = useState(NO_CUSTOM_MEAL)
   const [day, setDay] = useState(date)
   const [dayOpen, setDayOpen] = useState(false) // popover del wheel data
   const [base, setBase] = useState(null)         // valori/100 g del prodotto scelto (null = manuale)
-  const [results, setResults] = useState([])     // risultati ricerca catalogo
-  const [showResults, setShowResults] = useState(false)
-  const [searching, setSearching] = useState(false)
-  const [scanOpen, setScanOpen] = useState(false) // scanner barcode a tutto schermo
-  const [scanMsg, setScanMsg] = useState('')      // esito scansione (codice non in catalogo)
   const dayRef = useRef(null)
-  const searchRef = useRef(null)
-  const searchTimer = useRef(null)
   const set = patch => setForm(f => ({ ...f, ...patch }))
-
-  useEffect(() => () => clearTimeout(searchTimer.current), [])
 
   // Chiudi il popover data toccando fuori (come il selettore del timer).
   useEffect(() => {
@@ -69,82 +49,55 @@ function FoodEditor({ food, meal, date, dayOptions, onSave, onCancel }) {
     }
   }, [dayOpen])
 
-  // Chiudi la tendina dei risultati toccando fuori dal campo di ricerca.
-  useEffect(() => {
-    if (!showResults) return undefined
-    function onDown(e) {
-      if (searchRef.current && !searchRef.current.contains(e.target)) setShowResults(false)
-    }
-    document.addEventListener('mousedown', onDown)
-    document.addEventListener('touchstart', onDown)
-    return () => {
-      document.removeEventListener('mousedown', onDown)
-      document.removeEventListener('touchstart', onDown)
-    }
-  }, [showResults])
-
   const valid = form.nome.trim() !== '' && String(form.kcal).trim() !== ''
+  const dirty = useDirty({ form, sel, day })
+  const guard = useModalGuard({ dirty, onSave: save, onCancel })
   const wheelOptions = dayOptions.map(o => ({ value: o.key, label: o.label }))
   const dayLabel = dayOptions.find(o => o.key === day)?.label ?? ''
 
-  // Digitando nel Nome: torna in modalità manuale e cerca nel catalogo (debounce).
+  // Digitando nel Nome: torna in modalità manuale (i valori non sono più quelli
+  // di un prodotto, quindi non si riscalano più sui grammi).
   function onName(v) {
     set({ nome: v })
     setBase(null)
-    clearTimeout(searchTimer.current)
-    if (!isSupabaseConfigured || v.trim().length < 2) { setResults([]); setShowResults(false); return }
-    searchTimer.current = setTimeout(async () => {
-      setSearching(true)
-      setShowResults(true)
-      try {
-        setResults(await searchFoodItems(v.trim(), { limit: 8 }))
-      } catch {
-        setResults([])
-      } finally {
-        setSearching(false)
-      }
-    }, 300)
   }
 
   // Scelta di un prodotto dal catalogo: memorizza i valori/100 g e riempie la form.
   function pickFood(item) {
-    const b = {
-      kcal: item.calories_kcal, protein: item.protein_g, carbs: item.carbs_g,
-      fat: item.fat_g, sugars: item.sugar_g, fiber: item.fiber_g,
-    }
+    const b = baseFromFoodItem(item)
     setBase(b)
-    set({ nome: item.name, grammi: '100', ...scaledFrom(b, '100') })
-    setResults([])
-    setShowResults(false)
-    setScanMsg('')
+    set({ nome: item.name, grammi: '100', ...scaleNutrients(b, '100') })
   }
 
-  // Codice letto dallo scanner: prima il catalogo locale (veloce e offline), poi come
-  // ripiego Open Food Facts. Il catalogo copre i prodotti marcati per l'Italia, ma su uno
-  // scaffale vero capitano importati ed edizioni estere che lì non ci sono.
-  async function handleScan(code) {
-    setScanOpen(false)
-    setScanMsg(t('nutrition.scanLooking'))
-    try {
-      const local = await getFoodItemByBarcode(code)
-      if (local) { pickFood(local); return }
-    } catch {
-      // catalogo non raggiungibile: si prova comunque online
-    }
-    const online = await fetchFoodByBarcodeOnline(code)
-    if (online) pickFood(online)
-    else setScanMsg(t('nutrition.scanNotFound', { code }))
+  // Scelta di un pasto personalizzato: ne copia i valori nella form, come fa
+  // `pickFood` col catalogo. "Nessuno" non svuota nulla: si limita a sganciare
+  // la form dal pasto scelto, così quanto già scritto non sparisce per sbaglio.
+  function pickCustomMeal(id) {
+    setCustom(id)
+    const m = findCustomMeal(customMeals, id)
+    if (!m) return
+    setBase(null) // valori presi così come sono: non si riscalano sui grammi
+    if (m.meal) setSel(m.meal) // il pasto scelto quando è stato creato
+    set({
+      nome: m.nome ?? '',
+      grammi: m.grammi ?? '',
+      kcal: m.kcal ?? '',
+      ...Object.fromEntries(MACRO_KEYS.map(k => [k, m[k] ?? ''])),
+    })
   }
 
   // Cambio grammi: se il valore viene dal catalogo, riscala kcal e macro.
+  // `decimalInput` perché su tastiera italiana il tasto decimale è la virgola,
+  // e "10,5" arriverebbe a `Number()` come NaN (nessuna riscalatura, in silenzio).
   function onGrammi(v) {
-    set({ grammi: v })
-    if (base) set(scaledFrom(base, v))
+    const g = decimalInput(v)
+    set({ grammi: g })
+    if (base) set(scaleNutrients(base, g))
   }
 
   // Modifica manuale delle kcal (solo quando NON viene dal catalogo): solo numeri.
   function onKcal(v) {
-    set({ kcal: v.replace(/\D/g, '') })
+    set({ kcal: onlyDigits(v) })
     setBase(null)
   }
 
@@ -157,7 +110,7 @@ function FoodEditor({ food, meal, date, dayOptions, onSave, onCancel }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-5 bg-black/60 backdrop-blur-sm">
       <div className="relative w-full max-w-sm rounded-2xl bg-[var(--surface)] border border-[color:var(--border-2)] p-5">
         <button
-          onClick={onCancel}
+          onClick={guard.requestClose}
           aria-label={t('common.cancel')}
           className="absolute top-3 right-3 text-[color:var(--text-muted)] hover:text-[color:var(--text)] transition-colors"
         >
@@ -198,69 +151,33 @@ function FoodEditor({ food, meal, date, dayOptions, onSave, onCancel }) {
         </div>
 
         <div className="flex flex-col gap-3">
-          {/* Micro-label sopra la select, come i campi (Field) e come il mockup. */}
-          <label className="flex flex-col gap-1">
-            <span className="text-xs uppercase tracking-wider text-[color:var(--text-dim)]">{t('nutrition.meal')}</span>
-            <select value={sel} onChange={e => setSel(e.target.value)} className={SELECT_CLS}>
-              {MEALS.map(m => (
-                <option key={m.key} value={m.key}>{t(m.labelKey)}</option>
-              ))}
-            </select>
-          </label>
+          {/* Prima riga: pasto della giornata + eventuale pasto personalizzato.
+              Micro-label sopra le select, come i campi (Field) e come il mockup. */}
+          <div className="grid grid-cols-2 gap-2">
+            <label className="flex flex-col gap-1 min-w-0">
+              <span className="text-xs uppercase tracking-wider text-[color:var(--text-dim)]">{t('nutrition.meal')}</span>
+              <select value={sel} onChange={e => setSel(e.target.value)} className={SELECT_CLS}>
+                {MEALS.map(m => (
+                  <option key={m.key} value={m.key}>{t(m.labelKey)}</option>
+                ))}
+              </select>
+            </label>
+
+            {/* "Nessuno" + i pasti creati in Prodotti → Personali. */}
+            <label className="flex flex-col gap-1 min-w-0">
+              <span className="text-xs uppercase tracking-wider text-[color:var(--text-dim)] truncate">{t('nutrition.customMeal')}</span>
+              <select value={custom} onChange={e => pickCustomMeal(e.target.value)} className={SELECT_CLS}>
+                <option value={NO_CUSTOM_MEAL}>{t('nutrition.noCustomMeal')}</option>
+                {customMeals.map(m => (
+                  <option key={m.id} value={m.id}>{m.nome}</option>
+                ))}
+              </select>
+            </label>
+          </div>
 
           {/* Nome = ricerca sul catalogo: digita → tendina risultati → scegli e riempi.
-              A destra il pulsante fotocamera (scansione barcode, in arrivo). */}
-          <div ref={searchRef} className="relative">
-            <label className="flex flex-col gap-1">
-              <span className="text-xs uppercase tracking-wider text-[color:var(--text-dim)]">{t('goals.name')}</span>
-              <div className="relative">
-                {/* Lente a sinistra: il campo si legge come una ricerca (come nel mockup). */}
-                <IoSearch className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-base text-[color:var(--text-faint)]" />
-                <input
-                  value={form.nome}
-                  onChange={e => onName(e.target.value)}
-                  onFocus={() => { if (results.length) setShowResults(true) }}
-                  placeholder={t('nutrition.searchPlaceholder')}
-                  autoComplete="off"
-                  className="w-full bg-[var(--surface)] border border-[color:var(--border-2)] rounded-xl pl-10 pr-12 py-3 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)] placeholder:text-[color:var(--text-faint)]"
-                />
-                <button
-                  type="button"
-                  aria-label={t('nutrition.scan')}
-                  onClick={() => setScanOpen(true)}
-                  className="absolute inset-y-0 right-0 m-3 flex items-center text-[color:var(--accent)]"
-                >
-                  <IoCameraOutline className="text-xl" />
-                </button>
-              </div>
-            </label>
-            {scanMsg && <p className="mt-1 text-xs text-[color:var(--text-dim)]">{scanMsg}</p>}
-            {showResults && (
-              <div className="absolute left-0 right-0 top-full mt-1 z-30 max-h-52 overflow-y-auto rounded-xl bg-[var(--surface)] border border-[color:var(--border-2)] shadow-xl">
-                {searching && results.length === 0 ? (
-                  <p className="px-3 py-2 text-xs text-[color:var(--text-dim)]">{t('nutrition.searching')}</p>
-                ) : results.length === 0 ? (
-                  <p className="px-3 py-2 text-xs text-[color:var(--text-dim)]">{t('nutrition.searchNoResults')}</p>
-                ) : (
-                  results.map(item => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onMouseDown={e => e.preventDefault()} // non far perdere il focus prima del click
-                      onClick={() => pickFood(item)}
-                      className="w-full text-left px-3 py-2 hover:bg-[var(--surface-3)] transition-colors border-b border-[color:var(--border-1)] last:border-0"
-                    >
-                      <p className="text-sm font-medium truncate">{item.name}</p>
-                      <p className="text-xs text-[color:var(--text-dim)] truncate">
-                        {item.brand ? `${item.brand} · ` : ''}
-                        {item.calories_kcal != null ? Math.round(item.calories_kcal) : '?'} {t('nutrition.kcal')}/100g
-                      </p>
-                    </button>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
+              Campo condiviso con la modale dei pasti personalizzati. */}
+          <FoodSearchInput value={form.nome} onChange={onName} onPick={pickFood} />
 
           <div className="grid grid-cols-2 gap-2">
             <Field label={t('nutrition.grams')} value={form.grammi} onChange={e => onGrammi(e.target.value)} inputMode="numeric" placeholder="100" />
@@ -279,26 +196,8 @@ function FoodEditor({ food, meal, date, dayOptions, onSave, onCancel }) {
           </div>
         </div>
 
-        <div className="flex gap-2 mt-6">
-          <button
-            onClick={onCancel}
-            className="flex-1 rounded-full py-3 font-semibold border border-[color:var(--border-2)] text-[color:var(--text)] hover:bg-[var(--surface-3)] transition-colors"
-          >
-            {t('common.cancel')}
-          </button>
-          <button
-            onClick={save}
-            disabled={!valid}
-            className="flex-1 flex items-center justify-center gap-2 rounded-full py-3 font-semibold transition-opacity disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90"
-            style={{ backgroundColor: 'var(--accent)', color: 'var(--on-accent)' }}
-          >
-            <IoSaveOutline className="text-lg" />
-            {t('common.save')}
-          </button>
-        </div>
+        <ModalActions guard={guard} canSave={valid && dirty} />
       </div>
-
-      {scanOpen && <BarcodeScanner onScan={handleScan} onClose={() => setScanOpen(false)} />}
     </div>
   )
 }

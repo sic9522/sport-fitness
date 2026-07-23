@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   sumNutrients, dayTotals, dateKey, diarioHasData, dayMeals,
   weekDateKeys, monthDateKeys, monthWeeks, rangeTotals, dailyKcalSeries, dailyDeficitSeries,
-  startOfWeek, weekOfMonth, clippedWeek,
+  startOfWeek, weekOfMonth, clippedWeek, scaleNutrients, baseFromFoodItem,
 } from './nutritionDefaults'
 
 describe('sumNutrients', () => {
@@ -152,5 +152,41 @@ describe('dailyDeficitSeries', () => {
     // 2000-1800=+200 (deficit), 2000-2300=-300 (surplus), giorno assente = 0
     expect(dailyDeficitSeries(diario, ['2026-01-01', '2026-01-02', '2026-01-03'], 2000))
       .toEqual([200, -300, 0])
+  })
+})
+
+describe('baseFromFoodItem + scaleNutrients', () => {
+  const item = {
+    calories_kcal: 250, protein_g: 8.4, carbs_g: 30, fat_g: 10.15,
+    sugar_g: 5, fiber_g: null,
+  }
+
+  it('legge i valori/100 g dalle colonne del catalogo', () => {
+    expect(baseFromFoodItem(item)).toEqual({
+      kcal: 250, protein: 8.4, carbs: 30, fat: 10.15, sugars: 5, fiber: null,
+    })
+  })
+
+  it('a 100 g restituisce i valori del catalogo (kcal intere, macro a un decimale)', () => {
+    expect(scaleNutrients(baseFromFoodItem(item), '100')).toEqual({
+      kcal: '250', protein: '8.4', carbs: '30', fat: '10.2', sugars: '5', fiber: '',
+    })
+  })
+
+  it('scala sulla quantità inserita', () => {
+    const r = scaleNutrients(baseFromFoodItem(item), '250')
+    expect(r.kcal).toBe('625')
+    expect(r.protein).toBe('21')
+    expect(r.carbs).toBe('75')
+  })
+
+  it('nutriente assente resta vuoto, non 0', () => {
+    expect(scaleNutrients(baseFromFoodItem(item), '200').fiber).toBe('')
+  })
+
+  it('grammi vuoti o non validi = nessuna scalatura (fattore 1)', () => {
+    expect(scaleNutrients(baseFromFoodItem(item), '').kcal).toBe('250')
+    expect(scaleNutrients(baseFromFoodItem(item), '0').kcal).toBe('250')
+    expect(scaleNutrients(baseFromFoodItem(item), 'abc').kcal).toBe('250')
   })
 })

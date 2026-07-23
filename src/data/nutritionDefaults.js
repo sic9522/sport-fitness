@@ -24,6 +24,28 @@ export const MACROS = [
 ]
 export const MACRO_KEYS = MACROS.map(m => m.key)
 
+// Valori/100 g di un prodotto del catalogo (food_items), nella forma usata dagli
+// editor come "base" da riscalare. Nutriente assente = null, MAI 0.
+export function baseFromFoodItem(item) {
+  return {
+    kcal: item.calories_kcal, protein: item.protein_g, carbs: item.carbs_g,
+    fat: item.fat_g, sugars: item.sugar_g, fiber: item.fiber_g,
+  }
+}
+
+// I valori del catalogo sono per 100 g: qui si scalano sulla quantità inserita.
+// kcal arrotondate all'intero, macro a un decimale, tutto come stringhe (è quello
+// che finisce negli input). `base` = valori/100 g; grammi non validi = fattore 1.
+export function scaleNutrients(base, grammiStr) {
+  const g = Number(grammiStr)
+  const f = Number.isFinite(g) && g > 0 ? g / 100 : 1
+  const out = { kcal: base.kcal == null ? '' : String(Math.round(base.kcal * f)) }
+  for (const k of MACRO_KEYS) {
+    out[k] = base[k] == null ? '' : String(Math.round(base[k] * f * 10) / 10)
+  }
+  return out
+}
+
 export const DEFAULT_NUTRITION_GOALS = {
   kcal: 2000, protein: 150, carbs: 220, fat: 60, sugars: 50, fiber: 30,
 }
@@ -45,7 +67,7 @@ export function dateKey(d = new Date()) {
 }
 export const todayKey = () => dateKey(new Date())
 
-export const newFoodId = () => (crypto?.randomUUID && crypto.randomUUID()) || String(Date.now())
+export { newId as newFoodId } from './ids'
 
 // Un giorno vuoto = le 4 liste pasto vuote.
 const emptyDay = () => ({ breakfast: [], lunch: [], dinner: [], snacks: [] })
