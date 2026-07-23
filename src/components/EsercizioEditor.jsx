@@ -6,6 +6,7 @@ import { titleCase } from '../utils/text'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { searchCatalogExercises } from '../services/catalogs'
 import { serieCount, editorRows, rowsValid, buildExercise, SERIE_MAX } from '../data/exerciseSets'
+import { equipmentLabelKey } from '../data/equipment'
 import ExerciseImageField from './ExerciseImageField'
 
 const NAME_MAX = 40       // caratteri massimi del nome esercizio
@@ -151,7 +152,12 @@ function NameField({ label, value, placeholder, onChange, onPick }) {
     let alive = true
     const id = setTimeout(async () => {
       try {
-        const data = await searchCatalogExercises(query, { limit: 8, locale: lang })
+        // 24 e non 8: cercando un ATTREZZO i risultati sono legittimamente tanti
+        // (23 esercizi coi manubri). Con 8 posti li riempivano tutti quelli che
+        // hanno "manubri" nel NOME e restava fuori il resto dell'attrezzo, es.
+        // "Curl a Martello" — cioe' proprio quello che la ricerca per attrezzo
+        // serve a trovare. La tendina scorre, quindi la lista lunga non disturba.
+        const data = await searchCatalogExercises(query, { limit: 24, locale: lang })
         if (alive) { setResults(data); setOpen(true) }
       } catch {
         if (alive) setResults([])
@@ -231,7 +237,17 @@ function NameField({ label, value, placeholder, onChange, onPick }) {
                       <IoBarbellOutline className="text-[color:var(--text-dim)]" />
                     </span>
                   )}
-                  <span className="text-sm truncate">{item.name}</span>
+                  {/* L'attrezzo sotto al nome: la ricerca trova gli esercizi anche
+                      per attrezzo ("manubri" → "Curl a Martello"), quindi va detto
+                      perché quel risultato è lì. */}
+                  <span className="min-w-0">
+                    <span className="block text-sm truncate">{item.name}</span>
+                    {equipmentLabelKey(item.equipment) && (
+                      <span className="block text-xs text-[color:var(--text-dim)] truncate">
+                        {t(equipmentLabelKey(item.equipment))}
+                      </span>
+                    )}
+                  </span>
                 </button>
               </li>
             ))
