@@ -29,6 +29,31 @@ export function signInWithProvider(providerId, path = '/') {
   })
 }
 
+// Twilio accetta solo numeri in formato E.164 (+prefisso, nessun separatore).
+// Un numero scritto senza prefisso si assume italiano: l'app nasce per l'Italia
+// e chi e' all'estero digita comunque il proprio "+xx".
+export function toE164(phone, defaultPrefix = '+39') {
+  const raw = String(phone ?? '').trim().replace(/[\s().-]/g, '')
+  if (raw.startsWith('+')) return raw
+  if (raw.startsWith('00')) return `+${raw.slice(2)}`
+  return `${defaultPrefix}${raw.replace(/^0+/, '')}`
+}
+
+// Accesso via SMS: si invia un codice usa e getta. Con `shouldCreateUser: false`
+// Supabase non crea l'account, cosi' il login non registra chi non e' iscritto.
+export function sendPhoneOtp(phone, { createUser = false } = {}) {
+  return client().auth.signInWithOtp({
+    phone: toE164(phone),
+    options: { shouldCreateUser: createUser },
+  })
+}
+
+// Verifica il codice ricevuto: in caso di successo la sessione e' attiva,
+// come dopo un login normale (AuthContext se ne accorge da solo).
+export function verifyPhoneOtp(phone, token) {
+  return client().auth.verifyOtp({ phone: toE164(phone), token: String(token).trim(), type: 'sms' })
+}
+
 export function signOut() {
   return client().auth.signOut()
 }

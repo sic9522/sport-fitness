@@ -10,6 +10,7 @@ import {
   signUpWithEmail, signInWithProvider, signOut,
   markOAuthSignup, consumeOAuthSignup, isExistingUser,
 } from '../../services/auth'
+import { isOtpProvider } from '../../lib/authProviders'
 import { savePendingProfile, flushPendingProfile, getProfile } from '../../services/profile'
 import { identityFromUser } from '../../utils/greeting'
 import {
@@ -47,12 +48,19 @@ function RegistrationWizard() {
   // tornato da Google per registrarmi" da "ero gia' loggato e ho aperto /registrazione".
   const [fromOAuth] = useState(consumeOAuthSignup)
 
+  // Il numero di telefono si verifica col codice SMS gia' allo step 1: da li' in poi
+  // la sessione e' attiva, quindi il wizard raccoglie solo i dati del profilo.
+  const [phoneAuthed, setPhoneAuthed] = useState(false)
+
   // Ritorno dal provider: l'utente e' gia' autenticato, quindi niente scelta del metodo
   // e nessuna credenziale da chiedere. Restano solo i dati che il provider non da'.
   const viaProvider = fromOAuth && Boolean(user)
 
+  // Autenticato durante (o prima di) questo wizard: alla fine si scrive solo il profilo.
+  const preAuthed = viaProvider || phoneAuthed
+
   // Gia' autenticato senza essere passati di qui: l'account esiste, non se ne crea un altro.
-  const alreadyRegistered = Boolean(user) && !fromOAuth
+  const alreadyRegistered = Boolean(user) && !fromOAuth && !phoneAuthed
   const steps = viaProvider ? ALL_STEPS.filter(s => s.key !== 'method') : ALL_STEPS
   const TOTAL = steps.length
   const currentKey = steps[Math.min(step, TOTAL - 1)].key
@@ -127,7 +135,7 @@ function RegistrationWizard() {
     // Provider scelto: si autentica SUBITO e si torna qui. Cosi' non si chiedono dati
     // che il provider fornisce gia' (nome, cognome) e non si perde la compilazione se
     // l'accesso viene annullato.
-    if (currentKey === 'method' && data.method && data.method !== 'email') {
+    if (currentKey === 'method' && data.method && data.method !== 'email' && !isOtpProvider(data.method)) {
       setSubmitting(true)
       setError('')
       markOAuthSignup() // al ritorno il wizard sapra' che il redirect partiva da qui
@@ -138,6 +146,15 @@ function RegistrationWizard() {
 
     if (step < TOTAL - 1) setStep(s => s + 1)
     else finish()
+  }
+
+  // Codice SMS verificato: la sessione c'e', si prosegue con i dati del profilo
+  // e il numero appena confermato precompila l'anagrafica.
+  function phoneVerified({ phone }) {
+    setPhoneAuthed(true)
+    setError('')
+    setAna({ phone })
+    setStep(s => s + 1)
   }
 
   function back() {
@@ -153,8 +170,8 @@ function RegistrationWizard() {
     // I dati raccolti si scrivono sul profilo appena l'utente e' autenticato.
     savePendingProfile({ anagrafica: data.anagrafica, fisico: data.fisico })
     try {
-      // Gia' autenticato dal provider: il profilo si scrive e basta, nessuna credenziale.
-      if (viaProvider) {
+      // Gia' autenticato (provider o SMS): il profilo si scrive e basta, nessuna credenziale.
+      if (preAuthed) {
         await flushPendingProfile(user)
         navigate('/')
         return
@@ -191,6 +208,8 @@ function RegistrationWizard() {
   }
 
   const isLast = step === TOTAL - 1
+  // Sullo step del metodo con "numero" scelto comanda il form OTP, non il wizard.
+  const phoneStep = currentKey === 'method' && isOtpProvider(data.method)
 
   // Sessione gia' attiva: non si crea un secondo account. Si dice chi si e' e si offre
   // di entrare, oppure di uscire per registrarne un altro.
@@ -258,7 +277,9 @@ function RegistrationWizard() {
       )}
 
       <div className="flex-1">
-        {currentKey === 'method' && <StepMethod data={data} errors={errors} onChange={setTop} />}
+        {currentKey === 'method' && (
+          <StepMethod data={data} errors={errors} onChange={setTop} onPhoneVerified={phoneVerified} />
+        )}
         {currentKey === 'anagrafica' && <StepAnagrafica data={data.anagrafica} errors={errors} onChange={setAna} />}
         {currentKey === 'fisico' && <StepFisico data={data.fisico} errors={errors} onChange={setFis} />}
       </div>
@@ -274,14 +295,18 @@ function RegistrationWizard() {
         >
           <IoChevronBack /> {t('auth.back')}
         </button>
-        <button
-          onClick={next}
-          disabled={submitting || !isConfigured}
-          className="flex-1 rounded-xl py-3 font-bold disabled:opacity-40 disabled:cursor-not-allowed"
-          style={{ backgroundColor: 'var(--accent)', color: 'var(--on-accent)' }}
-        >
-          {submitting ? t('auth.creating') : isLast ? t(viaProvider ? 'auth.finishProfile' : 'auth.createAccount') : t('auth.next')}
-        </button>
+        {/* Col numero si avanza verificando il codice SMS: un "Avanti" qui non avrebbe
+            nulla da fare e farebbe solo dubitare di aver sbagliato bottone. */}
+        {!phoneStep && (
+          <button
+            onClick={next}
+            disabled={submitting || !isConfigured}
+            className="flex-1 rounded-xl py-3 font-bold disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ backgroundColor: 'var(--accent)', color: 'var(--on-accent)' }}
+          >
+            {submitting ? t('auth.creating') : isLast ? t(preAuthed ? 'auth.finishProfile' : 'auth.createAccount') : t('auth.next')}
+          </button>
+        )}
       </div>
 
       <p className="text-center text-sm text-[color:var(--text-muted)] mt-6">

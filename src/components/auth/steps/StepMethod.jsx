@@ -2,13 +2,16 @@ import { IoMailOutline } from 'react-icons/io5'
 import { useLang } from '../../../context/LanguageContext'
 import Field from '../../ui/Field'
 import ProviderButtons from '../ProviderButtons'
+import PhoneOtpForm from '../PhoneOtpForm'
 
 // Step 1: scelta del metodo di registrazione. Per "Email e Password" raccoglie
 // gia' le credenziali; i provider OAuth vengono solo selezionati (l'auth avviene
-// alla fine del wizard). Predisposto ad altri provider tramite ProviderButtons.
-function StepMethod({ data, errors, onChange }) {
+// alla fine del wizard); col numero di telefono si verifica subito il codice SMS,
+// perche' senza sessione non si potrebbe proseguire. Altri provider: ProviderButtons.
+function StepMethod({ data, errors, onChange, onPhoneVerified }) {
   const { t } = useLang()
   const emailSelected = data.method === 'email'
+  const phoneSelected = data.method === 'phone'
 
   return (
     <div className="flex flex-col gap-3">
@@ -32,6 +35,16 @@ function StepMethod({ data, errors, onChange }) {
       />
 
       {errors.method && <p className="text-sm text-red-400">{errors.method}</p>}
+
+      {phoneSelected && (
+        <div className="mt-2">
+          <PhoneOtpForm
+            createUser
+            submitLabelKey="auth.verifyAndContinue"
+            onVerified={onPhoneVerified}
+          />
+        </div>
+      )}
 
       {emailSelected && (
         <div className="flex flex-col gap-3 mt-2">

@@ -1,9 +1,9 @@
 import { authProviders } from '../../lib/authProviders'
 import { useLang } from '../../context/LanguageContext'
 
-// Bottoni dei provider OAuth, generati dall'elenco `authProviders`.
-// Condiviso tra login e registrazione: aggiungere un provider = aggiungere una
-// voce in authProviders, nessuna modifica qui.
+// Bottoni dei metodi di accesso alternativi (numero di telefono, OAuth), generati
+// dall'elenco `authProviders`. Condiviso tra login e registrazione: aggiungere un
+// provider = aggiungere una voce in authProviders, nessuna modifica qui.
 function ProviderButtons({ onSelect, labelKey = 'auth.continueWith', busy = false, selectedId = null }) {
   const { t } = useLang()
 
@@ -12,6 +12,8 @@ function ProviderButtons({ onSelect, labelKey = 'auth.continueWith', busy = fals
       {authProviders.map(p => {
         const Icon = p.icon
         const selected = selectedId === p.id
+        // I marchi (Google, GitHub) restano invariati; le voci generiche si traducono.
+        const provider = p.labelToken ? t(p.labelToken) : p.label
         return (
           <button
             key={p.id}
@@ -25,7 +27,7 @@ function ProviderButtons({ onSelect, labelKey = 'auth.continueWith', busy = fals
             }`}
           >
             <Icon className="text-lg" />
-            {t(labelKey, { provider: p.label })}
+            {t(labelKey, { provider })}
           </button>
         )
       })}
