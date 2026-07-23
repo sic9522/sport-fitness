@@ -56,6 +56,22 @@ Da NON dare per scontato:
 
 ## Log
 
+### 2026-07-23 - Claude (varianti: bottoni V1-V5 in "Aggiungi un pasto")
+
+- **Le varianti escono dalla RICERCA**: la tendina porta sempre l'ORIGINALE.
+  Erano appiattite in ricerca (scelta del giorno prima); Simone ha chiesto di
+  toglierle, e ha ragione — sette righe quasi identiche stanno tra l'utente e il
+  piatto che cerca. `flattenCustomFoods` resta per gli elenchi e per il controllo
+  dei nomi doppi.
+- La variante si sceglie DOPO, nella modale: riga di bottoni **V1…V5** tra il
+  campo Nome e i grammi, con accanto il nome della versione caricata. Ripremuto,
+  il bottone attivo torna all'originale: niente sesto bottone per tornare
+  indietro. La lettera viene da `products.variantInitial` (V, in cinese 变).
+- Cambiare variante ricarica i valori mantenendo i GRAMMI gia' scritti: si sta
+  confrontando la stessa porzione, non ricominciando.
+- `MAX_VARIANTS = 5` con `canAddVariant`: il tetto nasce dalla riga di bottoni,
+  ed e' segnalato in `CompositeFoodEditor` quando si prova a sforare.
+
 ### 2026-07-23 - Claude (prodotti nascosti, sincronizzati sull'account)
 
 - Richiesta: "se l'utente clicca elimina non deve piu' vedere quel prodotto, e

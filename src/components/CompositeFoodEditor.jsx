@@ -8,6 +8,7 @@ import { decimalInput } from '../utils/numberInput'
 import { MACROS } from '../data/nutritionDefaults'
 import {
   newCustomFoodId, CUSTOM_FOOD_SOURCE, compositeNutrients, MAX_COMPONENTS, isNameTaken,
+  canAddVariant, MAX_VARIANTS,
 } from '../data/customFoods'
 import Field from './ui/Field'
 import ModalActions from './ui/ModalActions'
@@ -84,6 +85,8 @@ function CompositeFoodEditor({ initial = null, asVariant = false, existing = [],
   function requestVariant() {
     if (!initial) { setVariantMsg(t('products.variantNeedsOriginal')); return }
     if (dirty) { setVariantMsg(t('products.variantNeedsSave')); return }
+    // Cinque al massimo: in "Aggiungi un pasto" diventano bottoni su una riga.
+    if (!canAddVariant(initial)) { setVariantMsg(t('products.variantMax', { n: MAX_VARIANTS })); return }
     setVariantMsg('')
     onAddVariant(initial)
   }

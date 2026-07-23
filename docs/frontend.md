@@ -217,8 +217,13 @@ utenti sullo stesso browser). Da verificare end-to-end su un Supabase reale.
   restano come spiegazione. Si riconosce dall'asterisco nel nome
   (`foodDisplayName`). Un composto puo' avere delle **varianti** (lo stesso piatto
   fatto diverso): vivono dentro di lui (`addVariant`), nell'elenco lo rendono un
-  accordion (uno aperto alla volta) e in ricerca compaiono appiattite
-  (`flattenCustomFoods`), altrimenti non si potrebbero mettere nel diario.
+  accordion (uno aperto alla volta), al massimo 5 (`MAX_VARIANTS`).
+  **In ricerca NON compaiono**: la tendina porta sempre l'originale, e la
+  variante si sceglie dopo, nella modale "Aggiungi un pasto", con una riga di
+  bottoni V1…V5 tra il nome e i grammi (ripremuto, il bottone attivo torna
+  all'originale). Sette righe quasi identiche in tendina sarebbero solo un
+  ostacolo tra l'utente e il piatto che cerca. `flattenCustomFoods` resta per gli
+  ELENCHI e per il controllo dei nomi doppi.
 - Righe degli elenchi personali (`PersonalRow` in `pages/Prodotti`): click apre
   le varianti, doppio click riapre la modale per modificare, pressione prolungata
   arma il cestino rosso, che poi chiede conferma.

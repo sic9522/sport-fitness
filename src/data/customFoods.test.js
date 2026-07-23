@@ -3,6 +3,7 @@ import {
   upsertCustomFood, removeCustomFood, searchCustomFoods, mergeCustomFoods, isCustomFood,
   compositeNutrients, isCompositeFood, foodDisplayName,
   addVariant, removeVariant, hasVariants, flattenCustomFoods, isNameTaken,
+  canAddVariant, MAX_VARIANTS,
 } from './customFoods'
 
 const mine = { id: '1', source: 'custom', name: 'Bistecca Simone', calories_kcal: 150 }
@@ -213,5 +214,19 @@ describe('isNameTaken', () => {
 
   it('nome vuoto non è mai "già preso"', () => {
     expect(isNameTaken(list, { name: '   ', composite: false })).toBe(false)
+  })
+})
+
+describe('canAddVariant', () => {
+  const withN = n => ({ variants: Array.from({ length: n }, (_, i) => ({ id: `v${i}` })) })
+
+  it('si ferma a 5: in "Aggiungi un pasto" sono bottoni su una riga sola', () => {
+    expect(canAddVariant(withN(4))).toBe(true)
+    expect(canAddVariant(withN(MAX_VARIANTS))).toBe(false)
+  })
+
+  it('un composto senza varianti può sempre averne una', () => {
+    expect(canAddVariant({ name: 'Carbonara' })).toBe(true)
+    expect(canAddVariant(null)).toBe(true)
   })
 })

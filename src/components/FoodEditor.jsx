@@ -7,6 +7,7 @@ import { titleCase } from '../utils/text'
 import { onlyDigits, decimalInput } from '../utils/numberInput'
 import { MEALS, MACRO_KEYS, baseFromFoodItem, scaleNutrients } from '../data/nutritionDefaults'
 import { loadCustomMeals, findCustomMeal, NO_CUSTOM_MEAL } from '../data/customMeals'
+import { hasVariants } from '../data/customFoods'
 import Field from './ui/Field'
 import ModalActions from './ui/ModalActions'
 import Wheel from './Wheel'
@@ -32,6 +33,10 @@ function FoodEditor({ food, meal, date, dayOptions, onSave, onCancel }) {
   const [day, setDay] = useState(date)
   const [dayOpen, setDayOpen] = useState(false) // popover del wheel data
   const [base, setBase] = useState(null)         // valori/100 g del prodotto scelto (null = manuale)
+  // Piatto composto scelto e sua variante attiva: la ricerca porta sempre
+  // l'ORIGINALE, la variante si sceglie qui coi bottoni V1…V5.
+  const [picked, setPicked] = useState(null)
+  const [variant, setVariant] = useState(null)   // id della variante attiva (null = originale)
   const dayRef = useRef(null)
   const set = patch => setForm(f => ({ ...f, ...patch }))
 
@@ -60,13 +65,31 @@ function FoodEditor({ food, meal, date, dayOptions, onSave, onCancel }) {
   function onName(v) {
     set({ nome: v })
     setBase(null)
+    setPicked(null)
+    setVariant(null)
   }
 
   // Scelta di un prodotto dal catalogo: memorizza i valori/100 g e riempie la form.
+  // Di un piatto con varianti si prende sempre l'originale; le varianti restano
+  // a portata di bottone.
   function pickFood(item) {
+    setPicked(item)
+    setVariant(null)
+    applyFood(item, form.grammi || '100')
+  }
+
+  // Bottone V1…V5: carica i valori di quella variante. Ripremuto, torna
+  // all'originale — così non serve un sesto bottone per tornare indietro.
+  function pickVariant(v) {
+    const back = variant === v.id
+    setVariant(back ? null : v.id)
+    applyFood(back ? picked : v, form.grammi || '100')
+  }
+
+  function applyFood(item, grammi) {
     const b = baseFromFoodItem(item)
     setBase(b)
-    set({ nome: item.name, grammi: '100', ...scaleNutrients(b, '100') })
+    set({ nome: item.name, grammi, ...scaleNutrients(b, grammi) })
   }
 
   // Scelta di un pasto personalizzato: ne copia i valori nella form, come fa
@@ -178,6 +201,34 @@ function FoodEditor({ food, meal, date, dayOptions, onSave, onCancel }) {
           {/* Nome = ricerca sul catalogo: digita → tendina risultati → scegli e riempi.
               Campo condiviso con la modale dei pasti personalizzati. */}
           <FoodSearchInput value={form.nome} onChange={onName} onPick={pickFood} />
+
+          {/* Varianti del piatto scelto: una riga di bottoni tra il nome e i
+              grammi. La ricerca porta l'originale, qui si passa alla versione
+              che si è mangiata davvero. */}
+          {hasVariants(picked) && (
+            <div className="flex items-center gap-2 flex-wrap">
+              {picked.variants.map((v, i) => (
+                <button
+                  key={v.id}
+                  type="button"
+                  onClick={() => pickVariant(v)}
+                  title={v.name}
+                  aria-pressed={variant === v.id}
+                  className="rounded-full px-3 py-1.5 text-xs font-bold border transition-colors"
+                  style={variant === v.id
+                    ? { backgroundColor: 'var(--accent)', color: 'var(--on-accent)', borderColor: 'var(--accent)' }
+                    : { borderColor: 'var(--border-2)', color: 'var(--text)' }}
+                >
+                  {t('products.variantInitial')}{i + 1}
+                </button>
+              ))}
+              <span className="text-xs text-[color:var(--text-dim)] truncate">
+                {variant
+                  ? picked.variants.find(v => v.id === variant)?.name
+                  : t('products.originalLoaded')}
+              </span>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-2">
             <Field label={t('nutrition.grams')} value={form.grammi} onChange={e => onGrammi(e.target.value)} inputMode="numeric" placeholder="100" />

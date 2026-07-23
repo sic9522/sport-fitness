@@ -5,7 +5,7 @@ import { searchFoodItems, getFoodItemByBarcode, isGenericFood } from '../service
 import { fetchFoodByBarcodeOnline } from '../services/offApi'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import {
-  loadCustomFoods, flattenCustomFoods, searchCustomFoods, mergeCustomFoods,
+  loadCustomFoods, searchCustomFoods, mergeCustomFoods,
   isCustomFood, foodDisplayName,
 } from '../data/customFoods'
 import { loadHiddenFoods, filterHidden } from '../data/hiddenFoods'
@@ -24,9 +24,10 @@ function FoodSearchInput({ value, onChange, onPick, label }) {
   const [scanOpen, setScanOpen] = useState(false) // scanner barcode a tutto schermo
   const [scanMsg, setScanMsg] = useState('')      // esito scansione (codice non in catalogo)
   // Alimenti personali: stanno in locale, si leggono una volta all'apertura.
-  // Appiattiti, così anche le VARIANTI si possono scegliere: una variante che
-  // non si potesse mettere nel diario non servirebbe a niente.
-  const [myFoods] = useState(() => flattenCustomFoods(loadCustomFoods()))
+  // SOLO gli originali: le varianti non si cercano, si scelgono dopo con i
+  // bottoni V1…V5 (vedi FoodEditor). In tendina sarebbero sette righe quasi
+  // uguali tra l'utente e il piatto che sta cercando.
+  const [myFoods] = useState(() => loadCustomFoods())
   // Un prodotto nascosto non deve ricomparire proprio qui, dove si compila il
   // diario: è il posto per cui uno l'ha nascosto.
   const [hiddenSet] = useState(() => new Set(loadHiddenFoods()))

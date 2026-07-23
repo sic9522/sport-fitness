@@ -57,7 +57,14 @@ export const isCompositeFood = item => Array.isArray(item?.components) && item.c
 // pancetta invece del guanciale). Vive DENTRO il composto da cui nasce, così
 // l'elenco resta corto e le varianti si trovano dove uno le cerca: sotto
 // l'originale. Ha la stessa forma di un composto, senza varianti sue.
+// Tetto alle varianti: nella modale "Aggiungi un pasto" diventano bottoni su una
+// riga sola (V1…V5). Oltre non ci starebbero, e un piatto con sei versioni
+// diverse probabilmente sono due piatti.
+export const MAX_VARIANTS = 5
+
 export const hasVariants = item => Array.isArray(item?.variants) && item.variants.length > 0
+
+export const canAddVariant = item => (item?.variants?.length ?? 0) < MAX_VARIANTS
 
 export function addVariant(list, parentId, variant) {
   return (list || []).map(f => (
@@ -73,8 +80,11 @@ export function removeVariant(list, parentId, variantId) {
   ))
 }
 
-// Elenco piatto per la RICERCA: originali e varianti insieme. Una variante che
-// non si potesse scegliere nel diario non servirebbe a niente.
+// Elenco piatto: originali e varianti insieme. Serve agli ELENCHI (la lista
+// personalizzata in Prodotti) e al controllo dei nomi doppi — NON alla ricerca
+// del diario, dove si cerca il piatto e la variante si sceglie dopo, coi bottoni
+// V1…V5 (vedi FoodEditor): sette righe quasi identiche in tendina sarebbero solo
+// un ostacolo tra l'utente e il piatto che sta cercando.
 export function flattenCustomFoods(list) {
   return (list || []).flatMap(f => [f, ...(f.variants || [])])
 }
