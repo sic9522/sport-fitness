@@ -20,7 +20,8 @@ chiama `useTimer()`; senza provider crasha l'intero albero (schermo vuoto).
 ## Routing (`src/App.jsx`)
 
 `<Layout>` = `<Outlet/>` + `<TimerPill/>` + `<Footer/>`.
-Rotte dentro Layout: `/` Home, `/palestra`, `/alimentazione`, `/timer`,
+Rotte dentro Layout: `/` Home, `/palestra`, `/alimentazione`,
+`/alimentazione/prodotti`, `/timer`,
 `/profilo`, `/impostazioni` (+ `/colori`, `/obiettivi`, `/lingua`, `/backup`), e catch-all
 `*` -> `NotFound` (dentro Layout, mantiene TopBar/Footer).
 Fuori Layout: `/registrazione` (wizard). `BrowserRouter` sta in `main.jsx`.
@@ -32,8 +33,17 @@ rotta `/login`).
 - Icona in alto a destra = `components/auth/UserMenu`: se non loggato apre
   `LoginModal` (email/password + provider OAuth via `ProviderButtons`); se loggato
   apre un menu (Profilo/Impostazioni/Esci), predisposto a nuove voci.
-- Provider OAuth elencati in `lib/authProviders.js` (oggi Google). Aggiungerne =
-  una voce li'. Servizi auth in `services/auth.js` (email + OAuth + signOut).
+- Metodi alternativi elencati in `lib/authProviders.js`. Aggiungerne = una voce li'.
+  Servizi auth in `services/auth.js` (email + OTP telefono + OAuth + signOut).
+  **Oggi in UI c'e' solo Google**: numero e GitHub sono commentati perche' non
+  ancora configurati lato Supabase (Twilio / OAuth App). Il codice resta completo:
+  riattivarli = togliere il commento (voce + import icona).
+- Accesso col numero = OTP via SMS (provider Phone di Supabase su Twilio):
+  `components/auth/PhoneOtpForm` (numero -> codice), usato dal login e dallo step
+  "metodo" del wizard. Il numero si normalizza in E.164 (`toE164`, default +39);
+  nel login `shouldCreateUser: false` per non registrare chi non e' iscritto.
+  Nel wizard la verifica avviene subito: dopo il codice la sessione c'e' gia' e
+  restano solo i dati del profilo (stesso percorso del ritorno da OAuth).
 - Registrazione = wizard 3 step (`components/auth/RegistrationWizard` +
   `steps/StepMethod|StepAnagrafica|StepFisico`), stato unico (indietro non perde i
   dati), validazioni in `utils/validators.js`, input condiviso `components/ui/Field`.
@@ -167,6 +177,65 @@ utenti sullo stesso browser). Da verificare end-to-end su un Supabase reale.
   (colazione/pranzo/cena/spuntini) con inserimento manuale alimenti
   (`FoodEditor`), elimina con `ConfirmModal`, obiettivi giornalieri modificabili
   (`NutritionGoalsEditor`). Solo `localStorage` per ora (nessun mirror cloud).
+- `Prodotti` (`/alimentazione/prodotti`, bottone "Prodotti" sotto "Aggiungi
+  pasto"): tab **Prodotti**, a sua volta divisa in due liste —
+  *Lista personalizzata* (i generici nostri + tutto quello dell'utente, tenuti in
+  memoria: una query sola, `listGenericFoods`) e *Tutti gli alimenti* (il
+  catalogo `food_items` a pagine da 50, `listFoodItems`, con intestazioni di
+  lettera da `data/foodIndex` e cifre/simboli in fondo sotto `#`).
+  Entrambe hanno ricerca + barra comandi (`FoodFilterBar`): ordinamento per nome,
+  kcal o macro (`data/foodSort`) e selezione multipla. Ordinare la lista completa
+  RICARICA dal database (riordinare la sola pagina caricata darebbe una classifica
+  finta); le lettere spariscono se l'ordine non e' alfabetico. Doppio click =
+  modifica, ma solo sulla roba propria (catalogo e generici sono un database
+  condiviso in sola lettura).
+  **"Elimina" fa due cose diverse a seconda di cosa hai selezionato**: la roba
+  propria si cancella davvero, i prodotti del catalogo si NASCONDONO
+  (`data/hiddenFoods` + `hooks/useHiddenFoods` + tabella
+  `public.hidden_food_items`, migrazione 20260723170000). Nascosto = sparito da
+  tutti gli elenchi E dalla ricerca del diario, su tutti i dispositivi
+  dell'utente. Local-first: funziona da non loggati, e al login le due liste si
+  UNISCONO (nascondere si somma, non entra in conflitto). Il ripristino e'
+  l'unica operazione che toglie, e cancella anche sul cloud; il link "Ripristina"
+  compare solo quando c'e' qualcosa da ripristinare. Tab
+  **Personali** = tre blocchi (`PersonalSection`), in ordine: Alimenti
+  personalizzati (`CustomFoodEditor`), Alimenti composti (`CompositeFoodEditor`),
+  Pasti personalizzati (`CustomMealEditor`). Ogni blocco ha il suo tasto di
+  creazione, che cambia forma: card grande esplicativa finche' il blocco e'
+  vuoto, "+" accanto al titolo appena c'e' del contenuto.
+  In `data/customFoods` semplici e composti stanno nella STESSA lista (serve alla
+  ricerca e al controllo dei nomi); la pagina li separa con `isCompositeFood`.
+  Un **composto** e' una ricetta: fino a 20 alimenti scelti col campo di ricerca,
+  ognuno coi propri GRAMMI; nessun valore nutrizionale si scrive a mano.
+  `compositeNutrients` calcola due cose: il TOTALE del piatto (somma di
+  valore/100 g × grammi) e il valore PER 100 G, riferito ai grammi del **primo**
+  alimento (l'"alimento principale"), non al peso totale. Cosi' "carbonara da
+  800 kcal con 200 g di pasta" significa che 100 g nel diario valgono 400 kcal:
+  e' il peso che si misura davvero in cucina. Sulle colonne standard
+  (`calories_kcal`…) si salva il per-100 g, quindi il diario riscala senza sapere
+  che e' un composto; `total_kcal`, `main_grams` e i `components` (coi grammi)
+  restano come spiegazione. Si riconosce dall'asterisco nel nome
+  (`foodDisplayName`). Un composto puo' avere delle **varianti** (lo stesso piatto
+  fatto diverso): vivono dentro di lui (`addVariant`), nell'elenco lo rendono un
+  accordion (uno aperto alla volta) e in ricerca compaiono appiattite
+  (`flattenCustomFoods`), altrimenti non si potrebbero mettere nel diario.
+- Righe degli elenchi personali (`PersonalRow` in `pages/Prodotti`): click apre
+  le varianti, doppio click riapre la modale per modificare, pressione prolungata
+  arma il cestino rosso, che poi chiede conferma.
+- **Uscita e salvataggio delle modali di Alimentazione**: `hooks/useModalGuard` +
+  `ui/ModalActions`. "Salva" e' disabilitato se non c'e' niente da salvare
+  (`useDirty` confronta la form con com'era all'apertura); premuto, mostra
+  "Salvataggio confermato" per mezzo secondo e chiude. X e Annulla chiedono
+  conferma solo se ci sono modifiche, "Ricomincia" idem. Ricominciare svuota solo
+  la FORM: quello che era gia' salvato resta finche' non si salva davvero.
+  Gli **alimenti personali** stanno in localStorage con la STESSA forma di una
+  riga di `food_items` (`name`, `calories_kcal`, `protein_g`…, `source: 'custom'`),
+  cosi' passano per `baseFromFoodItem`/`scaleNutrients` e per la tendina senza
+  casi speciali. Valori sempre per 100 g: nella modale la quantita' non e' un
+  campo ma un'etichetta fissa "/100 g". `FoodSearchInput` li unisce ai risultati
+  del catalogo con `mergeCustomFoods`, che li mette SUBITO DOPO il primo
+  ("bistecca" -> Bistecca, Bistecca Simone, Bistecca di manzo…); compaiono
+  immediatamente, senza attendere il debounce, perche' sono gia' in memoria.
 - `Peso`: registro del peso corporeo local-first (`/peso`, linkata da `Profilo`).
   Riepilogo (peso attuale + variazione), grafico di andamento a linea singola
   (`WeightChart`, SVG inline in accento), aggiunta/modifica misura (`WeightEditor`:
@@ -214,12 +283,26 @@ autocomplete sul catalogo `public.catalog_exercises` via
 `services/catalogs.searchCatalogExercises`, che chiama la RPC
 `search_catalog_exercises(search, p_locale, max_results)`: ricerca fuzzy e
 multilingua — matcha su it/en/es/fr/zh (alias in `catalog_exercise_i18n`) e
-mostra il nome nella lingua attiva. Scegliendo un risultato compila
+mostra il nome nella lingua attiva. Cerca ANCHE per ATTREZZO tramite il
+vocabolario `public.catalog_equipment` ("manubri" trova "Curl a Martello", che i
+manubri non li ha nel nome); ordine: nome-prefisso, nome-contiene, attrezzo,
+refuso. In tendina l'attrezzo compare sotto al nome, tradotto via
+`data/equipment.js` (chiavi `equipment.*`). Scegliendo un risultato compila
 `titolo` + `foto`. Se Supabase non e' configurato resta input manuale).
 Modali riusabili:
 `ConfirmModal`, `PromptModal`, `GiornataPickerModal`. Auth: `AuthShell`.
-Alimentazione: `FoodEditor` (aggiungi/modifica alimento, riusa `ui/Field`),
-`NutritionGoalsEditor` (obiettivi giornalieri).
+Alimentazione: `FoodEditor` (aggiungi/modifica alimento, riusa `ui/Field`; prima
+riga = due select, "Pasto" + "Pasto personalizzato"), `CustomMealEditor` (crea un
+pasto personalizzato, stessa veste), `NutritionGoalsEditor` (obiettivi giornalieri).
+Il campo Nome/ricerca sul catalogo (tendina risultati + scanner barcode) e'
+`FoodSearchInput`, condiviso dalle due modali.
+I pasti personalizzati stanno in `data/customMeals.js` (localStorage): stessa forma
+di un alimento del diario + `nome`, `meal`, `alimento`. Sceglierne uno nel
+`FoodEditor` ne copia i valori nella form e riporta il pasto della giornata.
+**Regola dei valori (in entrambe le modali)**: finche' arrivano da un prodotto del
+catalogo (`base` = valori/100 g, `scaleNutrients` in `nutritionDefaults`) cambiare i
+grammi li riscala tutti; appena l'utente ne scrive uno a mano `base` va a null e
+non si ricalcola piu' nulla.
 
 ## Theming e i18n
 

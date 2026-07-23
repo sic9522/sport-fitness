@@ -56,6 +56,348 @@ Da NON dare per scontato:
 
 ## Log
 
+### 2026-07-23 - Claude (prodotti nascosti, sincronizzati sull'account)
+
+- Richiesta: "se l'utente clicca elimina non deve piu' vedere quel prodotto, e
+  deve essere sincronizzato con il suo account". Risolto il limite dichiarato
+  poche ore prima (catalogo in sola lettura) senza forzare la RLS.
+- **"Elimina" ora fa due cose**, a seconda di cosa e' selezionato: la roba propria
+  si cancella davvero; i prodotti del CATALOGO si NASCONDONO. Nascosto = via da
+  tutti gli elenchi e dalla ricerca del diario, su tutti i dispositivi.
+- Perche' nascondere e non cancellare: `food_items` e' condiviso da tutti gli
+  utenti (223.000 righe importate + i generici). Cancellarne una riga la
+  toglierebbe a chiunque — la RLS lo vieta, e giustamente. "Non voglio piu'
+  vederlo" e' una preferenza PERSONALE, e come tale si registra.
+- **Migrazione 20260723170000**: `public.hidden_food_items (user_id, food_id)`,
+  PK composta (nascondere due volte non e' un errore), RLS per proprietario
+  (select/insert/delete separate).
+- Client: `data/hiddenFoods` (localStorage, local-first come il resto),
+  `services/hiddenFoods`, `hooks/useHiddenFoods`. Al login le due liste si
+  **UNISCONO**: nascondere e' un'azione che si somma e non puo' entrare in
+  conflitto con se' stessa, quindi non serve decidere quale dispositivo "vince".
+  Il ripristino e' l'unica operazione che toglie e cancella anche sul cloud.
+- Se il cloud non risponde (o la migrazione non e' ancora stata eseguita) la
+  lista locale continua a valere: nascondere non e' un'operazione che valga la
+  pena interrompere con un errore.
+- Link "Ripristina" nella barra comandi, visibile solo se c'e' qualcosa da
+  ripristinare: senza via di ritorno, un click sbagliato sarebbe definitivo.
+
+### 2026-07-23 - Claude (Prodotti: due liste, ordinamento, selezione multipla)
+
+- La tab **Prodotti** ora ha due sotto-liste: *Lista personalizzata* (i generici
+  curati da noi + tutto quello dell'utente, varianti comprese) e *Tutti gli
+  alimenti* (il catalogo, come prima). La prima sta tutta IN MEMORIA: i generici
+  sono 158, si leggono con una query sola (`listGenericFoods`) e da li' filtro e
+  ordinamento non costano altre query.
+- Barra comandi condivisa (`components/FoodFilterBar`): select del criterio
+  (nome, kcal, i 5 macro — `data/foodSort`), select crescente/decrescente,
+  "Seleziona" che fa comparire le caselle, "Seleziona tutti"/"Deseleziona tutti"
+  e il cestino.
+- **Ordinare la lista completa ricarica dal DATABASE**, non riordina a schermo:
+  su 223.000 righe riordinare le sole 50 caricate darebbe una classifica finta.
+  Ordinando per un nutriente i "due secchi" (lettere/speciali) non si usano — non
+  c'entrano nulla con un ordine numerico — e le intestazioni di lettera spariscono.
+- I valori mancanti vanno in fondo in ENTRAMBI i versi, sia in SQL (`nulls last`)
+  sia in memoria: un alimento di cui non sappiamo le fibre non deve vincere la
+  classifica delle fibre perche' il campo e' vuoto.
+- **Limite reale da tenere a mente**: si possono modificare (doppio click) e
+  cancellare solo gli alimenti PROPRI. Catalogo e generici stanno su Supabase con
+  RLS in sola lettura: dal browser non si toccano. La cancellazione multipla
+  cancella i propri e DICE quanti ne restano e perche', invece di ignorarli in
+  silenzio. Se un giorno si vuole "nascondere" un prodotto del catalogo, la strada
+  e' una blocklist locale, non una delete.
+- **Migrazione FACOLTATIVA `20260723160000_food_sort_indexes.sql`**: indici sui
+  nutrienti (`nulls last`, stesso ordine della query). Senza, ordinare per kcal
+  costa **2,4 s** — misurato via REST sul progetto vero. Senza indici la pagina
+  funziona lo stesso, solo lenta.
+
+### 2026-07-23 - Claude (Prodotti > Personali: tre blocchi)
+
+- La tab e' ora divisa in tre sezioni (`PersonalSection` in `pages/Prodotti`),
+  nell'ordine chiesto da Simone: **Alimenti personalizzati**, **Alimenti
+  composti**, **Pasti personalizzati**. Prima le tre card di creazione stavano
+  tutte in cima e gli elenchi sotto, senza corrispondenza visiva.
+- **Il tasto di creazione cambia forma con lo stato**: finche' il blocco e' vuoto
+  e' la card grande che spiega a cosa serve; appena c'e' del contenuto diventa un
+  "+" accanto al titolo — la spiegazione l'hai gia' letta e lo spazio serve
+  all'elenco. Sparite le frasi "non hai ancora...": lo stato vuoto e' la card.
+- Freccia dell'accordion spostata DOPO il nome: prima si legge di cosa si tratta,
+  poi si vede che c'e' dell'altro sotto.
+- Semplici e composti restano nella stessa lista in `data/customFoods` (serve
+  alla ricerca e al controllo dei nomi doppi); e' la pagina a separarli con
+  `isCompositeFood`.
+
+### 2026-07-23 - Claude (nomi: maiuscole e unicita')
+
+- Iniziali maiuscole: era GIA' cosi' (`titleCase` al salvataggio in tutte e
+  quattro le modali di Alimentazione), verificato, nessuna modifica.
+- **Nomi doppi vietati, ma per insiemi separati** (`isNameTaken` in
+  `data/customFoods`): due alimenti semplici non possono chiamarsi uguale, due
+  composti nemmeno, ma un semplice e un composto SI' — sono cose diverse
+  (l'ingrediente e il piatto) e nella tendina il composto ha l'asterisco.
+  Le varianti contano tra i composti: finiscono in ricerca anche loro.
+  Il confronto ignora maiuscole e spazi ai bordi ("bistecca simone" e "Bistecca
+  Simone" sono lo stesso nome). In modifica la voce non fa conflitto con se'
+  stessa (`excludeId`).
+- In UI: messaggio sotto il campo Nome e "Salva" disabilitato, invece che un
+  errore al momento del salvataggio.
+
+### 2026-07-23 - Claude (varianti, gesti sugli elenchi, conferme delle modali)
+
+- **Composto**: via la scritta tra parentesi accanto ai grammi; le righe ora si
+  chiamano Alimento principale / Alimento secondario / Altro alimento (dal 3° in
+  poi). Nuovo tasto **"Aggiungi variante"** accanto a "Aggiungi alimento".
+- **Varianti**: stesso piatto fatto diverso. Vivono DENTRO l'originale
+  (`addVariant`/`removeVariant` in `data/customFoods`), non nell'elenco: cosi' si
+  trovano dove uno le cerca. Nell'elenco un composto con varianti diventa un
+  ACCORDION (uno aperto alla volta, `openFood`). In ricerca l'elenco viene
+  appiattito (`flattenCustomFoods`): una variante che non si potesse mettere nel
+  diario non servirebbe a niente. Un livello solo: le varianti non hanno varianti.
+- **Gesti sulle righe personali** (`PersonalRow` in `pages/Prodotti`): click apre
+  le varianti, doppio click riapre la modale in modifica, pressione prolungata
+  (`useLongPress`, gia' in casa) arma un cestino rosso che poi chiede conferma.
+  Il cestino si disarma da solo dopo 4s: uno lasciato acceso e' un incidente che
+  aspetta. Le tre modali accettano ora `initial` per la modifica.
+- **Conferme, riscritte a meta' lavoro su richiesta di Simone**
+  (`hooks/useModalGuard` + `ui/ModalActions`), regole:
+  * "Salva" DISABILITATO se non c'e' niente da salvare (`useDirty` confronta la
+    form con com'era all'apertura); premuto non chiede nulla, mostra
+    "Salvataggio confermato" per 500 ms e chiude;
+  * X e Annulla chiedono "uscire senza salvare?" SOLO se ci sono modifiche;
+  * "Ricomincia" chiede conferma solo se ci sono dati, altrimenti svuota e basta;
+  * "Aggiungi variante" avvisa: "crea prima l'alimento originale" (form nuova)
+    o "conferma prima il salvataggio" (modifiche in sospeso).
+  Punto sottile che regge il tutto: **ricominciare svuota solo la FORM**. Quello
+  che era gia' salvato non si tocca finche' non si salva davvero, quindi
+  ricomincia + esci senza salvare lascia la voce com'era.
+- Applicate alle 4 modali di Alimentazione (Aggiungi pasto, pasto
+  personalizzato, alimento, composto), non a tutte le modali dell'app.
+
+### 2026-07-23 - Claude (alimenti composti)
+
+- Terza card in Prodotti → Personali: **alimento composto**
+  (`components/CompositeFoodEditor.jsx`). Nome + fino a 20 righe, ognuna col
+  campo di ricerca di "Aggiungi un pasto" (`FoodSearchInput`), bottone "+" per
+  aggiungerne e cestino per toglierne. Nessun valore si scrive: kcal e macro si
+  calcolano e si mostrano in sola lettura.
+- **Il calcolo, rifatto lo stesso giorno su indicazione di Simone.** Prima era la
+  media dei valori/100 g (unica cosa possibile senza quantita'); ora ogni
+  ingrediente ha i suoi GRAMMI e `compositeNutrients` produce due numeri:
+  * `totals` = il piatto intero (somma di valore/100 g x grammi);
+  * `per100` = quanto vale 100 g dell'**alimento principale**, cioe' il PRIMO
+    della lista — non del peso totale.
+  Il riferimento e' il principale perche' e' il peso che si misura davvero in
+  cucina: "carbonara da 800 kcal con 200 g di pasta" vuol dire che scrivendo
+  100 g nel diario si contano 400 kcal (esempio testuale di Simone, ora un test).
+  Col peso totale (pasta+uova+guanciale) quel 100 g non corrisponderebbe a nulla
+  di pesabile.
+- Si salva il per-100 g sulle colonne standard (`calories_kcal`…), cosi' il
+  diario riscala senza sapere che e' un composto; `total_kcal`, `main_grams` e i
+  `components` (coi grammi) restano come spiegazione del numero.
+- Un nutriente entra nel conto solo dagli ingredienti che lo dichiarano; se non
+  lo dichiara nessuno resta null (non dichiarato non e' zero). Un ingrediente
+  senza grammi non conta: non si sa quanto se ne sia usato. Senza grammi sul
+  principale il per-100 g non esiste e il salvataggio si blocca.
+- I composti si riconoscono dall'**asterisco** dopo il nome (`foodDisplayName`),
+  che marca il valore come stima. L'asterisco compare negli elenchi e nella
+  tendina di ricerca; il nome salvato nel diario resta pulito.
+- Semplici e composti stanno nella STESSA lista `customFoods` (si distinguono da
+  `components`), quindi ricerca, ordinamento "secondi" e uso da "Aggiungi pasto"
+  e dal pasto personalizzato valgono per entrambi senza codice in piu'.
+
+### 2026-07-23 - Claude (alimenti personali)
+
+- Prodotti → Personali ha ora DUE card di creazione: pasto personalizzato (già
+  c'era) e **alimento personale** (`components/CustomFoodEditor.jsx`), più i due
+  elenchi. La card ripetuta è diventata il componente `CreateCard`.
+- La modale chiede nome e kcal; i macro stanno in un accordion come nel pasto.
+  **La quantità non è un campo**: "/100 g" è un'etichetta fissa accanto alle
+  kcal. I valori del catalogo sono per 100 g e riscalarli è tutto il senso del
+  diario — lasciare modificabile la base avrebbe rotto il confronto tra le fonti.
+  Macro lasciato vuoto = `null`, non 0 (stessa regola dell'import alimenti: un
+  nutriente non dichiarato non è un nutriente a zero).
+- **Forma dati**: `data/customFoods.js`, localStorage, con le stesse chiavi di una
+  riga di `food_items` (`name`, `calories_kcal`, `protein_g`…) e `source: 'custom'`.
+  Così passano per `baseFromFoodItem`/`scaleNutrients` e per la tendina senza un
+  solo caso speciale.
+- **Ordine in ricerca** (richiesta esplicita): `mergeCustomFoods` inserisce i
+  propri alimenti SUBITO DOPO il primo risultato — "bistecca" dà Bistecca,
+  Bistecca Simone, Bistecca di manzo… Sono pochi e sono tuoi, quindi vanno
+  trovati subito, ma non devono coprire la voce che uno si aspetta in cima.
+  Compaiono senza attendere il debounce: sono già in memoria.
+- **Numeri**: nuovo `utils/numberInput.js` (`onlyDigits`, `decimalInput`). La
+  virgola diventa punto MENTRE si digita, perché su tastiera italiana è il tasto
+  decimale e `Number('1,5')` è NaN. Applicato anche dove mancava e sarebbe stato
+  un bug silenzioso: i grammi di `FoodEditor` e `CustomMealEditor` non
+  ripulivano nulla, quindi "10,5" non riscalava e non lo diceva.
+
+### 2026-07-23 - Claude (ricerca esercizi PER ATTREZZO + catalogo a ~110)
+
+- Stesso schema del lavoro sugli alimenti, applicato alla palestra su richiesta di
+  Simone: cercando "manubri" devono uscire gli esercizi che i manubri li USANO,
+  non solo quelli che hanno la parola nel nome (esempio suo: "Curl a Martello").
+- **Il problema**: `catalog_exercises.equipment` contiene slug INGLESI
+  ('dumbbell', 'barbell'…) e la RPC cercava solo nei nomi (+ alias i18n). Quindi
+  l'attrezzo, che è il modo più naturale di cercare in palestra, non era una
+  chiave di ricerca.
+- **Migrazione 20260723140000**: tabella `public.catalog_equipment`
+  (slug, label_it, search_terms, sort_order) con 10 attrezzi — i 6 esistenti più
+  `ez-bar`, `smith`, `band`, `trx` — e `search_catalog_exercises` riscritta per
+  consultarla. Ordine: nome che inizia col testo → nome che lo contiene →
+  **attrezzo corrispondente** → refuso nel nome. La tolleranza ai refusi
+  (`lev_le_one`, già esistente) ora vale anche sull'attrezzo: "bilancere" trova
+  tutto il bilanciere. Verificato in lettura sul DB vero: "manubri" dà Affondi/
+  Panca Inclinata con Manubri, poi Alzate Laterali, Arnold Press, Curl a Martello.
+- **Migrazione 20260723150000**: 76 esercizi nuovi (34 → 110), con l'attrezzo
+  giusto su ognuno, per dare sostanza alla ricerca per attrezzo — prima di
+  "bilanciere EZ" non esisteva nulla e dei manubri c'erano 4 esercizi. Include i
+  movimenti dell'esempio: Spinte con Manubri, Curl con Manubri, Curl con
+  Bilanciere EZ. `preacher-curl` passa da barbell a ez-bar.
+- Client: nessuna modifica alla firma della RPC. In tendina, sotto il nome,
+  compare l'ATTREZZO (`data/equipment.js` → chiavi `equipment.*` × 5 lingue), così
+  si capisce perché "Curl a Martello" esce cercando "manubri". Le etichette
+  mostrate stanno nell'i18n del client, non nel `label_it` del DB: quello serve
+  alla ricerca (sinonimi), l'app parla 5 lingue.
+- **ESEGUITE tutte e quattro** (alimenti + esercizi) da Simone il 2026-07-23 e
+  verificate sul DB con la chiave anon, cioè il percorso vero dell'app:
+  "bistecca" → Bistecca 145 · di manzo · di pollo · di maiale · di cavallo · di
+  vitello · di tacchino · Fiorentina; "manubri" → 13 esercizi col nome, poi
+  Alzate, Arnold Press, Curl a Martello…; "bilancere" (refuso) → tutto il
+  bilanciere, EZ compreso.
+- Dopo la verifica: limite dell'autocomplete esercizi da 8 a **24**. Cercando un
+  ATTREZZO i risultati sono legittimamente tanti (23 esercizi coi manubri) e con
+  8 posti li riempivano tutti quelli che hanno "manubri" nel NOME — restava
+  fuori "Curl a Martello", cioè proprio ciò che la ricerca per attrezzo serve a
+  trovare. La tendina scorre già, quindi la lista lunga non disturba.
+
+### 2026-07-23 - Claude (ricerca alimenti: ranking + alimenti generici)
+
+- **Il problema**, dalla segnalazione di Simone: cercando "bistecca" uscivano
+  "Bistecca bianca di Marsure" (un formaggio), "Bistecca di formaggio alla
+  rucola" e DUE VOLTE "Bistecca Di Lombo Di Suino". Tre cause distinte:
+  1. il catalogo ha solo prodotti CONFEZIONATI (OFF + FDC Branded): gli alimenti
+     generici non sono roba da scaffale, quindi "bistecca" non esisteva proprio;
+  2. la ricerca era `ilike '%q%'` ordinata per NOME → zero rilevanza, vince
+     l'alfabeto;
+  3. nessuna deduplica: lo stesso prodotto occupa più posti in tendina.
+- **Migrazione 20260723120000**: colonna `search_terms` (sinonimi) + RPC
+  `search_food_items(search, max_results)` che ordina per rank
+  (0 generico esatto → 1 generico che inizia col testo → 2 generico che lo
+  contiene → 3/4/5 idem per i confezionati), a parità di rank vince il nome più
+  corto, e deduplica per (nome, marca). I candidati sono limitati PRIMA di
+  ordinare (generici tutti, confezionati max 300): su un prefisso comune i match
+  sono decine di migliaia e ordinarli tutti costa secondi.
+- Nella stessa migrazione: **`food_items_name_btree_idx`**. Il btree sul nome NON
+  esisteva — la migrazione 20260721100000 lo creava come `food_items_name_idx`,
+  nome già occupato dall'indice GIN `to_tsvector(name)`, quindi `if not exists`
+  l'ha saltato in silenzio. Senza btree ogni "Carica altri" della pagina Prodotti
+  riordina da capo 223.000 righe.
+- **Migrazione 20260723130000**: 158 alimenti generici italiani (`source =
+  'generic'`), per 100 g di prodotto CRUDO/come si pesa, medie arrotondate da
+  tabelle di composizione. Famiglie: carne (con la famiglia "bistecca" completa:
+  manzo/vitello/maiale/pollo/tacchino/cavallo, più "Bistecca" da sola = media),
+  salumi, pesce, uova, latticini, cereali, legumi, verdura, frutta, frutta secca,
+  condimenti, dolci, bevande, integratori. Rieseguibile (on conflict do update):
+  correggere un valore = ritoccare la riga e rilanciare.
+- Client: `searchFoodItems` ora chiama la RPC (niente più ilike da JS) e
+  `isGenericFood` marca le voci; in tendina e in elenco al posto della marca
+  compare "Generico", così si capisce perché stanno in cima.
+- **NON APPLICATE**: l'MCP Supabase è in sola lettura, le due migrazioni le deve
+  eseguire Simone nel SQL Editor. Il corpo della RPC è stato però verificato sul
+  DB vero come query in lettura: la deduplica toglie il doppio "Lombo di suino" e
+  l'ordinamento simulato coi generici dà esattamente Bistecca → di manzo → di
+  pollo → di maiale → di cavallo → di vitello → di tacchino.
+
+### 2026-07-23 - Claude (modale "Crea un nuovo pasto personalizzato")
+
+- `components/CustomMealEditor.jsx`: stessa veste della modale "Aggiungi un
+  pasto". Righe: (1) nome del pasto + select pasto della giornata, (2) campo
+  Nome/ricerca sul catalogo, (3) accordion "Macro-nutrienti" con grammi, kcal e i
+  5 macro, (4) due bottoni piccoli a destra: Ricomincia e Salva. Sostituisce il
+  segnaposto `CreateCustomMealStub`, ora rimosso.
+- **Regola dei valori** (la stessa dell'editor alimenti, ora esplicita): prodotto
+  scelto dal catalogo → `base` = valori/100 g; cambiando i grammi si riscalano
+  tutti; appena l'utente scrive a mano un valore qualsiasi `base` va a null e da
+  lì non si ricalcola più niente. Una riga sotto i campi dice quale dei due
+  regimi è attivo (`products.autoValues` / `products.manualValues`).
+- **Estratte due parti condivise** invece di duplicarle:
+  `components/FoodSearchInput.jsx` (campo Nome = ricerca catalogo + tendina +
+  scanner barcode) e `baseFromFoodItem`/`scaleNutrients` in `nutritionDefaults`
+  (era `scaledFrom`, privata di FoodEditor). `FoodEditor` è stato riscritto per
+  usarle: ~90 righe in meno, comportamento identico. `SELECT_CLS` ora esportata.
+- Una voce salvata ha `{ id, nome, meal, alimento, grammi, kcal, +5 macro }`;
+  `upsertCustomMeal` sostituisce per id e riordina per nome. Sceglierla nel
+  `FoodEditor` riporta anche il pasto della giornata.
+- 10 test nuovi (scalatura + upsert). Nuove chiavi `products.customName`,
+  `customNamePlaceholder`, `restart`, `autoValues`, `manualValues` × 5 lingue;
+  rimossa `products.createCustomTodo` (era del segnaposto).
+
+### 2026-07-23 - Claude (pagina Prodotti)
+
+- Nuovo bottone "Prodotti" in Alimentazione, sotto "Aggiungi pasto" (secondario,
+  bordo) → `/alimentazione/prodotti` (`pages/Prodotti.jsx`, lazy in `App.jsx`).
+- Due tab: **Prodotti** (catalogo) e **Personali** (pasti personalizzati).
+- Catalogo alfabetico su 223k righe: si legge SOLO a pagine da 50
+  (`listFoodItems` in `services/catalogs.js`) + ricerca `ilike` con debounce.
+  **Perché due "secchi" e non un filtro regex**: `name ~* '^[a-z]'` NON usa
+  l'indice e la query va in TIMEOUT (57014, verificato via REST sul progetto
+  vero); un confronto d'intervallo (`name >= 'A'` / `name < 'A'`) lo usa e resta
+  sotto il secondo anche a offset 150.000. Il secondo secchio (cifre, punteggia-
+  tura: 1.434 righe) si legge dopo il primo, così i caratteri speciali finiscono
+  in FONDO — con l'ordinamento naturale starebbero in testa.
+  Paginazione a offset e non keyset: i nomi non sono unici, `name > ultimo`
+  salterebbe gli omonimi a cavallo di due pagine.
+- Intestazioni di lettera in `data/foodIndex.js` (+ test): le accentate valgono
+  la lettera base ("Èspresso" → E), tutto il resto sotto `#`.
+- Tab Personali: card "Crea un nuovo pasto personalizzato" + elenco da
+  `data/customMeals`. **La modale di creazione NON esiste ancora**: al suo posto
+  `CreateCustomMealStub`, un segnaposto dichiarato tale, perché la card non fosse
+  un bottone morto. Da SOSTITUIRE, non da estendere: restano da decidere i campi
+  (blocco unico di valori o lista di alimenti?).
+- Nuove chiavi `products.*` + `nutrition.products` + `title.products` × 5 lingue.
+
+### 2026-07-23 - Claude (Alimentazione: select "pasto personalizzato")
+
+- Nella modale "Aggiungi un pasto" (`FoodEditor`) la prima riga è ora a DUE
+  colonne: la select "Pasto" di sempre + una nuova select "Pasto personalizzato"
+  con prima voce "Nessuno".
+- Le voci arrivano da `data/customMeals.js` (nuovo, localStorage
+  `fitpulse-pasti-personalizzati`, forma identica a un alimento del diario).
+  **La sezione che crea questi pasti NON esiste ancora**: oggi la lista è vuota e
+  si vede il solo "Nessuno". Quando la sezione arriverà, la select si popola da
+  sola — nessuna modifica al `FoodEditor`.
+- Sceglierne uno ne copia i valori nella form (come `pickFood` col catalogo, ma
+  con `base = null`: i valori sono già quelli del pasto, non si riscalano sui
+  grammi). "Nessuno" NON svuota la form: sgancia e basta, così non si perde per
+  sbaglio quanto già scritto.
+- Nuove chiavi `nutrition.customMeal` / `nutrition.noCustomMeal` × 5 lingue.
+
+### 2026-07-23 - Claude (accesso col numero di telefono via SMS)
+
+- Nell'elenco metodi (`lib/authProviders.js`) "Numero" è ora la PRIMA voce, prima
+  di Google e GitHub. Le voci hanno `kind` (`'otp'` | `'oauth'`): l'OTP resta
+  nell'app, l'OAuth redirige, e i chiamanti distinguono con `isOtpProvider`.
+  `labelToken` traduce le etichette generiche (i marchi restano invariati).
+- Flusso SMS in `components/auth/PhoneOtpForm` (numero → codice, stessa
+  schermata), condiviso da `LoginModal` e da `steps/StepMethod`. Servizi in
+  `services/auth.js`: `sendPhoneOtp` / `verifyPhoneOtp` / `toE164` (numero senza
+  prefisso = Italia, +39). Nel login `shouldCreateUser: false`, così un numero
+  non registrato non crea account di nascosto; in registrazione `createUser`.
+- Nel wizard il numero si verifica SUBITO allo step "metodo": dopo il codice la
+  sessione è attiva, quindi si prosegue con anagrafica/fisico e alla fine si
+  scrive solo il profilo (`preAuthed`, stesso percorso del ritorno da OAuth). Il
+  numero confermato precompila l'anagrafica; sullo step OTP il bottone "Avanti"
+  del wizard sparisce (comanda il form). `alreadyRegistered` esclude chi si è
+  appena autenticato via SMS, altrimenti il wizard direbbe "hai già un account".
+- **Poi, in giornata: numero e GitHub COMMENTATI in `authProviders.js`** (con i
+  rispettivi import icona) su richiesta di Simone — in UI resta il solo Google
+  finché i provider non sono configurati lato Supabase. Non è un rollback: il
+  codice (OTP, wizard, i18n) è tutto lì, riattivare = togliere il commento.
+- 9 nuove chiavi i18n × 5 lingue. **Lato Supabase serve Simone**: Auth →
+  Sign In / Providers → Phone, abilitare e inserire le credenziali Twilio
+  (Account SID, Auth Token, Message Service SID). Senza quello la UI c'è ma
+  l'invio del codice fallisce.
+
 ### 2026-07-13 - Claude (Palestra: limiti editor, header scheda, recupero per-scheda)
 
 - **Limiti input nell'`EsercizioEditor`**: Nome max 40 + contatore live "n/40" accanto
