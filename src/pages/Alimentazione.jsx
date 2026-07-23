@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
-import { IoRestaurant, IoChevronBack, IoChevronForward, IoAdd, IoTrashOutline, IoChevronDown, IoClose } from 'react-icons/io5'
+import { useNavigate } from 'react-router-dom'
+import { IoRestaurant, IoChevronBack, IoChevronForward, IoAdd, IoTrashOutline, IoChevronDown, IoClose, IoBagHandleOutline } from 'react-icons/io5'
 import TopBar from '../components/TopBar'
 import RingChart from '../components/RingChart'
 import NutritionTrendChart from '../components/NutritionTrendChart'
@@ -92,6 +93,7 @@ function keyToDate(k) {
 
 function Alimentazione() {
   const { t, lang } = useLang()
+  const navigate = useNavigate()
 
   const [selDate, setSelDate] = useState(todayDate)
   const [diario, setDiario] = useState(loadDiario)
@@ -386,6 +388,16 @@ function Alimentazione() {
         >
           <IoAdd className="text-xl shrink-0" />
           {t('nutrition.addMeal')}
+        </button>
+
+        {/* Catalogo prodotti + pasti personalizzati: secondario, non compete col
+            bottone d'azione principale sopra. */}
+        <button
+          onClick={() => navigate('/alimentazione/prodotti')}
+          className="mt-2 w-full flex items-center justify-center gap-2 rounded-full px-4 py-3.5 text-sm font-bold border border-[color:var(--border-2)] bg-[var(--surface)] text-[color:var(--text)] hover:bg-[var(--surface-3)] transition-colors"
+        >
+          <IoBagHandleOutline className="text-xl shrink-0" />
+          {t('nutrition.products')}
         </button>
       </div>
 

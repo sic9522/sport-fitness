@@ -9,6 +9,7 @@ import PageLoader from "./components/PageLoader";
 const Home = lazy(() => import("./pages/Home"));
 const Palestra = lazy(() => import("./pages/Palestra"));
 const Alimentazione = lazy(() => import("./pages/Alimentazione"));
+const Prodotti = lazy(() => import("./pages/Prodotti"));
 const Timer = lazy(() => import("./pages/Timer"));
 const Insights = lazy(() => import("./pages/Insights"));
 const Peso = lazy(() => import("./pages/Peso"));
@@ -32,6 +33,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/palestra" element={<Palestra />} />
           <Route path="/alimentazione" element={<Alimentazione />} />
+          <Route path="/alimentazione/prodotti" element={<Prodotti />} />
           <Route path="/timer" element={<Timer />} />
           <Route path="/insights" element={<Insights />} />
           <Route path="/peso" element={<Peso />} />
