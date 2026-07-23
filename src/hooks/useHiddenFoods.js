@@ -45,11 +45,18 @@ export function useHiddenFoods() {
     return () => { alive = false }
   }, [user, commit])
 
-  const hide = useCallback(ids => {
+  // `cloudIds` = il sottoinsieme da specchiare sull'account, di norma tutto.
+  // Fa eccezione la roba creata dall'utente: i suoi id sono locali e la tabella
+  // hidden_food_items ha una chiave esterna su food_items, quindi il DB li
+  // rifiuterebbe. Restano nascosti qui, dove peraltro vivono.
+  const hide = useCallback((ids, cloudIds = ids) => {
     const list = (ids || []).filter(Boolean)
     if (!list.length) return
     commit(addHiddenFoods(loadHiddenFoods(), list))
-    if (isSupabaseConfigured && user) pushHiddenFoods(user.id, list).catch(() => {})
+    const toPush = (cloudIds || []).filter(Boolean)
+    if (isSupabaseConfigured && user && toPush.length) {
+      pushHiddenFoods(user.id, toPush).catch(() => {})
+    }
   }, [user, commit])
 
   const restoreAll = useCallback(() => {

@@ -56,6 +56,23 @@ Da NON dare per scontato:
 
 ## Log
 
+### 2026-07-23 - Claude (Prodotti: nascondere invece di eliminare)
+
+- Il tasto rosso della lista prodotti ora **NASCONDE** e basta: icona occhio
+  sbarrato (`IoEyeOffOutline`), conferma che dice "non compariranno piu' nelle
+  tue liste ne' nella ricerca, non vengono cancellati". Vale per tutto il
+  selezionato, roba propria compresa. Prima cancellava i propri e nascondeva gli
+  altri: un solo bottone con due esiti diversi era una trappola.
+  **Cancellare davvero si fa dalla tab Personali**, dove il gesto e' esplicito.
+- Conseguenza tecnica: `hide(ids, cloudIds)`. Sul cloud vanno SOLO gli id di
+  catalogo — quelli della roba propria sono locali e `hidden_food_items` ha una
+  chiave esterna su `food_items`, quindi il DB li rifiuterebbe. Restano nascosti
+  in locale, dove peraltro vivono.
+- "Ripristina" ora chiede conferma (dice anche quanti ne tornano visibili).
+- **Modifica: pressione prolungata, non doppio click.** Su un elenco che si
+  scorre col dito due tocchi rapidi capitano per sbaglio. Nella tab Personali il
+  doppio click resta, perche' li' la pressione prolungata arma gia' il cestino.
+
 ### 2026-07-23 - Claude (varianti: bottoni V1-V5 in "Aggiungi un pasto")
 
 - **Le varianti escono dalla RICERCA**: la tendina porta sempre l'ORIGINALE.

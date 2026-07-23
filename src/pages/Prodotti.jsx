@@ -137,17 +137,20 @@ function Prodotti() {
   }
 
   function confirmDelete() {
-    if (deleting.kind === 'bulk') {
-      // Due destini diversi, un solo gesto per l'utente:
-      //   * la roba PROPRIA si cancella davvero;
-      //   * i prodotti del catalogo (e i generici) non si possono cancellare —
-      //     sono condivisi — quindi si NASCONDONO: da qui in poi non compaiono
-      //     più in nessun elenco né nella ricerca, su tutti i suoi dispositivi.
-      const ids = new Set(deleting.items.filter(isCustomFood).map(f => f.id))
-      commitFoods(customFoods
-        .filter(f => !ids.has(f.id))
-        .map(f => (f.variants ? { ...f, variants: f.variants.filter(v => !ids.has(v.id)) } : f)))
-      hide(deleting.items.filter(f => !isCustomFood(f)).map(f => f.id))
+    if (deleting.kind === 'restore') {
+      restoreAll()
+      setDeleting(null)
+      return
+    }
+    if (deleting.kind === 'hide') {
+      // Qui NON si cancella: si toglie dalla propria vista. Cancellare per
+      // davvero si fa dalla tab "Personali", e solo sulla roba propria.
+      // Sul cloud vanno solo i prodotti di catalogo: gli id della roba propria
+      // sono locali e la tabella dei nascosti ha una chiave esterna su food_items.
+      hide(
+        deleting.items.map(f => f.id),
+        deleting.items.filter(f => !isCustomFood(f)).map(f => f.id),
+      )
       clearSelection()
       setDeleting(null)
       return
@@ -302,9 +305,9 @@ function Prodotti() {
     allSelected,
     onToggleAll: () => setSelected(allSelected ? new Set() : new Set(visible.map(f => f.id))),
     selectedCount: selected.size,
-    onDelete: () => setDeleting({ kind: 'bulk', items: visible.filter(f => selected.has(f.id)) }),
+    onDelete: () => setDeleting({ kind: 'hide', items: visible.filter(f => selected.has(f.id)) }),
     hiddenCount: hidden.length,
-    onRestoreHidden: restoreAll,
+    onRestoreHidden: () => setDeleting({ kind: 'restore' }),
   }
 
   // Semplici e composti stanno nella stessa lista (per ricerca e nomi), ma nella
@@ -566,11 +569,7 @@ function Prodotti() {
 
       {deleting && (
         <ConfirmModal
-          title={t('products.deleteTitle')}
-          message={deleting.kind === 'bulk' ? bulkDeleteMessage(deleting.items, t) : t('products.deleteBody', {
-            name: deleting.item.nome ?? deleting.item.name,
-          })}
-          confirmLabel={t('products.deleteConfirm')}
+          {...confirmTexts(deleting, hidden.length, t)}
           cancelLabel={t('common.cancel')}
           danger
           onConfirm={confirmDelete}
@@ -587,13 +586,29 @@ const kcalLabel = (f, t) => `${f.calories_kcal ?? '—'} ${t('nutrition.kcal')}/
 // Messaggio della cancellazione multipla. Dice anche quanti NON si toccano: i
 // prodotti del catalogo (e i nostri generici) stanno su un database condiviso in
 // sola lettura, quindi sparire in silenzio sarebbe una bugia.
-function bulkDeleteMessage(items, t) {
-  const mine = items.filter(isCustomFood).length
-  const others = items.length - mine
-  const parts = []
-  if (mine) parts.push(t('products.deleteSelectedBody', { n: mine }))
-  if (others) parts.push(t('products.deleteSelectedHidden', { n: others }))
-  return parts.join(' ')
+// Testi della conferma: tre azioni diverse, tre domande diverse. Nascondere e
+// ripristinare NON cancellano nulla, e devono dirlo — altrimenti l'utente esita
+// davanti a un bottone rosso senza sapere cosa perde.
+function confirmTexts(deleting, hiddenCount, t) {
+  if (deleting.kind === 'restore') {
+    return {
+      title: t('products.restoreTitle'),
+      message: t('products.restoreBody', { n: hiddenCount }),
+      confirmLabel: t('products.restoreHidden'),
+    }
+  }
+  if (deleting.kind === 'hide') {
+    return {
+      title: t('products.hideTitle'),
+      message: t('products.hideBody', { n: deleting.items.length }),
+      confirmLabel: t('products.hideConfirm'),
+    }
+  }
+  return {
+    title: t('products.deleteTitle'),
+    message: t('products.deleteBody', { name: deleting.item.nome ?? deleting.item.name }),
+    confirmLabel: t('products.deleteConfirm'),
+  }
 }
 
 // Filtro per nome della lista personalizzata: stesso criterio della ricerca sul
@@ -632,16 +647,22 @@ function SearchField({ value, onChange, placeholder }) {
 }
 
 // Riga di un alimento negli elenchi di Prodotti. La casella compare solo in
-// modalità selezione; il doppio click apre la modifica (solo per la roba propria,
-// vedi `editFromCatalog`).
+// modalità selezione; la PRESSIONE PROLUNGATA apre la modifica (solo per la roba
+// propria, vedi `editFromCatalog`). Non il doppio click: su un elenco che si
+// scorre col dito, due tocchi rapidi capitano per sbaglio.
 function CatalogRow({ item, selecting, selected, onToggleSelect, onEdit }) {
   const { t } = useLang()
   const own = isCustomFood(item)
   const sub = own ? t('products.customFood') : isGenericFood(item) ? t('products.generic') : item.brand
+  const press = useLongPress(onEdit)
 
   return (
     <div
-      onDoubleClick={onEdit}
+      onPointerDown={press.start}
+      onPointerUp={press.cancel}
+      onPointerLeave={press.cancel}
+      onPointerCancel={press.cancel}
+      onContextMenu={e => e.preventDefault()} // il long press su mobile aprirebbe il menu
       className="flex items-center gap-3 px-4 py-2.5 border-b border-[color:var(--border-1)] last:border-0"
     >
       {selecting && (

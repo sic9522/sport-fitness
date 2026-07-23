@@ -1,4 +1,4 @@
-import { IoTrashOutline, IoCheckboxOutline } from 'react-icons/io5'
+import { IoEyeOffOutline, IoCheckboxOutline } from 'react-icons/io5'
 import { useLang } from '../context/LanguageContext'
 import { SORT_FIELDS } from '../data/foodSort'
 import { SELECT_CLS } from './FoodEditor'
@@ -61,16 +61,17 @@ function FoodFilterBar({
 
           <span className="text-xs tabular-nums text-[color:var(--text-dim)]">{selectedCount}</span>
 
-          {/* Il cestino è acceso solo se c'è davvero qualcosa da buttare. */}
+          {/* Occhio sbarrato e non cestino: qui non si cancella niente, si toglie
+              dalla propria vista. Acceso solo se c'è qualcosa di selezionato. */}
           <button
             type="button"
             onClick={onDelete}
             disabled={selectedCount === 0}
-            aria-label={t('products.deleteSelected')}
+            aria-label={t('products.hideSelected')}
             className="shrink-0 p-2 rounded-xl text-white disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ backgroundColor: '#ef4444' }}
           >
-            <IoTrashOutline className="text-base" />
+            <IoEyeOffOutline className="text-base" />
           </button>
         </div>
       )}

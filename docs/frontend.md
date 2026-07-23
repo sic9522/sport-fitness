@@ -186,18 +186,21 @@ utenti sullo stesso browser). Da verificare end-to-end su un Supabase reale.
   Entrambe hanno ricerca + barra comandi (`FoodFilterBar`): ordinamento per nome,
   kcal o macro (`data/foodSort`) e selezione multipla. Ordinare la lista completa
   RICARICA dal database (riordinare la sola pagina caricata darebbe una classifica
-  finta); le lettere spariscono se l'ordine non e' alfabetico. Doppio click =
-  modifica, ma solo sulla roba propria (catalogo e generici sono un database
-  condiviso in sola lettura).
-  **"Elimina" fa due cose diverse a seconda di cosa hai selezionato**: la roba
-  propria si cancella davvero, i prodotti del catalogo si NASCONDONO
+  finta); le lettere spariscono se l'ordine non e' alfabetico. **Pressione
+  prolungata = modifica** (non il doppio click: su un elenco che si scorre col
+  dito due tocchi rapidi capitano per sbaglio), e solo sulla roba propria —
+  catalogo e generici sono un database condiviso in sola lettura.
+  **Il tasto rosso qui NASCONDE, non cancella** (occhio sbarrato): vale per
+  tutto il selezionato, roba propria compresa. Cancellare davvero si fa dalla tab
+  Personali. Sul cloud vanno solo gli id di CATALOGO: quelli della roba propria
+  sono locali e `hidden_food_items` ha una chiave esterna su `food_items`
   (`data/hiddenFoods` + `hooks/useHiddenFoods` + tabella
   `public.hidden_food_items`, migrazione 20260723170000). Nascosto = sparito da
   tutti gli elenchi E dalla ricerca del diario, su tutti i dispositivi
   dell'utente. Local-first: funziona da non loggati, e al login le due liste si
   UNISCONO (nascondere si somma, non entra in conflitto). Il ripristino e'
   l'unica operazione che toglie, e cancella anche sul cloud; il link "Ripristina"
-  compare solo quando c'e' qualcosa da ripristinare. Tab
+  compare solo quando c'e' qualcosa da ripristinare e chiede conferma. Tab
   **Personali** = tre blocchi (`PersonalSection`), in ordine: Alimenti
   personalizzati (`CustomFoodEditor`), Alimenti composti (`CompositeFoodEditor`),
   Pasti personalizzati (`CustomMealEditor`). Ogni blocco ha il suo tasto di
