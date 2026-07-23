@@ -30,6 +30,13 @@ data/surveyDownload.json
 # Script di esplorazione one-off dei dump (prefisso _): scratch locale, non nel repo
 scripts/_*.mjs
 
+# Skill installate da `npx skills add` (rigenerabili, non nel repo)
+.agents/
+# Symlink alle skill qui sopra: senza .agents/ punterebbero nel vuoto
+.claude/skills/
+# Impostazioni Claude Code locali alla macchina
+.claude/settings.local.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
