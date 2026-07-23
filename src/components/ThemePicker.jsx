@@ -88,13 +88,17 @@ function ThemePicker() {
               {/* Chiaro/scuro. L'icona mostra DOVE si va, non dove si è: un sole
                   su fondo scuro si legge come "porta alla luce", ed è il gesto
                   che l'utente sta per fare. */}
+              {/* Sole e luna sono sovrapposti e si scambiano in dissolvenza,
+                  con la stessa durata del cambio di tema: l'icona accompagna il
+                  passaggio invece di anticiparlo con uno scatto. */}
               <button
                 onClick={toggleMode}
                 aria-label={t(dark ? 'colors.light' : 'colors.dark')}
                 title={t(dark ? 'colors.light' : 'colors.dark')}
-                className="w-6 h-6 rounded-full border-2 border-[color:var(--border-4)] flex items-center justify-center transition-transform hover:scale-110 text-[color:var(--text)]"
+                className="relative w-6 h-6 rounded-full border-2 border-[color:var(--border-4)] flex items-center justify-center transition-transform hover:scale-110 text-[color:var(--text)]"
               >
-                {dark ? <IoSunnyOutline className="text-sm" /> : <IoMoonOutline className="text-sm" />}
+                <IoSunnyOutline className={`theme-icon absolute text-sm ${dark ? 'opacity-100' : 'opacity-0'}`} />
+                <IoMoonOutline className={`theme-icon absolute text-sm ${dark ? 'opacity-0' : 'opacity-100'}`} />
               </button>
             </div>
 

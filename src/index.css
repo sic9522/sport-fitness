@@ -206,3 +206,69 @@ input[type='number']::-webkit-inner-spin-button { -webkit-appearance: none; marg
   .player-step-in { animation: nutFade var(--player-anim, 500ms) ease }
   .player-edge-glow { animation: nutFade var(--player-anim, 500ms) ease reverse forwards }
 }
+
+/* ---------- Passaggio chiaro/scuro (design "Atmospheric Theme Toggle") ----------
+   Il cambio di tema non e' un taglio netto ma una dissolvenza lunga, e cambia a
+   seconda della direzione: un lampo verso il buio, un raggio verso la luce.
+
+   La transizione si applica SOLO durante il passaggio, tramite una classe che
+   ThemeContext mette e toglie. Lasciarla sempre attiva renderebbe lenta ogni
+   pressione e ogni hover dell'app: 1,5 s su un bottone sono un'eternita'. */
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+  transition:
+    background-color var(--theme-anim) cubic-bezier(0.4, 0, 0.2, 1),
+    border-color var(--theme-anim) cubic-bezier(0.4, 0, 0.2, 1),
+    color var(--theme-anim) cubic-bezier(0.4, 0, 0.2, 1),
+    fill var(--theme-anim) cubic-bezier(0.4, 0, 0.2, 1),
+    stroke var(--theme-anim) cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+:root { --theme-anim: 1500ms }
+
+/* Velo a tutto schermo: non intercetta i tocchi, sta sopra a tutto e sparisce da
+   solo. E' un pseudo-elemento di <html> per non dover montare nulla in React. */
+html.theme-flash-dark::after,
+html.theme-flash-light::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0;
+}
+
+/* Verso il BUIO: tre lampi in un secondo, come un temporale. */
+html.theme-flash-dark::after {
+  background: #fff;
+  animation: lightningStrike 1s ease-out forwards;
+}
+@keyframes lightningStrike {
+  0%, 10%, 25%, 40%, 100% { opacity: 0 }
+  5%, 20%, 35% { opacity: 0.8 }
+}
+
+/* Verso la LUCE: un raggio che si apre dal centro e svanisce. */
+html.theme-flash-light::after {
+  background: radial-gradient(circle at center, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 70%);
+  animation: sunbeamPulse 1.5s ease-out forwards;
+}
+@keyframes sunbeamPulse {
+  0% { opacity: 0; transform: scale(0.5) }
+  50% { opacity: 1; transform: scale(1.2) }
+  100% { opacity: 0; transform: scale(1.5) }
+}
+
+/* Il sole e la luna del selettore si scambiano in dissolvenza, non a scatto. */
+.theme-icon {
+  transition: opacity var(--theme-anim) cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Un lampo a schermo intero e' esattamente cio' che va tolto a chi chiede meno
+   movimento: resta il cambio di colore, molto piu' breve, e nessun velo. */
+@media (prefers-reduced-motion: reduce) {
+  :root { --theme-anim: 200ms }
+  html.theme-flash-dark::after,
+  html.theme-flash-light::after { display: none }
+}
